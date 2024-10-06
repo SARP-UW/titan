@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "name": "arm_gcc",
+      "includePath": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/include"
+      ],
+      "defines": [
+        "TI_DEBUG",
+        "TI_ARCH_ARMV7",
+        "TI_PLATFORM_STMH7",
+        "TI_ARCH_FPU",
+        "TI_BOARD_STM32H743ZIT3_DC"
+      ],
+      "compilerPath": "${workspaceFolder}/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "gcc-arm",
+      "configurationProvider": "ms-vscode.cmake-tools"
+    }
+  ],
+  "version": 4
+}

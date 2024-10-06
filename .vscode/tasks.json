@@ -1,0 +1,34 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "label": "Build Titan",
+      "command": "cmake --build .",
+      "options": {
+        "cwd": "${workspaceFolder}/build"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": {
+        "base": "$gcc", 
+        "fileLocation": ["relative", "${workspaceFolder}/build"]
+      }
+    },
+    {
+      "type": "shell",
+      "label": "Clean and Build Titan",
+      "command": "cmake --build . --clean-first",
+      "options": {
+          "cwd": "${workspaceFolder}/build"
+      },
+      "group": "build",
+      "problemMatcher": {
+          "base": "$gcc", 
+          "fileLocation": ["relative", "${workspaceFolder}/build"]
+      }
+    }
+  ]
+}

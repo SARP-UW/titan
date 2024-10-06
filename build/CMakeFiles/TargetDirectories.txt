@@ -1,0 +1,3 @@
+D:/main/projects/sarp/flight_computer/titan/build/CMakeFiles/titan.elf.dir
+D:/main/projects/sarp/flight_computer/titan/build/CMakeFiles/edit_cache.dir
+D:/main/projects/sarp/flight_computer/titan/build/CMakeFiles/rebuild_cache.dir

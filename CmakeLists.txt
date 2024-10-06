@@ -1,0 +1,67 @@
+# Setup
+cmake_minimum_required(VERSION 3.15.3)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+# Get the toolchain cmake file
+set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/bin/cmake/arm_gcc_toolchain.cmake)
+
+# Declare project
+project(titan)
+
+# Set language config
+enable_language(CXX C ASM)
+set(CMAKE_C_STANDARD_REQUIRED 11)
+set(CMAKE_CXX_STANDARD_REQUIRED 17)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
+# Set executable and linker file
+set(EXECUTABLE ${PROJECT_NAME}.elf)
+add_executable(${EXECUTABLE} test/main.c)
+
+# Set compiler defines
+target_compile_definitions(${EXECUTABLE} PRIVATE
+    -D TI_ARCH_ARMV7,
+    -D TI_ARCH_FPU,
+    -D TI_PLATFORM_STMH7)
+
+# Set include directory
+target_include_directories(${EXECUTABLE} PRIVATE test)
+
+# Set compiler config
+target_compile_options(${EXECUTABLE} PRIVATE
+    -mcpu=cortex-m4 
+    -mthumb 
+    -mfpu=fpv4-sp-d16 
+    -mfloat-abi=hard
+    -fdata-sections 
+    -ffunction-sections
+    -Wall 
+    -O0 
+    -g3)
+
+# Set linker config
+set(LINKER_FILE )
+target_link_options(${EXECUTABLE} PRIVATE
+    -T${CMAKE_SOURCE_DIR}/bin/link/tmp.ld
+    -mcpu=cortex-m4 
+    -mthumb 
+    -mfpu=fpv4-sp-d16 
+    -mfloat-abi=hard
+    -specs=nano.specs 
+    -lc 
+    -lm 
+    -lnosys
+    -Wl,-Map=${PROJECT_NAME}.map,--cref
+    -Wl,--gc-sections
+    -Xlinker -print-memory-usage -Xlinker)
+
+# Print executable size after build
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+    COMMAND ${CMAKE_SIZE_UTIL} ${EXECUTABLE})
+
+# Create hex, bin and S-Record files after the build
+add_custom_command(TARGET ${EXECUTABLE} POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O srec --srec-len=64 ${EXECUTABLE} ${PROJECT_NAME}.s19
+    COMMAND ${CMAKE_OBJCOPY} -O ihex ${EXECUTABLE} ${PROJECT_NAME}.hex
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${EXECUTABLE} ${PROJECT_NAME}.bin)

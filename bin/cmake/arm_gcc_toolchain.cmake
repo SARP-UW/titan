@@ -1,0 +1,25 @@
+# Setup
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+
+# Get paths for toolchain & prefix for toolchain bin files
+set(TITAN_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../titan)
+set(ARM_TOOLCHAIN_BIN_DIR ${TITAN_ROOT_PATH}/dev/arm_gcc_toolchain/13.3\ rel1/bin)
+set(BINUTILS_PATH ${ARM_TOOLCHAIN_BIN_DIR})
+set(TOOLCHAIN_PREFIX ${ARM_TOOLCHAIN_BIN_DIR}/arm-none-eabi-)
+
+# Set static library
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+# Set compiler and assembler
+set(CMAKE_C_COMPILER "${TOOLCHAIN_PREFIX}gcc.exe")
+set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
+
+# Use prefix to get all of the toolchain bin files
+set(CMAKE_OBJCOPY ${TOOLCHAIN_PREFIX}objcopy CACHE INTERNAL "objcopy tool")
+set(CMAKE_SIZE_UTIL ${TOOLCHAIN_PREFIX}size CACHE INTERNAL "size tool")
+
+set(CMAKE_FIND_ROOT_PATH ${BINUTILS_PATH})
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
