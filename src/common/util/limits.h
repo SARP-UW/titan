@@ -106,7 +106,7 @@ namespace ti::util {
     static constexpr int digits10{0};
 
     /** @brief The maximum number of full base 2 digits representable in this type. */
-    static constexpr int digits2{0};
+    static constexpr int digits{0};
 
     /** @brief True if this type is signed, or false otherwise. */
     static constexpr bool is_signed{false};
@@ -132,7 +132,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits2{get_digits2(this_type::max())};
+    static constexpr int digits{get_digits2(this_type::max())};
 
     static constexpr bool is_signed{true};
     static constexpr bool is_unsigned{false};
@@ -150,7 +150,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits2{get_digits2(this_type::max())};
+    static constexpr int digits{get_digits2(this_type::max())};
     
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};
@@ -169,7 +169,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits2{get_digits2(this_type::max())};
+    static constexpr int digits{get_digits2(this_type::max())};
 
     static constexpr bool is_signed{true};
     static constexpr bool is_unsigned{false};
@@ -188,7 +188,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits2{get_digits2(this_type::max())};
+    static constexpr int digits{get_digits2(this_type::max())};
 
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};
@@ -207,7 +207,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits2{get_digits2(this_type::max())};
+    static constexpr int digits{get_digits2(this_type::max())};
 
     static constexpr bool is_signed{true};
     static constexpr bool is_unsigned{false};
@@ -226,7 +226,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits2{get_digits2(this_type::max())};
+    static constexpr int digits{get_digits2(this_type::max())};
 
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};
@@ -245,7 +245,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits2{get_digits2(this_type::max())};
+    static constexpr int digits{get_digits2(this_type::max())};
 
     static constexpr bool is_signed{true};
     static constexpr bool is_unsigned{false};
@@ -264,7 +264,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits2{get_digits2(this_type::max())};
+    static constexpr int digits{get_digits2(this_type::max())};
 
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};
@@ -283,7 +283,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits2{get_digits2(this_type::max())};
+    static constexpr int digits{get_digits2(this_type::max())};
 
     static constexpr bool is_signed{true};
     static constexpr bool is_unsigned{false};
@@ -302,7 +302,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits2{get_digits2(this_type::max())};
+    static constexpr int digits{get_digits2(this_type::max())};
 
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};
@@ -321,7 +321,7 @@ namespace ti::util {
     [[nodiscard]] static constexpr signed char lowest() { return min(); }
 
     static constexpr int digits10{0};
-    static constexpr int digits2{1};
+    static constexpr int digits{1};
 
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};

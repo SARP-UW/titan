@@ -57,7 +57,7 @@ namespace ti::util {
    */
   template<typename Tl, typename Tr>
   [[nodiscard]] constexpr bool cmp_less(const Tl l_value, const Tr r_value);
-
+  
   /**
    * @brief Safely determines if one integer of any type is greater than
    *        annother integer of any type.
