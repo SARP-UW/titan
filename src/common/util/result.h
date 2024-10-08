@@ -22,11 +22,10 @@
  */
 
 #pragma once
-#include "common/util/cstdint.h"
-#include "common/util/type_traits.h"
-#include "common/util/utility.h"
-#include "common/util/misc.h"
 #include "common/tmp.h"
+#include "common/util/cstdint.h"
+#include "common/util/utility.h"
+#include "common/util/type_traits.h"
 
 namespace ti::util {
 
@@ -36,12 +35,15 @@ namespace ti::util {
 
   namespace {
 
+    // Tags used for construction of error/valid values.
     struct Vtag {};
     struct Etag {};
 
+    // Class which contains optional Result destructor.
     template<typename V, typename E, typename = void>
     struct ResultBase;
 
+    // True if given type is a valid V/E type for Result.
     template<typename T>
     inline constexpr bool valid_result_type_v{
         !is_void_v<T> && !is_reference_v<T>};
@@ -54,34 +56,98 @@ namespace ti::util {
    * @section Result Class Utilities
    **************************************************************************************************/
 
+  /**
+   * @brief Wrapper aggregate used to indicate that the given value is 
+   *        associated with an error.
+   * @tparam T The type of the error value.
+   */
   template<typename T>
   struct Error {
-    using ValueType = T;
-    T value;
+    using ValueType = T; /** @brief The type of the error value. */
+    T value; /** @brief The error value. */
   };
 
+  /**
+   * @brief Wrapper aggregate used to indicate that the given value is
+   *        not associated with an error.
+   * @tparam T The type of the valid value.
+   */
   template<typename T>
   struct Valid {
-    using ValueType = T;
-    T value;
+    using ValueType = T; /** @brief The type of the valid value. */
+    T value; /** @brief The valid value. */
   };
 
-  template<typename T> Error(T) -> Error<T>;
   template<typename T> Valid(T) -> Valid<T>;
+  template<typename T> Error(T) -> Error<T>;
 
+  /**
+   * @brief Template bool value that evaluates to true if the given type
+   *        is a 'Result' class type, or false otherwise.
+   * @tparam T The type to query.
+   * @note - CV qualifiers on @p 'T' are ignored.
+   */
   template<typename T> 
   inline constexpr bool is_result_v{false};
 
+  /**
+   * @brief @brief Template bool value the evaluates to true if the given type
+   *        is a 'Error' struct type, or false otherwise.
+   * @tparam T The type to query.
+   * @note - CV qualifiers on @p 'T' are ignored.
+   */
   template<typename T> 
   inline constexpr bool is_error_v{false};
 
+  /**
+   * @brief Template bool value that evaluates to true if the given type
+   *        is a 'Valid' struct type, or false otherwise.
+   * @tparam T The type to query.
+   * @note - CV qualifiers on @p 'T' are ignored.
+   */
   template<typename T> 
   inline constexpr bool is_valid_v{false};
+
+  /**
+   * @brief Macro used to propegate errors. If the given 'Result' class instance
+   *        contains an error, it is returned from the current function, otherwise 
+   *        this macro evaluates to the contained valid value.
+   * @param fn An expression that evaluates to a 'Result' class instance.
+   */
+  #define TRY(fn) \
+    ({ \
+      auto result{fn};\
+      if (result.is_error()) { \
+        return result.error(); \
+      } \
+      result.value() \
+    })
+
+  /**
+   * @brief Macro used to propegate errors. If the given 'Result' class instance
+   *        contains an error, the given error is returned from the current 
+   *        function, otherwise this macro evaluates to the contained valid value.
+   * @param fn An expression that evaluates to a 'Result' class instance.
+   * @param err The value to return as an error if @p 'fn' represents an error.
+   */
+  #define TRY(fn, err) \
+    ({ \
+      auto result{fn};\
+      if (result.is_error()) { \
+        return err; \
+      } \
+      result.value() \
+    })
 
   /**************************************************************************************************
    * @section Result Class Declaration
    **************************************************************************************************/
 
+  /**
+   * @brief A class which represents either a valid or error value.
+   * @tparam V The type of the valid value.
+   * @tparam E The type of the error value.
+   */
   template<typename V = monostate_t, typename E = monostate_t>
   class Result : public ResultBase<V, E> {
 
@@ -90,214 +156,476 @@ namespace ti::util {
       static_assert(valid_result_type_v<V>, "'V' is not a valid result type.");
       static_assert(valid_result_type_v<E>, "'E' is not a valid result type.");
 
-      using ValidType = V;
-      using ErrorType = E;
-      using in_place_valid_t = in_place_type_t<Valid<ValidType>>;
-      using in_place_error_t = in_place_type_t<Error<ErrorType>>;
-      using ThisType = Result<V, E>;
+      using ValidType = V; /** @brief The type of the valid value. */
+      using ErrorType = E; /** @brief The type of the error value. */
+      using in_place_valid_t = in_place_type_t<Valid<ValidType>>; /** @brief Tag type used to signal in-place construction of a valid value. */
+      using in_place_error_t = in_place_type_t<Error<ErrorType>>; /** @brief Tag type used to signal in-place construction of an error value. */
+      using ThisType = Result<V, E>; /** @brief The type of this 'Result' class. */
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param valid 
+       */
       template<typename T>
       constexpr Result(const Valid<T>& valid);
 
+      /// @overload template<typename T> Result(const Valid<T>& valid);
       template<typename T>
       constexpr Result(Valid<T>&& valid);
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param error 
+       */
       template<typename T>
       constexpr Result(const Error<T>& error);
 
+      /// @overload template<typename T> Result(const Error<T>& error);
       template<typename T>
       constexpr Result(Error<T>&& error);
 
+      /**
+       * @brief TODO
+       * @tparam V1 
+       * @tparam E1 
+       * @param other 
+       */
       template<typename V1, typename E1>
       constexpr Result(const Result<V1, E1>& other);
 
+      /// @overload template<typename V1, typename E1> Result(const Result<V1, E1>& other);
       template<typename V1, typename E1>
       constexpr Result(Result<V1, E1>&& other);
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @tparam ...Args 
+       * @param  
+       * @param ...args 
+       */
       template<typename T, typename... Args>
       constexpr explicit Result(in_place_type_t<Valid<T>>, Args&&... args);
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @tparam ...Args 
+       * @param  
+       * @param ...args 
+       */
       template<typename T, typename... Args>
       constexpr explicit Result(in_place_type_t<Error<T>>, Args&&... args);
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param valid 
+       * @return 
+       */
       template<typename T>
       ThisType& operator=(const Valid<T>& valid);
 
+      /// @overload template<typename T> ThisType& operator=(const Valid<T>& valid);
       template<typename T>
       ThisType& operator=(Valid<T>&& valid);
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param error 
+       * @return 
+       */
       template<typename T>
       ThisType& operator=(const Error<T>& error);
 
+      /// @overload template<typename T> ThisType& operator=(const Error<T>& error);
       template<typename T>
       ThisType& operator=(Error<T>&& error);
 
+      /**
+       * @brief 
+       * @tparam V1 
+       * @tparam E1 
+       * @param other 
+       * @return 
+       */
       template<typename V1, typename E1>
       ThisType& operator=(const Result<V1, E1>& other);
 
+      /// @overload template<typename V1, typename E1> ThisType& operator=(const Result<V1, E1>& other);
       template<typename V1, typename E1>
       ThisType& operator=(Result<V1, E1>&& other);
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @tparam ...Args 
+       * @param  
+       * @param ...args 
+       */
       template<typename T>
       void emplace(const Valid<T>& valid);
 
+      /// @overload template<typename T> void emplace(const Valid<T>& valid);
       template<typename T>
       void emplace(Valid<T>&& valid);
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param error 
+       */
       template<typename T>
       void emplace(const Error<T>& error);
 
+      /// @overload template<typename T> void emplace(Error<T>&& error);
       template<typename T>
       void emplace(Error<T>&& error);
 
+      /**
+       * @brief TODO
+       * @tparam V1 
+       * @tparam E1 
+       * @param other 
+       */
       template<typename V1, typename E1>
       void emplace(const Result<V1, E1>& other);
 
+      /// @overload template<typename V1, typename E1> void emplace(const Result<V1, E1>& other);
       template<typename V1, typename E1>
       void emplace(Result<V1, E1>&& other);
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @tparam ...Args 
+       * @param  
+       * @param ...args 
+       */
       template<typename T, typename... Args>
       void emplace(in_place_type_t<Valid<T>>, Args&&... args);
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @tparam ...Args 
+       * @param  
+       * @param ...args 
+       */
       template<typename T, typename... Args>
       void emplace(in_place_type_t<Error<T>>, Args&&... args);
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr bool is_valid() const;
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr bool is_error() const;
 
+      /**
+       * @brief TODO
+       */
       constexpr operator bool() const;
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param value 
+       * @return 
+       */
       template<typename T>
       [[nodiscard]] constexpr bool is_valid(const T& value) const;
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param value 
+       * @return 
+       */
       template<typename T>
       [[nodiscard]] constexpr bool is_error(const T& value) const;
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr V& valid() &;
 
+      /// @overload [[nodiscard]] constexpr const V& valid() const &;
       [[nodiscard]] constexpr const V& valid() const &;
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr V&& valid() &&;
 
+      /// @overload [[nodiscard]] constexpr const V&& valid() const &&;
       [[nodiscard]] constexpr const V&& valid() const &&;
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr V& operator*() &;
 
+      /// @overload [[nodiscard]] constexpr const V& operator*() const &;
       [[nodiscard]] constexpr const V& operator*() const &;
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr V&& operator*() &&;
 
+      /// @overload [[nodiscard]] constexpr const V&& operator*() const &&;
       [[nodiscard]] constexpr const V&& operator*() const &&;
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr V* valid_ptr();
 
+      /// @overload [[nodiscard]] constexpr const V* valid_ptr() const;
       [[nodiscard]] constexpr const V* valid_ptr() const;
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr V* operator->();
 
+      /// @overload [[nodiscard]] constexpr const V* operator->() const;
       [[nodiscard]] constexpr const V* operator->() const;
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr E& error() &;
 
+      /// @overload [[nodiscard]] constexpr const E& error() const &;
       [[nodiscard]] constexpr const E& error() const &;
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr E&& error() &&;
 
+      /// @overload [[nodiscard]] constexpr const E&& error() const &&;
       [[nodiscard]] constexpr const E&& error() const &&;
 
+      /**
+       * @brief TODO
+       * @return 
+       */
       [[nodiscard]] constexpr E* error_ptr();
 
+      /// @overload [[nodiscard]] constexpr const E* error_ptr() const;
       [[nodiscard]] constexpr const E* error_ptr() const;
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param def_value 
+       * @return 
+       */
       template<typename T>
       [[nodiscard]] constexpr V valid_or(T&& def_value) const &;
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param def_value 
+       * @return 
+       */
       template<typename T>
       [[nodiscard]] constexpr V&& valid_or(T&& def_value) &&;
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param def_value 
+       * @return 
+       */
       template<typename T>
       [[nodiscard]] constexpr E error_or(T&& def_value) const &;
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param def_value 
+       * @return 
+       */
       template<typename T>
       [[nodiscard]] constexpr E&& error_or(T&& def_value) &&;
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param mapping 
+       * @return 
+       */
       template<typename T>
       constexpr auto map_valid(T&& mapping) &;
 
+      /// @overload template<typename T> constexpr auto map_valid(T&& mapping) &;
       template<typename T>
       constexpr auto map_valid(T&& mapping) const &;
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param mapping 
+       * @return 
+       */
       template<typename T>
       constexpr auto map_valid(T&& mapping) &&;
 
+      /// @overload template<typename T> constexpr auto map_valid(T&& mapping) &&;
       template<typename T>
       constexpr auto map_valid(T&& mapping) const &&;
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param mapping 
+       * @return 
+       */
       template<typename T>
       constexpr auto map_error(T&& mapping) &;
 
+      /// @overload template<typename T> constexpr auto map_error(T&& mapping) &;
       template<typename T>
       constexpr auto map_error(T&& mapping) const &;
 
+      /**
+       * @brief TODO
+       * @tparam T 
+       * @param mapping 
+       * @return 
+       */
       template<typename T>
       constexpr auto map_error(T&& mapping) &&;
 
+      /// @overload template<typename T> constexpr auto map_error(T&& mapping) &&;
       template<typename T>
       constexpr auto map_error(T&& mapping) const &&;
 
+      /**
+       * @brief TODO
+       * @tparam V1 
+       * @tparam E1 
+       * @param valid_mapping 
+       * @param error_mapping 
+       * @return 
+       */
       template<typename V1, typename E1>
       constexpr auto map(V1&& valid_mapping, E1&& error_mapping) &;
 
+      /// @overload template<typename V1, typename E1> constexpr auto map(V1&& valid_mapping, E1&& error_mapping) &;
       template<typename V1, typename E1>
       constexpr auto map(V1&& valid_mapping, E1&& error_mapping) const &;
 
+      /**
+       * @brief TODO
+       * @tparam V1 
+       * @tparam E1 
+       * @param valid_mapping 
+       * @param error_mapping 
+       * @return 
+       */
       template<typename V1, typename E1>
       constexpr auto map(V1&& valid_mapping, E1&& error_mapping) &&;
 
+      /// @overload template<typename V1, typename E1> constexpr auto map(V1&& valid_mapping, E1&& error_mapping) &&;
       template<typename V1, typename E1>
       constexpr auto map(V1&& valid_mapping, E1&& error_mapping) const &&;
 
+      /**
+       * @brief TODO
+       * @tparam F 
+       * @param fn 
+       * @return 
+       */
       template<typename F>
       constexpr void apply_valid(F&& fn) &;
 
+      /// @overload template<typename F> constexpr void apply_valid(F&& fn) &;
       template<typename F>
       constexpr void apply_valid(F&& fn) const &;
 
+      /**
+       * @brief TODO
+       * @tparam F 
+       * @param fn 
+       * @return 
+       */
       template<typename F>
       constexpr void apply_valid(F&& fn) &&;
 
+      /// @overload template<typename F> constexpr void apply_valid(F&& fn) &&;
       template<typename F>
       constexpr void apply_valid(F&& fn) const &&;
 
+      /**
+       * @brief TODO
+       * @tparam F 
+       * @param fn 
+       * @return 
+       */
       template<typename F>
       constexpr void apply_error(F&& fn) &;
 
+      /// @overload template<typename F> constexpr void apply_error(F&& fn) &;
       template<typename F>
       constexpr void apply_error(F&& fn) const &;
 
+      /**
+       * @brief TODO
+       * @tparam F 
+       * @param fn 
+       * @return 
+       */
       template<typename F>
       constexpr void apply_error(F&& fn) &&;
 
+      /// @overload template<typename F> constexpr void apply_error(F&& fn) &&;
       template<typename F>
       constexpr void apply_error(F&& fn) const &&;
 
+      /**
+       * @brief TODO
+       */
       using ResultBase<V, E>::~ResultBase;
 
     private:
 
       union StorageT;
 
+      // Constructs a new valid value in storage using the given arguments.
       template<typename... Args>
       constexpr void ctor_valid(Args&&... args);
 
+      // Constructs a new error value in storage using the given arguments.
       template<typename... Args>
       constexpr void ctor_error(Args&&... args);
 
+      // Calls the destructor of the value currently in storage.
       constexpr void reset_storage();
 
-      StorageT storage_;
-      bool valid_flag_;
+      StorageT storage_; // Union which holds either an error or valid value.
+      bool valid_flag_; // If true, storage_ contains valid value, otherwise error value.
 
   }; // class Result
 

@@ -29,17 +29,27 @@
 
   // Builtin function aliases
   #define TI_BUILTIN_EXPECT(value, result) __builtin_expect(value, result)
-  #define TI_BUILTIN_EXPECT_PROB(value, result, prob) __builtin_expect_with_probability(value, result, prob)
   #define TI_BUILTIN_UNREACHABLE() __builtin_unreachable()
   #define TI_BUILTIN_TRAP() __builtin_trap()
   #define TI_BUILTIN_ADDRESSOF(target) __builtin_addressof(target)
+  #define TI_BUILTIN_BIT_CAST(to_type, value_type, value) __builtin_bit_cast(to_type, value)
+  #define TI_BUILTIN_CLZ(value_type, value) __builtin_clzg(value, 0)
+  #define TI_BUILTIN_CTZ(value_type, value) __builtin_ctzg(value, 0)
+  #define TI_BUILTIN_POPCOUNT(value_type, value) __builtin_popcount(value)
+  #define TI_BUILTIN_PARITY(value_type, value) __builtin_parity(value)
+  #define TI_BUILTIN_IS_CONSTEVAL() __builtin_is_constant_evaluated()
 
   // Builtin function flags
   #define TI_HAS_BUILTIN_EXPECT 1
-  #define TI_HAS_BUILTIN_EXPECT_PROB 1
   #define TI_HAS_BUILTIN_UNREACHABLE 1
   #define TI_HAS_BUILTIN_TRAP 1
   #define TI_HAS_BUILTIN_ADDRESSOF 1
+  #define TI_HAS_BUILTIN_BIT_CAST 1
+  #define TI_HAS_BUILTIN_CLZ 1
+  #define TI_HAS_BUILTIN_CTZ 1
+  #define TI_HAS_BUILTIN_POPCOUNT 1
+  #define TI_HAS_BUILTIN_PARITY 1
+  #define TI_HAS_BUILTIN_IS_CONSTEVAL 1
 
 #endif
 
