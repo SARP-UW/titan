@@ -20,6 +20,34 @@
  */
 
 #pragma once
-#include "common/env/bits/hardware_info/arch.h"
-#include "common/env/bits/hardware_info/board.h"
-#include "common/env/bits/hardware_info/platform.h"
+
+/**************************************************************************************************
+ * @section Target Architecture Information
+ **************************************************************************************************/
+
+#if defined(TI_ARCH_ARMV7)
+  #define TI_ARCH_SIZE 32
+  // TODO
+#else
+  #error TITAN ERROR: Unkown architecture.
+#endif
+
+/**************************************************************************************************
+ * @section Board Information
+ **************************************************************************************************/
+
+#if defined(TI_BOARD_STM32H743ZIT3_DC)
+  // TODO
+#else
+  #error TITAN ERROR: Unknown board.
+#endif
+
+/**************************************************************************************************
+ * @section Target MCU Platform Information
+ **************************************************************************************************/
+
+#if defined(TI_PLATFORM_STMH7)
+  // TODO
+#else
+  #error TITAN ERROR: Unknown platform.
+#endif

@@ -14,26 +14,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file common/env/bits/diagnostic.h 
+ * @file common/util/internal/util_fwd.h 
  * @authors Aaron McBride 
- * @brief Compiler-agnostic diagnostic control interface.
+ * @brief Contains foward declarations for various types.
+ * @note - This file is internal to the 'Util' module.
  */
 
 #pragma once
+#include "common/util/type_traits.h"
 
-/**************************************************************************************************
- * @section Diagnostic Control Interface
- **************************************************************************************************/
+namespace ti::util {
 
-#if defined(__GNUC__)
+  /**************************************************************************************************
+   * @internal Implementation Forward Declarations
+   **************************************************************************************************/
 
-  #define TI_DIAG_SUPPRESS_ALL \
-      _Pragma("GCC diagnostic push") \
-      _Pragma("GCC diagnostic ignored \"-Wall\"") \
-      _Pragma("GCC diagnostic ignored \"-Wextra\"") \
-      _Pragma("GCC diagnostic ignored \"-Wpedantic\"")
+  template<typename T> 
+  struct in_place_type_t {
+    constexpr explicit in_place_type_t() = default;
+  };
 
-  #define TI_DIAG_END_SUPPRESS \
-      _Pragma("GCC diagnostic pop")
+  /// @endinternal
 
-#endif
+} // namespace ti::util

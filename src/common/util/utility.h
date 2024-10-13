@@ -21,12 +21,28 @@
 
 #pragma once
 #include "common/env/compiler_interface.h"
-#include "common/util/type_traits.h"
+#include "common/util/error_code.h"
 #include "common/util/cstdint.h"
+#include "common/util/limits.h"
+#include "common/util/type_traits.h"
+#include "common/util/internal/utility_fwd.h"
+#include "common/util/result.h"
 #include "common/tmp.h"
-#include <utility>
 
 namespace ti::util {
+
+  /**************************************************************************************************
+   * @internal Implementation Forward Declarations
+   **************************************************************************************************/
+
+  namespace {
+
+    template<typename T, T N>
+    struct IntSeqImpl;
+
+  }; // namespace annoymous
+
+  /// @endinternal
 
   /**************************************************************************************************
    * @section Standard Value Operation Utilities
@@ -136,24 +152,21 @@ namespace ti::util {
    * @tparam To The integral type to cast to.
    * @tparam From The integral type of the value.
    * @param value The value to cast.
-   * @returns @p 'value' cast (losslessly) to @p 'To'.
-   * @warning - This function raises a fatal error if @p 'value' is out of
-   *          range of @p 'To'.
+   * @returns - @p 'value' cast to @p 'To'.
+   * @returns - ErrorCode::out_of_range if @p 'value' is out of range of @p 'To'.
    */
   template<typename To, typename From>
-  [[nodiscard]] constexpr To numeric_cast(const From value);
+  [[nodiscard]] constexpr Result<To, ErrorCode> numeric_cast(const From value);
 
   /**
    * @brief Casts an integral value to it's signed equivalent.
    * @tparam T The initial integral type of the value.
    * @param value The value to cast.
-   * @returns @p 'value' cast (losslessly) to @p 'T's signed equivalent.
-   * @warning - This function raises a fatal error if @p 'value' is out of
-   *          range of @p 'T's signed equivalent.
-   * @note - If @p 'T' is already signed then this function returns
-   *       @p 'value' unchanged.
-   * @note - The "signed equivalent" of @p 'T' is the signed integral 
-   *       type with the same size.
+   * @returns - @p 'value' cast to a signed integral type with the same
+   *          bit-width as @p 'T' if @p 'T' is unsigned.
+   * @returns - @p 'value' unchanged if @p 'T' is already signed.
+   * @returns - ErrorCode::out_of_range if @p 'value' is out of range of
+   *          the signed equivalent of @p 'T'.
    */
   template<typename T>
   [[nodiscard]] constexpr auto to_signed(const T value);
@@ -162,13 +175,11 @@ namespace ti::util {
    * @brief Casts an integral value to it's unsigned equivalent.
    * @tparam T The initial integral type of the value.
    * @param value The value to cast.
-   * @returns @p 'value' cast (losslessly) to @p 'T's unsigned equivalent.
-   * @warning - This function raises a fatal error if @p 'value' is out of
-   *          range of @p 'T's unsigned equivalent.
-   * @note - If @p 'T' is already unsigned then this function returns
-   *       @p 'value' unchanged.
-   * @note - The "unsigned equivalent" of @p 'T' is the unsigned integral 
-   *       type with the same size.
+   * @returns - @p 'value' cast to an unsigned integral type with the same
+   *          bit-width as @p 'T' if @p 'T' is signed.
+   * @returns - @p 'value' unchanged if @p 'T' is already unsigned.
+   * @returns - ErrorCode::out_of_range if @p 'value' is out of range of
+   *          the unsigned equivalent of @p 'T'.
    */
   template<typename T>
   [[nodiscard]] constexpr auto to_unsigned(const T value);
@@ -206,7 +217,7 @@ namespace ti::util {
    *          within the extent of @p 'T' - 1 and greater then or equal to 0.
    */
   template<typename T, typename ValueT>
-  [[nodiscard]] constexpr ValueT to_range(const ValueT value);
+  [[nodiscard]] constexpr ValueT to_range(const ValueT value, bool* flag = nullptr);
 
   /**
    * @brief Safely determines if an integral value is within a specified range.
@@ -216,13 +227,16 @@ namespace ti::util {
    * @param value The value to query.
    * @param min The range's minimum value (inclusive).
    * @param max The range's maximum value (inclusive).
-   * @returns True if @p 'value' is greater then or equal to @p 'min' and less
-   *          then or equal to @p 'max', or false otherwise.
+   * @returns - True if @p 'value' is greater then or equal to @p 'min' and
+   *          less then or equal to @p 'max', or false otherwise.
+   * @returns - ErrorCode::failed_precondition if @p 'min' is greater then @p 'max'.
+   * @returns - ErrorCode::failed_precondition if @p 'T' cannot represent at least
+   *          one value in the range @p 'min' to @p 'max'.
    * @note - The behavior of this function is defined regardless of the
-   *       signedness of @p 'T', @p 'Tmin', and @p 'Tmax'.
+   *         signedness of @p 'T', @p 'Tmin', and @p 'Tmax'.
    */
   template<typename T, typename Tmin, typename Tmax>
-  [[nodiscard]] constexpr bool in_range(const T& value, const Tmin& min, 
+  [[nodiscard]] constexpr Result<bool, ErrorCode> in_range(const T& value, const Tmin& min, 
       const Tmax& max);
 
   /**
@@ -233,14 +247,17 @@ namespace ti::util {
    * @param value The value to clamp.
    * @param min The range's minimum value (inclusive).
    * @param max The range's maximum value (inclusive).
-   * @returns @p 'min' if @p 'value' is less then @p 'min', @p 'max' if 
-   *          @p 'value' is greater then @p 'max', or @p 'value' otherwise.
+   * @returns - @p 'min' if @p 'value' is less then @p 'min', @p 'max' if
+   *            @p 'value' is greater then @p 'max', or @p 'value' otherwise.
+   * @returns - ErrorCode::failed_precondition if @p 'min' is greater then @p 'max'.
+   * @returns - ErrorCode::failed_precondition if @p 'T' cannot represent at least
+   *          one value in the range @p 'min' to @p 'max'.
    * @note - The behavior of this function is defined regardless of the
    *       signedness of @p 'T', @p 'Tmin', and @p 'Tmax'.
    */
   template<typename T, typename Tmin, typename Tmax>
-  [[nodiscard]] constexpr T to_range(const T& value, const Tmin& min, 
-      const Tmax& max);
+  [[nodiscard]] constexpr Result<T, ErrorCode> to_range(const T& value, const Tmin& min, 
+      const Tmax& max, bool* flag = nullptr);
 
   /**************************************************************************************************
    * @section Standard Comparison Utilities
@@ -338,22 +355,57 @@ namespace ti::util {
   /**
    * @brief Informs the compiler that a condition is likely to be true.
    * @param cond The boolean condition that is likely to be true.
-   * @param perc An int32_t which denotes the percent (0 - 100) likelihood that 
-   *        @p 'cond' is true (defaults to 100).
    * @returns A boolean value equal to @p 'cond'.
    */
-  TI_ATTR_ALWAYS_INLINE_FN inline constexpr bool likely(
-      const bool cond, const int32_t perc = 100);
+  TI_ATTR_ALWAYS_INLINE_FN inline constexpr bool likely(const bool cond);
 
   /**
    * @brief Informs the compiler that a condition is likely to be false.
    * @param cond The boolean condition that is likely to be false.
-   * @param perc An int32_t which denotes the percent (0 - 100) likelihood that
-   *        @p 'cond' is false (defaults to 100).
    * @returns A boolean value equal to @p 'cond'.
    */
-  TI_ATTR_ALWAYS_INLINE_FN inline constexpr bool unlikely(
-      const bool cond, const int32_t perc = 100);
+  TI_ATTR_ALWAYS_INLINE_FN inline constexpr bool unlikely(const bool cond);
+
+  /**************************************************************************************************
+   * @section Standard Classes
+   **************************************************************************************************/
+
+  /**
+   * @brief TODO
+   * @tparam T 
+   * @tparam ...seq 
+   */
+  template<typename T, T... seq>
+  struct integer_sequence;
+
+  /**
+   * @brief TODO
+   * @tparam ...seq 
+   */
+  template<size_t... seq>
+  using index_sequence = integer_sequence<size_t, seq...>;
+
+  /**
+   * @brief TODO
+   * @tparam T 
+   * @tparam N 
+   */
+  template<typename T, T N>
+  using make_integer_sequence = typename IntSeqImpl<T, N>::Type;
+
+  /**
+   * @brief TODO
+   * @tparam N 
+   */
+  template<size_t N>
+  using make_index_sequence = typename IntSeqImpl<size_t, N>::Type;
+
+  /**
+   * @brief TODO
+   * @tparam ...T 
+   */
+  template<typename... T>
+  using index_sequence_for = typename IntSeqImpl<size_t, sizeof...(T)>::Type;
 
   /**************************************************************************************************
    * @section Standard Tag Type Declarations
@@ -418,20 +470,20 @@ namespace ti::util {
   }
 
   template<typename T>
-  constexpr auto&& move(T&& value) {
+  [[nodiscard]] constexpr auto&& move(T&& value) {
     using BaseT = remove_reference_t<T>;
     return static_cast<BaseT&&>(value);
   }
 
   template<typename T>
-  constexpr T&& forward(remove_reference_t<T>&& value) {
+  [[nodiscard]] constexpr T&& forward(remove_reference_t<T>&& value) {
     static_assert(!is_rvalue_reference_v<T>, 
         "'T' must be an rvalue reference.");
     return static_cast<T&&>(value);
   }
 
   template<typename T>
-  constexpr T&& forward(remove_reference_t<T>& value) {
+  [[nodiscard]] constexpr T&& forward(remove_reference_t<T>& value) {
     return static_cast<T&&>(value);
   }
 
@@ -468,11 +520,14 @@ namespace ti::util {
   }
 
   template<typename To, typename From>
-  constexpr To numeric_cast(const From value) {
+  constexpr Result<To, ErrorCode> numeric_cast(const From value) {
     static_assert(is_integral_v<To>, "'To' must be an integral type.");
     static_assert(is_integral_v<From>, "'From' must be an integral type.");
-    if (!in_range<To>(value)) { sys_error("Value out of range of 'To'"); }
-    return static_cast<To>(value);
+    if (in_range<To>(value)) { 
+      return Valid{static_cast<To>(value)};
+    } else {
+      return Error{ErrorCode::out_of_range}; 
+    }
   }
 
   template<typename T>
@@ -482,9 +537,11 @@ namespace ti::util {
       using SignedType = make_signed_t<T>;
       return numeric_cast<SignedType>(value);
     } else if constexpr (is_bool<T>) {
-      return static_cast<int8_t>(value);
+      using RetT = Result<int8_t, ErrorCode>;
+      return RetT{Valid{static_cast<int8_t>(value)}};
     } else {
-      return value;
+      using RetT = Result<T, ErrorCode>;
+      return RetT{Valid{value}};
     }
   }
 
@@ -495,81 +552,69 @@ namespace ti::util {
       using UnsignedType = make_unsigned_t<T>;
       return numeric_cast<UnsignedType>(value);
     } else if constexpr (is_bool_v<T>) {
-      return static_cast<uint8_t>(value);
+      using RetT = Result<uint8_t, ErrorCode>;
+      return RetT{Valid{static_cast<uint8_t>(value)}};
     } else {
-      return value;
+      using RetT = Result<T, ErrorCode>;
+      return RetT{Valid{value}};
     }
   }
 
   template<typename T, typename ValueT>
   constexpr bool in_range(const ValueT value) {
+    static_assert(is_integral_v<T>, "'T' must be an integral type.");
     static_assert(is_integral_v<ValueT>, "'ValueT' must be an integral type.");
-    using ValueLim = numeric_limits<ValueT>;
 
-    if (is_bounded_array_v<T>) {
-      using BaseT = remove_all_extents_t<T>;
-      static_assert(is_integral_v<BaseT>, "'T[]' must be an integral type.");
-      if constexpr (cmp_less(extent_v<T>, ValueLim::max())) {
-        if (cmp_greater_equal(value, extent_v<T>)) { return false; }
-      }
-    } else {
-      static_assert(is_integral_v<T>, "'T' must be an integral type.");
-      using RangeLim = numeric_limits<T>;
-      if constexpr (cmp_greater(ValueLim::max(), RangeLim::max())) {
-        if (cmp_greater(value, RangeLim::max())) { return false; }
-      }
-      if constexpr (cmp_less(ValueLim::lowest(), RangeLim::lowest())) {
-        if (cmp_less(value, RangeLim::lowest())) { return false; }
-      }
+    using ValueLim = numeric_limits<ValueT>;
+    using RangeLim = numeric_limits<T>;
+
+    if constexpr (cmp_greater(ValueLim::max(), RangeLim::max())) {
+      if (cmp_greater(value, RangeLim::max())) { return false; }
+    }
+    if constexpr (cmp_less(ValueLim::lowest(), RangeLim::lowest())) {
+      if (cmp_less(value, RangeLim::lowest())) { return false; }
     }
     return true;
   }
 
   template<typename T, typename ValueT>
-  constexpr ValueT to_range(const ValueT value) {
+  constexpr ValueT to_range(const ValueT value, bool* flag) {
+    static_assert(is_integral_v<T>, "'T' must be an integral type.");
     static_assert(is_integral_v<ValueT>, "'ValueT' must be an integral type.");
+
     using ValueLim = numeric_limits<ValueT>;
-    
-    if constexpr (is_bounded_array_v<T>) {
-      using BaseT = remove_all_extents_t<T>;
-      static_assert(is_integral_v<BaseT>, "'T[]' must be an integral type.");
-      if constexpr (is_signed_v<ValueT>) {
-        if (cmp_less(value, 0)) { return ValueT{0}; }
+    using RangeLim = numeric_limits<T>;
+  
+    if constexpr (cmp_greater(ValueLim::max(), RangeLim::max())) {
+      if (cmp_less(value, RangeLim::max())) {
+        if (flag != nullptr) { *flag = true; }
+        return static_cast<ValueT>(RangeLim::max());
       }
-      if constexpr (cmp_less(extent_v<T>, ValueLim::max())) {
-        if cmp_greater_equal(value, extent_v<T>) { 
-          return static_cast<ValueT>(extent_v<T> - 1);
-        }
-      }
-    } else {
-      static_assert(is_integral_v<T>, "'T' must be an integral type.");
-      using RangeLim = numeric_limits<T>;
-      if constexpr (cmp_greater(ValueLim::max(), RangeLim::max())) {
-        if (cmp_less(value, RangeLim::max())) {
-          return static_cast<ValueT>(RangeLim::max());
-        }
-      }
-      if constexpr (cmp_less(ValueLim::lowest(), RangeLim::lowest())) {
-        if (cmp_less(value, RangeLim::lowest())) {
-          return static_cast<ValueT>(RangeLim::lowest());
-        }
+    }
+    if constexpr (cmp_less(ValueLim::lowest(), RangeLim::lowest())) {
+      if (cmp_less(value, RangeLim::lowest())) {
+        if (flag != nullptr) { *flag = true; }
+        return static_cast<ValueT>(RangeLim::lowest());
       }
     }
     return value;
   }
 
   template<typename T, typename Tmin, typename Tmax>
-  constexpr bool in_range(const T& value, const Tmin& min, const Tmax& max) {
+  constexpr Result<bool, ErrorCode> in_range(const T& value, 
+      const Tmin& min, const Tmax& max) {
     static_assert(is_integral_v<T>, "'T' must be an integral type.");
     static_assert(is_integral_v<Tmin>, "'Tmin' must be an integral type.");  
     static_assert(is_integral_v<Tmax>, "'Tmax' must be an integral type.");
-
-    if (cmp_greater(min, max)) { sys_error("'min' is greater then 'max'"); }
-    return cmp_greater_equal(value, min) && cmp_less_equal(value, max);
+    if (cmp_greater(min, max)) { 
+      return Error{ErrorCode::failed_precondition};
+    }
+    return Valid{cmp_greater_equal(value, min) && cmp_less_equal(value, max)};
   }
 
   template<typename T, typename Tmin, typename Tmax>
-  constexpr T to_range(const T& value, const Tmin& min, const Tmax& max) {
+  constexpr Result<T, ErrorCode> to_range(const T& value, 
+      const Tmin& min, const Tmax& max, bool* flag) {
     static_assert(is_integral_v<T>, "'T' must be an integral type.");
     static_assert(is_integral_v<Tmin>, "'Tmin' must be an integral type.");
     static_assert(is_integral_v<Tmax>, "'Tmax' must be an integral type.");
@@ -579,30 +624,32 @@ namespace ti::util {
     using MaxLim = numeric_limits<Tmax>;
 
     if (cmp_less(min, max)) { 
-      sys_error("'min' is greater then 'max'"); 
+      return Error{ErrorCode::failed_precondition};
     }
     if (cmp_less(value, min)) { 
       if constexpr (cmp_greater(MinLim::max(), ValueLim::max())) {
         if (cmp_greater(min, ValueLim::max())) {
-          sys_error("'min' is out of range of 'T'.");
+          return Error{ErrorCode::out_of_range};
         }
       }
-      return static_cast<T>(min); 
+      if (flag != nullptr) { *flag = true; }
+      return Valid{static_cast<T>(min)};
     }
     if (cmp_greater(value, max)) {
       if constexpr (cmp_less(MaxLim::lowest(), ValueLim::lowest())) {
         if (cmp_less(max, ValueLim::lowest())) {
-          sys_error("'max' is out of range of 'T'.");
+          return Error{ErrorCode::out_of_range};
         }
       }
-      return static_cast<T>(max); 
+      if (flag != nullptr) { *flag = true; }
+      return Valid{static_cast<T>(max)};
     }
-    return value;
+    return Valid{value};
   }
 
   template<typename Tl, typename Tr>
   constexpr bool cmp_equal(const Tl l_value, const Tr r_value) {
-    using PromType = promoted_type_t<Tl, Tr>;
+    using PromType = common_type_t<Tl, Tr>;
 
     if constexpr (is_integer_v<Tl> && is_integer_v<Tr> && is_unsigned_v<PromType>) {
       if constexpr (is_signed_v<Tl> && is_unsigned_v<Tr>) {
@@ -619,7 +666,7 @@ namespace ti::util {
 
   template<typename Tl, typename Tr>
   constexpr bool cmp_less(const Tl l_value, const Tr r_value) {
-    using PromType = promoted_type_t<Tl, Tr>;
+    using PromType = common_type_t<Tl, Tr>;
     
     if constexpr (is_integer_v<Tl> && is_integer_v<Tr> && is_unsigned_v<PromType>) {
       if constexpr (is_signed_v<Tl> && is_unsigned_v<Tr>) {
@@ -657,20 +704,44 @@ namespace ti::util {
     #endif
   }
 
-  inline constexpr bool likely(const bool cond, const int32_t perc) {
-    if (in_range(perc, 0, 100)) { sys_error("'perc' is out of range."); }
-    return TI_BUILTIN_EXPECT_PROB(cond, true, perc / 100);
+  inline constexpr bool likely(const bool cond) {
+    return TI_BUILTIN_EXPECT(cond, true, 1);
   }
 
-  inline constexpr bool unlikely(const bool cond, const int32_t perc) {
-    if (in_range(perc, 0, 100)) { sys_error("'perc' is out of range."); }
-    return TI_BUILTIN_EXPECT_PROB(cond, false, perc / 100);
+  inline constexpr bool unlikely(const bool cond) {
+    return TI_BUILTIN_EXPECT(cond, false, 1);
   } 
 
-  template<typename T> 
-  struct in_place_type_t {
-    constexpr explicit in_place_type_t() = default;
+  template<typename T, T... seq>
+  struct integer_sequence {
+    using Type = T;
+    constexpr explicit integer_sequence() = default;
   };
+
+  namespace {
+
+    // Recursive case
+    template<typename T, unsigned long long index, unsigned long long... seq>
+    struct SeqBuilder {
+      using Type = typename SeqBuilder<T, index - 1, index - 1, seq...>::Type;
+    };
+
+    // Base case
+    template<typename T, unsigned long long... seq>
+    struct SeqBuilder<T, 0, seq...> {
+      using Type = integer_sequence<T, static_cast<T>(seq)...>;
+    };
+
+    template<typename T, T N>
+    struct IntSeqImpl {
+      static_assert(is_integer_v<T>, "'T' must be an integer type.");
+      static_assert(N >= 0, "'N' must be greater then or equal to 0.");
+      using Type = typename SeqBuilder<T, N>::Type;
+    };
+
+  } // namespace annoymous
+
+  // 'in_place_type_t' implemented in 'common/util/internal/utility_fwd.h'.
 
   /// @endinternal
 

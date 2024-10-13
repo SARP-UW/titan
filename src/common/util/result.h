@@ -23,9 +23,10 @@
 
 #pragma once
 #include "common/tmp.h"
+#include "common/env/compiler_interface.h"
 #include "common/util/cstdint.h"
-#include "common/util/utility.h"
 #include "common/util/type_traits.h"
+#include "common/util/internal/utility_fwd.h"
 
 namespace ti::util {
 
@@ -35,12 +36,8 @@ namespace ti::util {
 
   namespace {
 
-    // Tags used for construction of error/valid values.
-    struct Vtag {};
-    struct Etag {};
-
     // Class which contains optional Result destructor.
-    template<typename V, typename E, typename = void>
+    template<typename, typename, typename = void>
     struct ResultBase;
 
     // True if given type is a valid V/E type for Result.
@@ -59,25 +56,34 @@ namespace ti::util {
   /**
    * @brief Wrapper aggregate used to indicate that the given value is 
    *        associated with an error.
-   * @tparam T The type of the error value.
+   * @tparam T The type of the error value (defaults to monostate_t).
    */
-  template<typename T>
+  template<typename T = monostate_t>
   struct Error {
-    using ValueType = T; /** @brief The type of the error value. */
-    T value; /** @brief The error value. */
+
+    /** @brief The type of the error value. */
+    using ValueType = T;
+
+    /** @brief The error value. */
+    ValueType value{};
   };
 
   /**
    * @brief Wrapper aggregate used to indicate that the given value is
    *        not associated with an error.
-   * @tparam T The type of the valid value.
+   * @tparam T The type of the valid value (defaults to monostate_t).
    */
-  template<typename T>
+  template<typename T = monostate_t>
   struct Valid {
-    using ValueType = T; /** @brief The type of the valid value. */
-    T value; /** @brief The valid value. */
+
+    /** @brief The type of the valid value. */
+    using ValueType = T; 
+
+    /** @brief The valid value. */
+    ValueType value{}; 
   };
 
+  // Deduction guides for 'Valid' and 'Error' value wrappers.
   template<typename T> Valid(T) -> Valid<T>;
   template<typename T> Error(T) -> Error<T>;
 
@@ -116,11 +122,11 @@ namespace ti::util {
    */
   #define TRY(fn) \
     ({ \
-      auto result{fn};\
-      if (result.is_error()) { \
-        return result.error(); \
+      auto res{fn};\
+      if (res.is_error()) { \
+        return res.error(); \
       } \
-      result.value() \
+      res.value() \
     })
 
   /**
@@ -130,13 +136,29 @@ namespace ti::util {
    * @param fn An expression that evaluates to a 'Result' class instance.
    * @param err The value to return as an error if @p 'fn' represents an error.
    */
-  #define TRY(fn, err) \
+  #define TRY_OR(fn, err) \
     ({ \
-      auto result{fn};\
-      if (result.is_error()) { \
+      auto res{fn};\
+      if (res.is_error()) { \
         return err; \
       } \
-      result.value() \
+      res.value() \
+    })
+
+  /**
+   * @brief Macro used to require that a given 'Result' class instance is valid.
+   *        If @p 'fn' evaluates to a valid result, this macro evaluates to the
+   *        contained value, otherwise, a fatal error is raised with @p 'msg'.
+   * @param fn An expression that evaluates to a 'Result' class instance.
+   * @param msg The c string message to pass to sys_error if the result is an error.
+   */
+  #define REQUIRE(fn, msg) \
+    ({ \
+      auto res{fn}; \
+      if (res.is_error()) { \
+        sys_error(msg); \
+      } \
+      res.value() \
     })
 
   /**************************************************************************************************
@@ -145,8 +167,8 @@ namespace ti::util {
 
   /**
    * @brief A class which represents either a valid or error value.
-   * @tparam V The type of the valid value.
-   * @tparam E The type of the error value.
+   * @tparam V The type of the valid value (defaults to monostate_t).
+   * @tparam E The type of the error value (defaults to monostate_t).
    */
   template<typename V = monostate_t, typename E = monostate_t>
   class Result : public ResultBase<V, E> {
@@ -156,16 +178,25 @@ namespace ti::util {
       static_assert(valid_result_type_v<V>, "'V' is not a valid result type.");
       static_assert(valid_result_type_v<E>, "'E' is not a valid result type.");
 
-      using ValidType = V; /** @brief The type of the valid value. */
-      using ErrorType = E; /** @brief The type of the error value. */
-      using in_place_valid_t = in_place_type_t<Valid<ValidType>>; /** @brief Tag type used to signal in-place construction of a valid value. */
-      using in_place_error_t = in_place_type_t<Error<ErrorType>>; /** @brief Tag type used to signal in-place construction of an error value. */
-      using ThisType = Result<V, E>; /** @brief The type of this 'Result' class. */
+      /** @brief The type of the valid value. */
+      using ValidType = V;
+
+      /** @brief The type of the error value. */
+      using ErrorType = E;
+
+      /** @brief Tag type used to signal in-place construction of a valid value. */
+      using in_place_valid_t = in_place_type_t<Valid<ValidType>>;
+
+      /** @brief Tag type used to signal in-place construction of an error value. */
+      using in_place_error_t = in_place_type_t<Error<ErrorType>>;
+
+      /** @brief The type of this 'Result' class. */
+      using ThisType = Result<V, E>;
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param valid 
+       * @brief Creates a result class instance with a valid value.
+       * @tparam T The type of the valid value.
+       * @param valid The valid value, wrapped in a 'Valid' struct.
        */
       template<typename T>
       constexpr Result(const Valid<T>& valid);
@@ -175,9 +206,9 @@ namespace ti::util {
       constexpr Result(Valid<T>&& valid);
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param error 
+       * @brief Creates a result class instance with an error value.
+       * @tparam T The type of the error value.
+       * @param error The error value, wrapped in an 'Error' struct.
        */
       template<typename T>
       constexpr Result(const Error<T>& error);
@@ -187,43 +218,53 @@ namespace ti::util {
       constexpr Result(Error<T>&& error);
 
       /**
-       * @brief TODO
-       * @tparam V1 
-       * @tparam E1 
-       * @param other 
+       * @brief Creates a copy of annother result class instance.
+       * @tparam V1 The type of the other result's valid value.
+       * @tparam E1 The type of the other result's error value.
+       * @param other The other result class instance to copy.
        */
       template<typename V1, typename E1>
       constexpr Result(const Result<V1, E1>& other);
 
-      /// @overload template<typename V1, typename E1> Result(const Result<V1, E1>& other);
+      /**
+       * @brief Moves the given result class instance into this one.
+       * @tparam V1 The type of the other result's valid value.
+       * @tparam E1 The type of the other result's error value.
+       * @param other The other result class instance to move from.
+       */
       template<typename V1, typename E1>
       constexpr Result(Result<V1, E1>&& other);
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @tparam ...Args 
-       * @param  
-       * @param ...args 
+       * @brief Creates a result class instance with an in-place constructed valid value.
+       * @tparam T The type of the value to construct in-place (must be convertible 
+       *         to this result's valid type).
+       * @tparam ...Args The types of the arguments to pass to the constructor of @p 'T'.
+       * @param in_place_type_t An instance of 'in_place_type_t' with the type Valid<T>.
+       * @param ...args The arguments to pass to the constructor of @p 'T'.
        */
       template<typename T, typename... Args>
       constexpr explicit Result(in_place_type_t<Valid<T>>, Args&&... args);
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @tparam ...Args 
-       * @param  
-       * @param ...args 
+       * @brief Creates a result class instance with an in-place constructed error value.
+       * @tparam T The type of the value to construct in-place (must be convertible
+       *         to this result's error type).
+       * @tparam ...Args The argument types to pass to the constructor of @p 'T'.
+       * @param in_place_type_t An instance of 'in_place_type_t' with the type Error<T>.
+       * @param ...args The arguments to pass to the constructor of @p 'T'.
        */
       template<typename T, typename... Args>
       constexpr explicit Result(in_place_type_t<Error<T>>, Args&&... args);
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param valid 
-       * @return 
+       * @brief Assigns a valid value to this result.
+       * @tparam T The type of the value to assign.
+       * @param valid The value to assign, wrapped in a 'Valid<T>' struct.
+       * @returns A reference to this result.
+       * @note - If this result already contains a valid value, @p 'valid' is 
+       *       assigned to it, otherwise @p 'valid' is used to construct a 
+       *       valid value.
        */
       template<typename T>
       ThisType& operator=(const Valid<T>& valid);
@@ -233,10 +274,13 @@ namespace ti::util {
       ThisType& operator=(Valid<T>&& valid);
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param error 
-       * @return 
+       * @brief Assigns an error value to this result.
+       * @tparam T The type of the value to assign.
+       * @param error The value to assign, wrapped in an 'Error<T>' struct.
+       * @returns A reference to this result.
+       * @note - If this result already contains an error value, @p 'error' is 
+       *       assigned to it, otherwise @p 'error' is used to construct an 
+       *       error value.
        */
       template<typename T>
       ThisType& operator=(const Error<T>& error);
@@ -246,11 +290,16 @@ namespace ti::util {
       ThisType& operator=(Error<T>&& error);
 
       /**
-       * @brief 
-       * @tparam V1 
-       * @tparam E1 
-       * @param other 
-       * @return 
+       * @brief Assigns the value contained in annother result class instance 
+       *        to this one.
+       * @tparam V1 The type of the other result's valid value.
+       * @tparam E1 The type of the other result's error value.
+       * @param other The other result class instance to assign from.
+       * @returns A reference to this result.
+       * @note - If @p 'other' contains the same kind (valid/error) of value as 
+       *       this instance, it is assigned to the associated value, otherwise 
+       *       the value is used to construct a new instance of the associated 
+       *       type in this class (valid/error).
        */
       template<typename V1, typename E1>
       ThisType& operator=(const Result<V1, E1>& other);
@@ -260,11 +309,12 @@ namespace ti::util {
       ThisType& operator=(Result<V1, E1>&& other);
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @tparam ...Args 
-       * @param  
-       * @param ...args 
+       * @brief Constructs a new valid value inside this result.
+       * @tparam T The type of the given value.
+       * @param valid The value (wrapped in a 'Valid<T>' struct) used to 
+       *        construct a new instance of this result's valid type with.
+       * @note - This function will destroy the value contained in this
+       *       result, regardless of it's kind (valid/error).
        */
       template<typename T>
       void emplace(const Valid<T>& valid);
@@ -274,9 +324,12 @@ namespace ti::util {
       void emplace(Valid<T>&& valid);
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param error 
+       * @brief Constructs a new error value inside this result.
+       * @tparam T The type of the given value.
+       * @param error The value (wrapped in an 'Error<T>' struct) used to
+       *        construct a new instance of this result's error type with.
+       * @note - This function will destroy the value contained in this
+       *       result, regardless of it's kind (valid/error).
        */
       template<typename T>
       void emplace(const Error<T>& error);
@@ -286,10 +339,13 @@ namespace ti::util {
       void emplace(Error<T>&& error);
 
       /**
-       * @brief TODO
-       * @tparam V1 
-       * @tparam E1 
-       * @param other 
+       * @brief Constructs a new valid or error value inside this result, 
+       *        using the value contained in annother result instance.
+       * @tparam V1 The type of the other result's valid value.
+       * @tparam E1 The type of the other result's error value.
+       * @param other The other result class instance. 
+       * @note - This function will destroy the value contained in this
+       *       result, regardless of it's kind (valid/error).
        */
       template<typename V1, typename E1>
       void emplace(const Result<V1, E1>& other);
@@ -299,63 +355,71 @@ namespace ti::util {
       void emplace(Result<V1, E1>&& other);
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @tparam ...Args 
-       * @param  
-       * @param ...args 
+       * @brief Constructs a new valid value in-place inside this result.
+       * @tparam T The type of the value to construct in-place (must be 
+       *         convertible to this result's valid type).
+       * @tparam ...Args The type of the arguments to pass to the constructor of @p 'T'.
+       * @param in_place_type_t An instance of 'in_place_type_t' with the type Valid<T>.
+       * @param ...args The arguments to pass to the constructor of @p 'T'.
        */
       template<typename T, typename... Args>
       void emplace(in_place_type_t<Valid<T>>, Args&&... args);
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @tparam ...Args 
-       * @param  
-       * @param ...args 
+       * @brief Constructs a new error value in-place inside this result.
+       * @tparam T The type of the value to construct in-place (must be 
+       *         convertible to this result's error type).
+       * @tparam ...Args The type of the arguments to pass to the constructor of @p 'T'.
+       * @param  in_place_type_t An instance of 'in_place_type_t' with the type Error<T>.
+       * @param ...args The arguments to pass to the constructor of @p 'T'.
        */
       template<typename T, typename... Args>
       void emplace(in_place_type_t<Error<T>>, Args&&... args);
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Determines if this result contains it's 'valid' value.
+       * @returns True if this result contains it's 'valid' value or false otherwise.
        */
       [[nodiscard]] constexpr bool is_valid() const;
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Determines if this result contains it's 'error' value.
+       * @return True if this result contains it's 'error' value or false otherwise.
        */
       [[nodiscard]] constexpr bool is_error() const;
 
       /**
-       * @brief TODO
+       * @brief Implicit cast to bool which evaluates to true if this result 
+       *        contains it's 'valid' value or false otherwise.
        */
       constexpr operator bool() const;
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param value 
-       * @return 
+       * @brief Determines if this result contains the given 'valid' value.
+       * @tparam T The type of the given value.
+       * @param value The value to compare to this result's 'valid' value.
+       * @returns True if this result contains a 'valid' value and it is
+       *          equal to @p 'value', or false otherwise.
+       * @note - @p 'T' must be equality comparable to this result's 'valid' type.
        */
       template<typename T>
       [[nodiscard]] constexpr bool is_valid(const T& value) const;
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param value 
-       * @return 
+       * @brief Determines if this result contains the given 'error' value.
+       * @tparam T The type of the given value.
+       * @param value The value to compare to this result's 'error' value.
+       * @returns True if this result contains an 'error' value and it is
+       *          equal to @p 'value', or false otherwise.
+       * @note - @p 'T' must be equality comparable to this result's 'error' type.
        */
       template<typename T>
       [[nodiscard]] constexpr bool is_error(const T& value) const;
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Gets the valid value contained in this result.
+       * @returns A reference to the 'valid' value.
+       * @note - If this result contains an 'error' value, a fatal error is raised.
        */
       [[nodiscard]] constexpr V& valid() &;
 
@@ -363,8 +427,9 @@ namespace ti::util {
       [[nodiscard]] constexpr const V& valid() const &;
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Moves out the valid value contained in this result.
+       * @returns This result's 'valid' value.
+       * @note - If this result contains an 'error' value, a fatal error is raised.
        */
       [[nodiscard]] constexpr V&& valid() &&;
 
@@ -372,8 +437,9 @@ namespace ti::util {
       [[nodiscard]] constexpr const V&& valid() const &&;
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Gets the 'valid' value contained in this result.
+       * @returns A reference to this result's 'valid' value.
+       * @note - If this result contains an 'error' value, a fatal error is raised.
        */
       [[nodiscard]] constexpr V& operator*() &;
 
@@ -381,8 +447,9 @@ namespace ti::util {
       [[nodiscard]] constexpr const V& operator*() const &;
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Moves out the 'valid' value contained in this result.
+       * @returns This result's 'valid' value.
+       * @note - If this result contains an 'error' value, a fatal error is raised.
        */
       [[nodiscard]] constexpr V&& operator*() &&;
 
@@ -390,8 +457,9 @@ namespace ti::util {
       [[nodiscard]] constexpr const V&& operator*() const &&;
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Gets a pointer to the 'valid' value contained in this result.
+       * @return A pointer to this result's 'valid' value.
+       * @note - If this result contains an 'error' value, a nullptr is returned.
        */
       [[nodiscard]] constexpr V* valid_ptr();
 
@@ -399,8 +467,9 @@ namespace ti::util {
       [[nodiscard]] constexpr const V* valid_ptr() const;
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Gets a pointer to the 'valid' value contained in this result.
+       * @returns A pointer to this result's 'valid' value.
+       * @note - If this result contains an 'error' value, a nullptr is returned.
        */
       [[nodiscard]] constexpr V* operator->();
 
@@ -408,8 +477,9 @@ namespace ti::util {
       [[nodiscard]] constexpr const V* operator->() const;
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Gets the error value contained in this result.
+       * @returns A reference to the 'error' value.
+       * @note - If this result contains a 'valid' value, a fatal error is raised.
        */
       [[nodiscard]] constexpr E& error() &;
 
@@ -417,8 +487,9 @@ namespace ti::util {
       [[nodiscard]] constexpr const E& error() const &;
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Moves out the error value contained in this result.
+       * @returns This result's 'error' value.
+       * @note - If this result contains a 'valid' value, a fatal error is raised.
        */
       [[nodiscard]] constexpr E&& error() &&;
 
@@ -426,8 +497,8 @@ namespace ti::util {
       [[nodiscard]] constexpr const E&& error() const &&;
 
       /**
-       * @brief TODO
-       * @return 
+       * @brief Gets a pointer to the 'error' value contained in this result.
+       * @returns A pointer to this result's 'error' value.
        */
       [[nodiscard]] constexpr E* error_ptr();
 
@@ -435,46 +506,61 @@ namespace ti::util {
       [[nodiscard]] constexpr const E* error_ptr() const;
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param def_value 
-       * @return 
+       * @brief Gets this result's 'valid' value or a deafult value if it contains
+       *        an 'error' value.
+       * @tparam T The type of the default value.
+       * @param def_value The default value.
+       * @returns A copy of this result's 'valid' value if it exists (this result
+       *          does not contain an error), or @p 'def_value' otherwise.
+       * @note - @p 'def_value' must be convertible to this result's 'valid' type.
        */
       template<typename T>
       [[nodiscard]] constexpr V valid_or(T&& def_value) const &;
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param def_value 
-       * @return 
+       * @brief Moves out this result's 'valid' value or a default value if it 
+       *        contains an 'error' value.
+       * @tparam T The type of the default value.
+       * @param def_value The default value.
+       * @returns A copy of this result's 'valid' value if it exists (this result
+       *          does not contain an error), or @p 'def_value' otherwise.
+       * @note - @p 'def_value' must be convertible to this result's 'valid' type.
        */
       template<typename T>
       [[nodiscard]] constexpr V&& valid_or(T&& def_value) &&;
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param def_value 
-       * @return 
+       * @brief Gets this result's 'error' value or a default value if it contains
+       *        a valid value.
+       * @tparam T The type of the default value.
+       * @param def_value The default value.
+       * @returns A copy of this result's 'error' value if it exists (this result
+       *          does not contains a valid value), or @p 'def_value' otherwise.
+       * @note - @p 'def_value' must be convertible to this result's 'error' type.
        */
       template<typename T>
       [[nodiscard]] constexpr E error_or(T&& def_value) const &;
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param def_value 
-       * @return 
+       * @brief Moves out this result's 'error' value or a default value if it
+       *        contains a valid value.
+       * @tparam T The type of the default value.
+       * @param def_value The default value.
+       * @returns A copy of this result's 'error' value if it exists (this result
+       *          does not contain a valid value), or @p 'def_value' otherwise.
+       * @note - @p 'def_value' must be convertible to this result's 'error' type.
        */
       template<typename T>
       [[nodiscard]] constexpr E&& error_or(T&& def_value) &&;
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param mapping 
-       * @return 
+       * @brief Maps this result's 'valid' type to a new type using the given
+       *        mapping function or value.
+       * @tparam T The type of the mapping function/value.
+       * @param mapping The mapping function/value.
+       * @returns A result instance that contains the outcome of mapping 
+       *          (or flat-maping) this result's 'valid' value to @p 'mapping'.
+       * @see https://en.wikipedia.org/wiki/monad_(functional_programming)         
        */
       template<typename T>
       constexpr auto map_valid(T&& mapping) &;
@@ -483,24 +569,22 @@ namespace ti::util {
       template<typename T>
       constexpr auto map_valid(T&& mapping) const &;
 
-      /**
-       * @brief TODO
-       * @tparam T 
-       * @param mapping 
-       * @return 
-       */
+      /// @overload template<typename T> constexpr auto map_valid(T&& mapping) &;
       template<typename T>
       constexpr auto map_valid(T&& mapping) &&;
 
-      /// @overload template<typename T> constexpr auto map_valid(T&& mapping) &&;
+      /// @overload template<typename T> constexpr auto map_valid(T&& mapping) &;
       template<typename T>
       constexpr auto map_valid(T&& mapping) const &&;
 
       /**
-       * @brief TODO
-       * @tparam T 
-       * @param mapping 
-       * @return 
+       * @brief Maps this result's 'error' type to a new type using the given
+       *        mapping function/value.
+       * @tparam T The type of the mapping function/value.
+       * @param mapping The mapping function/value.
+       * @returns A result instance that contains the outcome of mapping
+       *          (or flat-maping) this result's 'error' value to @p 'mapping'.
+       * @see https://en.wikipedia.org/wiki/monad_(functional_programming)
        */
       template<typename T>
       constexpr auto map_error(T&& mapping) &;
@@ -509,26 +593,24 @@ namespace ti::util {
       template<typename T>
       constexpr auto map_error(T&& mapping) const &;
 
-      /**
-       * @brief TODO
-       * @tparam T 
-       * @param mapping 
-       * @return 
-       */
+      /// @overload template<typename T> constexpr auto map_error(T&& mapping) &;
       template<typename T>
       constexpr auto map_error(T&& mapping) &&;
 
-      /// @overload template<typename T> constexpr auto map_error(T&& mapping) &&;
+      /// @overload template<typename T> constexpr auto map_error(T&& mapping) &;
       template<typename T>
       constexpr auto map_error(T&& mapping) const &&;
 
       /**
-       * @brief TODO
-       * @tparam V1 
-       * @tparam E1 
-       * @param valid_mapping 
-       * @param error_mapping 
-       * @return 
+       * @brief Maps this result's 'valid' or 'error' value to a new type
+       *        using the given mapping functions/values.
+       * @tparam V1 The type of the valid mapping function/value.
+       * @tparam E1 The type of the error mapping function/value.
+       * @param valid_mapping The valid mapping function/value.
+       * @param error_mapping The error mapping function/value.
+       * @returns The result of mapping this result's 'valid' or 'error' value
+       *          to @p 'valid_mapping' or @p 'error_mapping' (depnding on which
+       *          value currently exists).
        */
       template<typename V1, typename E1>
       constexpr auto map(V1&& valid_mapping, E1&& error_mapping) &;
@@ -537,26 +619,19 @@ namespace ti::util {
       template<typename V1, typename E1>
       constexpr auto map(V1&& valid_mapping, E1&& error_mapping) const &;
 
-      /**
-       * @brief TODO
-       * @tparam V1 
-       * @tparam E1 
-       * @param valid_mapping 
-       * @param error_mapping 
-       * @return 
-       */
+      /// @overload template<typename V1, typename E1> constexpr auto map(V1&& valid_mapping, E1&& error_mapping) &;
       template<typename V1, typename E1>
       constexpr auto map(V1&& valid_mapping, E1&& error_mapping) &&;
 
-      /// @overload template<typename V1, typename E1> constexpr auto map(V1&& valid_mapping, E1&& error_mapping) &&;
+      /// @overload template<typename V1, typename E1> constexpr auto map(V1&& valid_mapping, E1&& error_mapping) &;
       template<typename V1, typename E1>
       constexpr auto map(V1&& valid_mapping, E1&& error_mapping) const &&;
 
       /**
-       * @brief TODO
-       * @tparam F 
-       * @param fn 
-       * @return 
+       * @brief Invokes the given function with this result's 'valid' value,
+       *        if it exists (i.e. this result does not contain an 'error' value).
+       * @tparam F The type of the callable object to invoke.
+       * @param fn The callable object to invoke.
        */
       template<typename F>
       constexpr void apply_valid(F&& fn) &;
@@ -565,24 +640,19 @@ namespace ti::util {
       template<typename F>
       constexpr void apply_valid(F&& fn) const &;
 
-      /**
-       * @brief TODO
-       * @tparam F 
-       * @param fn 
-       * @return 
-       */
+      /// @overload template<typename F> constexpr void apply_valid(F&& fn) &;
       template<typename F>
       constexpr void apply_valid(F&& fn) &&;
 
-      /// @overload template<typename F> constexpr void apply_valid(F&& fn) &&;
+      /// @overload template<typename F> constexpr void apply_valid(F&& fn) &;
       template<typename F>
       constexpr void apply_valid(F&& fn) const &&;
 
       /**
-       * @brief TODO
-       * @tparam F 
-       * @param fn 
-       * @return 
+       * @brief Invokes the given function with this result's 'error' value,
+       *       if it exists (i.e. this result does not contain a 'valid' value).
+       * @tparam F The type of the callable object to invoke.
+       * @param fn The callable object to invoke.
        */
       template<typename F>
       constexpr void apply_error(F&& fn) &;
@@ -591,16 +661,11 @@ namespace ti::util {
       template<typename F>
       constexpr void apply_error(F&& fn) const &;
 
-      /**
-       * @brief TODO
-       * @tparam F 
-       * @param fn 
-       * @return 
-       */
+      /// @overload template<typename F> constexpr void apply_error(F&& fn) &;
       template<typename F>
       constexpr void apply_error(F&& fn) &&;
 
-      /// @overload template<typename F> constexpr void apply_error(F&& fn) &&;
+      /// @overload template<typename F> constexpr void apply_error(F&& fn) &;
       template<typename F>
       constexpr void apply_error(F&& fn) const &&;
 
@@ -629,11 +694,43 @@ namespace ti::util {
 
   }; // class Result
 
+  /**
+   * @brief TODO
+   * @tparam Vl 
+   * @tparam El 
+   * @tparam Vr 
+   * @tparam Er 
+   * @param lhs 
+   * @param rhs 
+   * @return 
+   */
+  template<typename Vl, typename El, typename Vr, typename Er>
+  [[nodiscard]] constexpr bool operator==(const Result<Vl, El>& lhs, 
+      const Result<Vr, Er>& rhs);
+
+  /**
+   * @brief TODO
+   * @tparam Vl 
+   * @tparam El 
+   * @tparam Vr 
+   * @tparam Er 
+   * @param lhs 
+   * @param rhs 
+   * @return 
+   */
+  template<typename Vl, typename El, typename Vr, typename Er>
+  [[nodiscard]] constexpr bool operator!=(const Result<Vl, El>& lhs, 
+      const Result<Vr, Er>& rhs);
+
   /**************************************************************************************************
    * @internal Implementation
    **************************************************************************************************/
 
   namespace {
+
+    // Tags used for construction of error/valid values.
+    struct Vtag {};
+    struct Etag {};
 
     // Gets result of unknown type used in map/apply method
     template<typename T, typename Vmod>
@@ -655,6 +752,26 @@ namespace ti::util {
         static_cast<ChildT*>(this)->reset_storage();
       }
     };
+
+    // Implementation of utility/move, needed to avoid circular dependency
+    template<typename T>
+    [[nodiscard]] constexpr auto&& res_move(T&& value) {
+      using BaseT = remove_reference_t<T>;
+      return static_cast<BaseT&&>(value);
+    }
+
+    // Internal implementation of utility/forward, needed to avoid circular dependency
+    template<typename T>
+    [[nodiscard]] constexpr T&& res_forward(remove_reference_t<T>&& value) {
+      static_assert(!is_rvalue_reference_v<T>, 
+          "'T' must be an rvalue reference.");
+      return static_cast<T&&>(value);
+    }
+
+    template<typename T>
+    [[nodiscard]] constexpr T&& res_forward(remove_reference_t<T>& value) {
+      return static_cast<T&&>(value);
+    }
 
   } // namespace annoymous
 
@@ -678,19 +795,19 @@ namespace ti::util {
 
     template<typename T>
     constexpr StorageT(Vtag, T&& value) :
-        valid{forward<T>(value)} {};
+        valid{res_forward<T>(value)} {};
 
     template<typename T>
     constexpr Storage(Etag, T&& value) :
-        error{forward<T>(value)} {};
+        error{res_forward<T>(value)} {};
 
     template<typename... Args>
     constexpr Storage(Vtag, Args&&... args) :
-        valid{forward<Args>(args)...} {};
+        valid{res_forward<Args>(args)...} {};
 
     template<typename... Args>
     constexpr Storage(Etag, Args&&... args) :
-        error{forward<Args>(args)...} {};
+        error{res_forward<Args>(args)...} {};
 
     V valid;
     E error;
@@ -706,7 +823,7 @@ namespace ti::util {
   template<typename V, typename E>
   template<typename T>
   constexpr Result<V, E>::Result(Valid<T>&& valid) :
-      storage_{Vtag{}, move(valid.value)},
+      storage_{Vtag{}, res_move(valid.value)},
       valid_flag_{true} {}
 
   template<typename V, typename E>
@@ -718,7 +835,7 @@ namespace ti::util {
   template<typename V, typename E>
   template<typename T>
   constexpr Result<V, E>::Result(Error<T>&& error) :
-      storage_{Etag{}, move(error.value)},
+      storage_{Etag{}, res_move(error.value)},
       valid_flag_{false} {}
 
   template<typename V, typename E>
@@ -732,15 +849,15 @@ namespace ti::util {
   template<typename V1, typename E1>
   constexpr Result<V, E>::Result(Result<V1, E1>&& other) :
       storage_{other.valid_flag_ ? Vtag{} : Etag{}, 
-          other.valid_flag_ ? move(other.valid()) : 
-              move(other.error())},
+          other.valid_flag_ ? res_move(other.valid()) : 
+              res_move(other.error())},
       valid_flag_{other.valid_flag_} {}
 
   template<typename V, typename E>
   template<typename T, typename... Args>
   constexpr Result<V, E>::Result(
       in_place_type_t<Valid<T>>, Args&&... args) :
-          storage_{Vtag{}, forward<Args>(args)...},
+          storage_{Vtag{}, res_forward<Args>(args)...},
           valid_flag_{true} {}
 
 
@@ -748,7 +865,7 @@ namespace ti::util {
   template<typename T, typename... Args>
   constexpr Result<V, E>::Result(
       in_place_type_t<Error<T>>, Args&&... args) :
-          storage_{Etag{}, forward<Args>(args)...},
+          storage_{Etag{}, res_forward<Args>(args)...},
           valid_flag_{false} {}
 
   template<typename V, typename E>
@@ -771,10 +888,10 @@ namespace ti::util {
     static_assert(is_assignable_v<V, T&&>,
         "'V' must be assignable from 'T&&'.");
     if (is_valid()) {
-      storage_.valid = move(valid.value);
+      storage_.valid = res_move(valid.value);
     } else {
       storage_.error.~E();
-      ctor_valid(move(valid.value));
+      ctor_valid(res_move(valid.value));
     }
     return *this;
   }
@@ -799,10 +916,10 @@ namespace ti::util {
     static_assert(is_assignable_v<E, T&&>,
         "'E' must be assignable from 'T&&'.");
     if (is_error()) {
-      storage_.error = move(error.value);
+      storage_.error = res_move(error.value);
     } else {
       storage_.valid.~V();
-      ctor_error(move(error.value));
+      ctor_error(res_move(error.value));
     }
     return *this;
   }
@@ -825,9 +942,9 @@ namespace ti::util {
   Result<V, E>& Result<V, E>::operator=(Result<V1, E1>&& other) {
     if (likely(this != other)) {
       if (other.is_valid()) {
-        this->operator=(Valid<V1>{move(other.valid())});
+        this->operator=(Valid<V1>{res_move(other.valid())});
       } else {
-        this->operator=(Error<E1>{move(other.error())});
+        this->operator=(Error<E1>{res_move(other.error())});
       }
     }
     return *this;
@@ -844,7 +961,7 @@ namespace ti::util {
   template<typename T>
   void Result<V, E>::emplace(Valid<T>&& valid) {
     reset_storage();
-    ctor_valid(move(valid.value));
+    ctor_valid(res_move(valid.value));
   }
 
   template<typename V, typename E>
@@ -858,7 +975,7 @@ namespace ti::util {
   template<typename T>
   void Result<V, E>::emplace(Error<T>&& error) {
     reset_storage();
-    ctor_error(move(error.value));
+    ctor_error(res_move(error.value));
   }
 
   template<typename V, typename E>
@@ -877,9 +994,9 @@ namespace ti::util {
   void Result<V, E>::emplace(Result<V1, E1>&& other) {
     this->reset_storage();
     if (other.is_valid()) {
-      this->ctor_valid(move(other.valid()));
+      this->ctor_valid(res_move(other.valid()));
     } else {
-      this->ctor_error(move(other.error()));
+      this->ctor_error(res_move(other.error()));
     }
   }
 
@@ -887,14 +1004,14 @@ namespace ti::util {
   template<typename T, typename... Args>
   void Result<V, E>::emplace(in_place_type_t<Valid<T>>, Args&&... args) {
     reset_storage();
-    ctor_valid(forward<Args>(args)...);
+    ctor_valid(res_forward<Args>(args)...);
   }
 
   template<typename V, typename E>
   template<typename T, typename... Args>
   void Result<V, E>::emplace(in_place_type_t<Error<T>>, Args&&... args) {
     reset_storage();
-    ctor_error(forward<Args>(args)...);
+    ctor_error(res_forward<Args>(args)...);
   }
 
   template<typename V, typename E>
@@ -930,45 +1047,40 @@ namespace ti::util {
 
   template<typename V, typename E>
   constexpr V& Result<V, E>::valid() & {
-    if (unlikely(!is_valid())) {
+    if (TI_BUILTIN_EXPECT(!is_valid(), false, 1)) {
       sys_error("Invalid result access.");
-      unreachable();
     }
     return storage_.valid;
   }
 
   template<typename V, typename E>
   constexpr const V& Result<V, E>::valid() const & {
-    if (unlikely(!is_valid())) {
+    if (TI_BUILTIN_EXPECT(!is_valid(), false, 1)) {
       sys_error("Invalid result access.");
-      unreachable();
     }
     return storage_.valid;
   }
 
   template<typename V, typename E>
   constexpr V&& Result<V, E>::valid() && {
-    if (unlikely(!is_valid())) {
+    if (TI_BUILTIN_EXPECT(!is_valid(), false, 1)) {
       sys_error("Invalid result access.");
-      unreachable();
     }
-    return move(storage_.valid);
+    return res_move(storage_.valid);
   }
 
   template<typename V, typename E>
   constexpr const V&& Result<V, E>::valid() const && {
-    if (unlikely(!is_valid())) {
+    if (TI_BUILTIN_EXPECT(!is_valid(), false, 1)) {
       sys_error("Invalid result access.");
-      unreachable();
     }
-    return move(storage_.valid);
+    return res_move(storage_.valid);
   }
 
   template<typename V, typename E>
   constexpr V& Result<V, E>::operator*() & {
-    if (unlikely(!is_valid())) {
+    if (TI_BUILTIN_EXPECT(is_valid(), true, 1)) {
       sys_error("Invalid result access.");
-      unreachable();
     }
     return valid();
   }
@@ -980,22 +1092,22 @@ namespace ti::util {
 
   template<typename V, typename E>
   constexpr V&& Result<V, E>::operator*() && {
-    return move(valid());
+    return res_move(valid());
   }
 
   template<typename V, typename E>
   constexpr const V&& Result<V, E>::operator*() const && {
-    return move(valid());
+    return res_move(valid());
   }
 
   template<typename V, typename E>
   constexpr V* Result<V, E>::valid_ptr() {
-    return is_valid() ? addressof(storage_.valid) : nullptr;
+    return is_valid() ? TI_BUILTIN_ADDRESSOF(storage_.valid) : nullptr;
   }
 
   template<typename V, typename E>
   constexpr const V* Result<V, E>::valid_ptr() const {
-    return is_valid() ? addressof(storage_.valid) : nullptr;
+    return is_valid() ? TI_BUILTIN_ADDRESSOF(storage_.valid) : nullptr;
   }
 
   template<typename V, typename E>
@@ -1010,56 +1122,44 @@ namespace ti::util {
 
   template<typename V, typename E>
   constexpr E& Result<V, E>::error() & {
-    if (unlikely(!is_error())) {
+    if (TI_BUILTIN_EXPECT(!is_error(), false, 1)) {
       sys_error("Invalid result access.");
-      unreachable();
     }
     return storage_.error;
   }
 
   template<typename V, typename E>
   constexpr const E& Result<V, E>::error() const & {
-    if (unlikely(!is_error())) {
+    if (TI_BUILTIN_EXPECT(!is_error(), false, 1)) {
       sys_error("Invalid result access.");
-      unreachable();
     }
     return storage_.error;
   }
 
   template<typename V, typename E>
   constexpr E&& Result<V, E>::error() && {
-    if (unlikely(!is_error())) {
+    if (TI_BUILTIN_EXPECT(!is_error(), false, 1)) {
       sys_error("Invalid result access.");
-      unreachable();
     }
-    return move(storage_.error);
+    return res_move(storage_.error);
   }
 
   template<typename V, typename E>
   constexpr const E&& Result<V, E>::error() const && {
-    if (unlikely(!is_error())) {
+    if (TI_BUILTIN_EXPECT(!is_error(), false, 1)) {
       sys_error("Invalid result access.");
-      unreachable();
     }
-    return move(storage_.error);
+    return res_move(storage_.error);
   }
 
   template<typename V, typename E>
   constexpr E* Result<V, E>::error_ptr() {
-    if (unlikely(!is_error())) {
-      sys_error("Invalid result access.");
-      unreachable();
-    }
-    return addressof(storage_.error);
+    return is_error() ? TI_BUILTIN_ADDRESSOF(storage_.error) : nullptr;
   }
 
   template<typename V, typename E>
   constexpr const E* Result<V, E>::error_ptr() const {
-    if (unlikely(!is_error())) {
-      sys_error("Invalid result access.");
-      unreachable();
-    }
-    return addressof(storage_.error);
+    return is_error() ? TI_BUILTIN_ADDRESSOF(storage_.error) : nullptr;
   }
 
   template<typename V, typename E>
@@ -1068,7 +1168,7 @@ namespace ti::util {
     if (is_valid()) {
       return valid();
     } else {
-      return forward<T>(def_value);
+      return res_forward<T>(def_value);
     }
   }
 
@@ -1076,9 +1176,9 @@ namespace ti::util {
   template<typename T>
   constexpr V&& Result<V, E>::valid_or(T&& def_value) && {
     if (is_valid()) {
-      return move(valid());
+      return res_move(valid());
     } else {
-      return forward<T>(def_value);
+      return res_forward<T>(def_value);
     }
   }
 
@@ -1088,7 +1188,7 @@ namespace ti::util {
     if (is_error()) {
       return error();
     } else {
-      return forward<T>(def_value);
+      return res_forward<T>(def_value);
     }
   }
 
@@ -1096,9 +1196,9 @@ namespace ti::util {
   template<typename T>
   constexpr E&& Result<V, E>::error_or(T&& def_value) && {
     if (is_error()) {
-      return move(error());
+      return res_move(error());
     } else {
-      return forward<T>(def_value);
+      return res_forward<T>(def_value);
     }
   }
 
@@ -1110,11 +1210,11 @@ namespace ti::util {
       using ResultT = Result<typename MappingT::ValidType, E>;
       if (is_valid()) {
         if constexpr (is_invocable_v<T, V&>) {
-          return ResultT{forward<T>(mapping)(storage_.valid)};
+          return ResultT{res_forward<T>(mapping)(storage_.valid)};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{forward<T>(mapping)()};
+          return ResultT{res_forward<T>(mapping)()};
         } else {
-          return ResultT{forward<T>(mapping)};
+          return ResultT{res_forward<T>(mapping)};
         }
       } else {
         return ResultT{Error<E>{storage_.error}};
@@ -1123,11 +1223,11 @@ namespace ti::util {
       using ResultT = Result<MappingT, E>;
       if (is_valid()) {
         if constexpr (is_invocable_v<T, V&>) {
-          return ResultT{Valid<T>{forward<T>(mapping)(storage_.valid)}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)(storage_.valid)}};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{Valid<T>{forward<T>(mapping)()}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)()}};
         } else {
-          return ResultT{Valid<T>{Forward<T>(mapping)}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)}};
         }
       } else {
         return ResultT{Error<E>{storage_.error}};
@@ -1146,11 +1246,11 @@ namespace ti::util {
       using ResultT = Result<typename MappingT::ValidType, E>;
       if (is_valid()) {
         if constexpr (is_invocable_v<T, const V&>) {
-          return ResultT{forward<T>(mapping)(storage_.valid)};
+          return ResultT{res_forward<T>(mapping)(storage_.valid)};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{forward<T>(mapping)()};
+          return ResultT{res_forward<T>(mapping)()};
         } else {
-          return ResultT{forward<T>(mapping)};
+          return ResultT{res_forward<T>(mapping)};
         }
       } else {
         return ResultT{Error<E>{storage_.error}};
@@ -1159,11 +1259,11 @@ namespace ti::util {
       using ResultT = Result<MappingT, E>;
       if (is_valid()) {
         if constexpr (is_invocable_v<T, const V&>) {
-          return ResultT{Valid<T>{forward<T>(mapping)(storage_.valid)}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)(storage_.valid)}};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{Valid<T>{forward<T>(mapping)()}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)()}};
         } else {
-          return ResultT{Valid<T>{Forward<T>(mapping)}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)}};
         }
       } else {
         return ResultT{Error<E>{storage_.error}};
@@ -1182,27 +1282,27 @@ namespace ti::util {
       using ResultT = Result<typename MappingT::ValidType, E>;
       if (is_valid()) {
         if constexpr (is_invocable_v<T, V&&>) {
-          return ResultT{forward<T>(mapping)(move(storage_.valid))};
+          return ResultT{res_forward<T>(mapping)(res_move(storage_.valid))};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{forward<T>(mapping)()};
+          return ResultT{res_forward<T>(mapping)()};
         } else {
-          return ResultT{forward<T>(mapping)};
+          return ResultT{res_forward<T>(mapping)};
         }
       } else {
-        return ResultT{Error<E>{move(storage_.error)}};
+        return ResultT{Error<E>{res_move(storage_.error)}};
       }
     } else if constexpr (valid_result_type_v<MapingT>) {
       using ResultT = Result<MappingT, E>;
       if (is_valid()) {
         if constexpr (is_invocable_v<T, V&&>) {
-          return ResultT{Valid<T>{forward<T>(mapping)(move(storage_.valid))}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)(res_move(storage_.valid))}};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{Valid<T>{forward<T>(mapping)()}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)()}};
         } else {
-          return ResultT{Valid<T>{Forward<T>(mapping)}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)}};
         }
       } else {
-        return ResultT{Error<E>{move(storage_.error)}};
+        return ResultT{Error<E>{res_move(storage_.error)}};
       }
     } else {
       static_assert(false, "Invalid mapping type.");
@@ -1218,27 +1318,27 @@ namespace ti::util {
       using ResultT = Result<typename MappingT::ValidType, E>;
       if (is_valid()) {
         if constexpr (is_invocable_v<T, const V&&>) {
-          return ResultT{forward<T>(mapping)(move(storage_.valid))};
+          return ResultT{res_forward<T>(mapping)(res_move(storage_.valid))};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{forward<T>(mapping)()};
+          return ResultT{res_forward<T>(mapping)()};
         } else {
-          return ResultT{forward<T>(mapping)};
+          return ResultT{res_forward<T>(mapping)};
         }
       } else {
-        return ResultT{Error<E>{move(storage_.error)}};
+        return ResultT{Error<E>{res_move(storage_.error)}};
       }
     } else if constexpr (valid_result_type_v<MapingT>) {
       using ResultT = Result<MappingT, E>;
       if (is_valid()) {
         if constexpr (is_invocable_v<T, const V&&>) {
-          return ResultT{Valid<T>{forward<T>(mapping)(move(storage_.valid))}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)(res_move(storage_.valid))}};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{Valid<T>{forward<T>(mapping)()}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)()}};
         } else {
-          return ResultT{Valid<T>{Forward<T>(mapping)}};
+          return ResultT{Valid<T>{res_forward<T>(mapping)}};
         }
       } else {
-        return ResultT{Error<E>{move(storage_.error)}};
+        return ResultT{Error<E>{res_move(storage_.error)}};
       }
     } else {
       static_assert(false, "Invalid mapping type.");
@@ -1254,11 +1354,11 @@ namespace ti::util {
       using ResultT = Result<V, typename MappingT::ErrorType>;
       if (is_error()) {
         if constexpr (is_invocable_v<T, E&>) {
-          return ResultT{forward<T>(mapping)(storage_.error)};
+          return ResultT{res_forward<T>(mapping)(storage_.error)};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{forward<T>(mapping)()};
+          return ResultT{res_forward<T>(mapping)()};
         } else {
-          return ResultT{forward<T>(mapping)};
+          return ResultT{res_forward<T>(mapping)};
         }
       } else {
         return ResultT{Valid<V>{storage_.valid}};
@@ -1267,11 +1367,11 @@ namespace ti::util {
       using ResultT = Result<V, MappingT>;
       if (is_error()) {
         if constexpr (is_invocable_v<T, E&>) {
-          return ResultT{Error<T>{forward<T>(mapping)(storage_.error)}};
+          return ResultT{Error<T>{res_forward<T>(mapping)(storage_.error)}};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{Error<T>{forward<T>(mapping)()}};
+          return ResultT{Error<T>{res_forward<T>(mapping)()}};
         } else {
-          return ResultT{Error<T>{forward<T>(mapping)}};
+          return ResultT{Error<T>{res_forward<T>(mapping)}};
         }
       } else {
         return ResultT{Valid<V>{storage_.valid}};
@@ -1290,11 +1390,11 @@ namespace ti::util {
       using ResultT = Result<V, typename MappingT::ErrorType>;
       if (is_error()) {
         if constexpr (is_invocable_v<T, const E&>) {
-          return ResultT{forward<T>(mapping)(storage_.error)};
+          return ResultT{res_forward<T>(mapping)(storage_.error)};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{forward<T>(mapping)()};
+          return ResultT{res_forward<T>(mapping)()};
         } else {
-          return ResultT{forward<T>(mapping)};
+          return ResultT{res_forward<T>(mapping)};
         }
       } else {
         return ResultT{Valid<V>{storage_.valid}};
@@ -1303,11 +1403,11 @@ namespace ti::util {
       using ResultT = Result<V, MappingT>;
       if (is_error()) {
         if constexpr (is_invocable_v<T, const E&>) {
-          return ResultT{Error<T>{forward<T>(mapping)(storage_.error)}};
+          return ResultT{Error<T>{res_forward<T>(mapping)(storage_.error)}};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{Error<T>{forward<T>(mapping)()}};
+          return ResultT{Error<T>{res_forward<T>(mapping)()}};
         } else {
-          return ResultT{Error<T>{forward<T>(mapping)}};
+          return ResultT{Error<T>{res_forward<T>(mapping)}};
         }
       } else {
         return ResultT{Valid<V>{storage_.valid}};
@@ -1326,27 +1426,27 @@ namespace ti::util {
       using ResultT = Result<V, typename MappingT::ErrorType>;
       if (is_error()) {
         if constexpr (is_invocable_v<T, E&&>) {
-          return ResultT{forward<T>(mapping)(move(storage_.error))};
+          return ResultT{res_forward<T>(mapping)(res_move(storage_.error))};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{forward<T>(mapping)()};
+          return ResultT{res_forward<T>(mapping)()};
         } else {
-          return ResultT{forward<T>(mapping)};
+          return ResultT{res_forward<T>(mapping)};
         }
       } else {
-        return ResultT{Valid<V>{move(storage_.valid)}};
+        return ResultT{Valid<V>{res_move(storage_.valid)}};
       }
     } else if constexpr (valid_result_type_v<MapingT>) {
       using ResultT = Result<V, MappingT>;
       if (is_error()) {
         if constexpr (is_invocable_v<T, E&&>) {
-          return ResultT{Error<T>{forward<T>(mapping)(move(storage_.error))}};
+          return ResultT{Error<T>{res_forward<T>(mapping)(res_move(storage_.error))}};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{Error<T>{forward<T>(mapping)()}};
+          return ResultT{Error<T>{res_forward<T>(mapping)()}};
         } else {
-          return ResultT{Error<T>{forward<T>(mapping)}};
+          return ResultT{Error<T>{res_forward<T>(mapping)}};
         }
       } else {
-        return ResultT{Valid<V>{move(storage_.valid)}};
+        return ResultT{Valid<V>{res_move(storage_.valid)}};
       }
     } else {
       static_assert(false, "Invalid mapping type.");
@@ -1362,27 +1462,27 @@ namespace ti::util {
       using ResultT = Result<V, typename MappingT::ErrorType>;
       if (is_error()) {
         if constexpr (is_invocable_v<T, const E&&>) {
-          return ResultT{forward<T>(mapping)(move(storage_.error))};
+          return ResultT{res_forward<T>(mapping)(res_move(storage_.error))};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{forward<T>(mapping)()};
+          return ResultT{res_forward<T>(mapping)()};
         } else {
-          return ResultT{forward<T>(mapping)};
+          return ResultT{res_forward<T>(mapping)};
         }
       } else {
-        return ResultT{Valid<V>{move(storage_.valid)}};
+        return ResultT{Valid<V>{res_move(storage_.valid)}};
       }
     } else if constexpr (valid_result_type_v<MapingT>) {
       using ResultT = Result<V, MappingT>;
       if (is_error()) {
         if constexpr (is_invocable_v<T, const E&&>) {
-          return ResultT{Error<T>{forward<T>(mapping)(move(storage_.error))}};
+          return ResultT{Error<T>{res_forward<T>(mapping)(res_move(storage_.error))}};
         } else if constexpr (is_invocable_v<T>) {
-          return ResultT{Error<T>{forward<T>(mapping)()}};
+          return ResultT{Error<T>{res_forward<T>(mapping)()}};
         } else {
-          return ResultT{Error<T>{forward<T>(mapping)}};
+          return ResultT{Error<T>{res_forward<T>(mapping)}};
         }
       } else {
-        return ResultT{Valid<V>{move(storage_.valid)}};
+        return ResultT{Valid<V>{res_move(storage_.valid)}};
       }
     } else {
       static_assert(false, "Invalid mapping type.");
@@ -1399,18 +1499,18 @@ namespace ti::util {
       static_assert(is_same_v<ValidT, ErrorT>, "Invalid mapping types.");
       if (is_valid()) {
         if constexpr (is_invocable_v<V1, V&>) {
-          return forward<V1>(valid_mapping)(storage_.valid);
+          return res_forward<V1>(valid_mapping)(storage_.valid);
         } else if constexpr (is_invocable_v<V1>) {
-          return forward<V1>(valid_mapping)();
+          return res_forward<V1>(valid_mapping)();
         } else {
-          return forward<V1>(valid_mapping);
+          return res_forward<V1>(valid_mapping);
         }
       } else if constexpr (is_invocable_v<E1, E&>) {
-        return forward<E1>(error_mapping)(storage_.error);
+        return res_forward<E1>(error_mapping)(storage_.error);
       } else if constexpr (is_invocable_v<E1>) {
-        return forward<E1>(error_mapping)();
+        return res_forward<E1>(error_mapping)();
       } else {
-        return forward<E1>(error_mapping);
+        return res_forward<E1>(error_mapping);
       }
     } else {
       static_assert(valid_result_type_v<ValidT> && 
@@ -1418,18 +1518,18 @@ namespace ti::util {
       using ResultT = Result<ValidT, ErrorT>;
       if (is_valid()) {
         if constexpr (is_invocable_v<V1, V&>) {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)(storage_.valid)}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)(storage_.valid)}};
         } else if constexpr (is_invocable_v<V1>) {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)()}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)()}};
         } else {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)}};
         }
       } else if constexpr (is_invocable_v<E1, E&>) {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)(storage_.error)}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)(storage_.error)}};
       } else if constexpr (is_invocable_v<E1>) {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)()}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)()}};
       } else {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)}};
       }
     }
   }
@@ -1443,18 +1543,18 @@ namespace ti::util {
       static_assert(is_same_v<ValidT, ErrorT>, "Invalid mapping types.");
       if (is_valid()) {
         if constexpr (is_invocable_v<V1, const V&>) {
-          return forward<V1>(valid_mapping)(storage_.valid);
+          return res_forward<V1>(valid_mapping)(storage_.valid);
         } else if constexpr (is_invocable_v<V1>) {
-          return forward<V1>(valid_mapping)();
+          return res_forward<V1>(valid_mapping)();
         } else {
-          return forward<V1>(valid_mapping);
+          return res_forward<V1>(valid_mapping);
         }
       } else if constexpr (is_invocable_v<E1, const E&>) {
-        return forward<E1>(error_mapping)(storage_.error);
+        return res_forward<E1>(error_mapping)(storage_.error);
       } else if constexpr (is_invocable_v<E1>) {
-        return forward<E1>(error_mapping)();
+        return res_forward<E1>(error_mapping)();
       } else {
-        return forward<E1>(error_mapping);
+        return res_forward<E1>(error_mapping);
       }
     } else {
       static_assert(valid_result_type_v<ValidT> && 
@@ -1462,18 +1562,18 @@ namespace ti::util {
       using ResultT = Result<ValidT, ErrorT>;
       if (is_valid()) {
         if constexpr (is_invocable_v<V1, const V&>) {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)(storage_.valid)}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)(storage_.valid)}};
         } else if constexpr (is_invocable_v<V1>) {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)()}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)()}};
         } else {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)}};
         }
       } else if constexpr (is_invocable_v<E1, const E&>) {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)(storage_.error)}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)(storage_.error)}};
       } else if constexpr (is_invocable_v<E1>) {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)()}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)()}};
       } else {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)}};
       }
     }
   }
@@ -1487,18 +1587,18 @@ namespace ti::util {
       static_assert(is_same_v<ValidT, ErrorT>, "Invalid mapping types.");
       if (is_valid()) {
         if constexpr (is_invocable_v<V1, V&&>) {
-          return forward<V1>(valid_mapping)(move(storage_.valid));
+          return res_forward<V1>(valid_mapping)(res_move(storage_.valid));
         } else if constexpr (is_invocable_v<V1>) {
-          return forward<V1>(valid_mapping)();
+          return res_forward<V1>(valid_mapping)();
         } else {
-          return forward<V1>(valid_mapping);
+          return res_forward<V1>(valid_mapping);
         }
       } else if constexpr (is_invocable_v<E1, E&&>) {
-        return forward<E1>(error_mapping)(move(storage_.error));
+        return res_forward<E1>(error_mapping)(res_move(storage_.error));
       } else if constexpr (is_invocable_v<E1>) {
-        return forward<E1>(error_mapping)();
+        return res_forward<E1>(error_mapping)();
       } else {
-        return forward<E1>(error_mapping);
+        return res_forward<E1>(error_mapping);
       }
     } else {
       static_assert(valid_result_type_v<ValidT> && 
@@ -1506,18 +1606,18 @@ namespace ti::util {
       using ResultT = Result<ValidT, ErrorT>;
       if (is_valid()) {
         if constexpr (is_invocable_v<V1, V&>) {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)(move(storage_.valid))}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)(res_move(storage_.valid))}};
         } else if constexpr (is_invocable_v<V1>) {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)()}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)()}};
         } else {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)}};
         }
       } else if constexpr (is_invocable_v<E1, E&>) {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)(move(storage_.error))}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)(res_move(storage_.error))}};
       } else if constexpr (is_invocable_v<E1>) {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)()}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)()}};
       } else {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)}};
       }
     }
   }
@@ -1531,18 +1631,18 @@ namespace ti::util {
       static_assert(is_same_v<ValidT, ErrorT>, "Invalid mapping types.");
       if (is_valid()) {
         if constexpr (is_invocable_v<V1, const V&&>) {
-          return forward<V1>(valid_mapping)(move(storage_.valid));
+          return res_forward<V1>(valid_mapping)(res_move(storage_.valid));
         } else if constexpr (is_invocable_v<V1>) {
-          return forward<V1>(valid_mapping)();
+          return res_forward<V1>(valid_mapping)();
         } else {
-          return forward<V1>(valid_mapping);
+          return res_forward<V1>(valid_mapping);
         }
       } else if constexpr (is_invocable_v<E1, const E&&>) {
-        return forward<E1>(error_mapping)(move(storage_.error));
+        return res_forward<E1>(error_mapping)(res_move(storage_.error));
       } else if constexpr (is_invocable_v<E1>) {
-        return forward<E1>(error_mapping)();
+        return res_forward<E1>(error_mapping)();
       } else {
-        return forward<E1>(error_mapping);
+        return res_forward<E1>(error_mapping);
       }
     } else {
       static_assert(valid_result_type_v<ValidT> && 
@@ -1550,18 +1650,18 @@ namespace ti::util {
       using ResultT = Result<ValidT, ErrorT>;
       if (is_valid()) {
         if constexpr (is_invocable_v<V1, const V&&>) {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)(move(storage_.valid))}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)(res_move(storage_.valid))}};
         } else if constexpr (is_invocable_v<V1>) {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)()}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)()}};
         } else {
-          return ResultT{Valid<ValidT>{forward<V1>(valid_mapping)}};
+          return ResultT{Valid<ValidT>{res_forward<V1>(valid_mapping)}};
         }
       } else if constexpr (is_invocable_v<E1, const E&&>) {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)(move(storage_.error))}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)(res_move(storage_.error))}};
       } else if constexpr (is_invocable_v<E1>) {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)()}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)()}};
       } else {
-        return ResultT{Error<ErrorT>{forward<E1>(error_mapping)}};
+        return ResultT{Error<ErrorT>{res_forward<E1>(error_mapping)}};
       }
     }
   }
@@ -1571,9 +1671,9 @@ namespace ti::util {
   constexpr void Result<V, E>::apply_valid(F&& fn) & {
     if (is_valid()) {
       if constexpr (is_invocable_v<F, V&>) {
-        forward<F>(fn)(storage_.valid);
+        res_forward<F>(fn)(storage_.valid);
       } else if constexpr (is_invocable_v<F>) {
-        forward<F>(fn)();
+        res_forward<F>(fn)();
       } else {
         static_assert(false, "Invalid application type.");
       }
@@ -1585,9 +1685,9 @@ namespace ti::util {
   constexpr void Result<V, E>::apply_valid(F&& fn) const & {
     if (is_valid()) {
       if constexpr (is_invocable_v<F, const V&>) {
-        forward<F>(fn)(storage_.valid);
+        res_forward<F>(fn)(storage_.valid);
       } else if constexpr (is_invocable_v<F>) {
-        forward<F>(fn)();
+        res_forward<F>(fn)();
       } else {
         static_assert(false, "Invalid application type.");
       }
@@ -1599,9 +1699,9 @@ namespace ti::util {
   constexpr void Result<V, E>::apply_valid(F&& fn) && {
     if (is_valid()) {
       if constexpr (is_invocable_v<F, V&&>) {
-        forward<F>(fn)(move(storage_.valid));
+        res_forward<F>(fn)(res_move(storage_.valid));
       } else if constexpr (is_invocable_v<F>) {
-        forward<F>(fn)();
+        res_forward<F>(fn)();
       } else {
         static_assert(false, "Invalid application type.");
       }
@@ -1613,9 +1713,9 @@ namespace ti::util {
   constexpr void Result<V, E>::apply_valid(F&& fn) const && {
     if (is_valid()) {
       if constexpr (is_invocable_v<F, const V&&>) {
-        forward<F>(fn)(move(storage_.valid));
+        res_forward<F>(fn)(res_move(storage_.valid));
       } else if constexpr (is_invocable_v<F>) {
-        forward<F>(fn)();
+        res_forward<F>(fn)();
       } else {
         static_assert(false, "Invalid application type.");
       }
@@ -1627,9 +1727,9 @@ namespace ti::util {
   constexpr void Result<V, E>::apply_error(F&& fn) & {
     if (is_error()) {
       if constexpr (is_invocable_v<F, E&>) {
-        forward<F>(fn)(storage_.error);
+        res_forward<F>(fn)(storage_.error);
       } else if constexpr (is_invocable_v<F>) {
-        forward<F>(fn)();
+        res_forward<F>(fn)();
       } else {
         static_assert(false, "Invalid application type.");
       }
@@ -1641,9 +1741,9 @@ namespace ti::util {
   constexpr void Result<V, E>::apply_error(F&& fn) const & {
     if (is_error()) {
       if constexpr (is_invocable_v<F, const E&>) {
-        forward<F>(fn)(storage_.error);
+        res_forward<F>(fn)(storage_.error);
       } else if constexpr (is_invocable_v<F>) {
-        forward<F>(fn)();
+        res_forward<F>(fn)();
       } else {
         static_assert(false, "Invalid application type.");
       }
@@ -1655,9 +1755,9 @@ namespace ti::util {
   constexpr void Result<V, E>::apply_error(F&& fn) && {
     if (is_error()) {
       if constexpr (is_invocable_v<F, E&&>) {
-        forward<F>(fn)(move(storage_.error));
+        res_forward<F>(fn)(res_move(storage_.error));
       } else if constexpr (is_invocable_v<F>) {
-        forward<F>(fn)();
+        res_forward<F>(fn)();
       } else {
         static_assert(false, "Invalid application type.");
       }
@@ -1669,9 +1769,9 @@ namespace ti::util {
   constexpr void Result<V, E>::apply_error(F&& fn) const && {
     if (is_error()) {
       if constexpr (is_invocable_v<F, const E&&>) {
-        forward<F>(fn)(move(storage_.error));
+        res_forward<F>(fn)(res_move(storage_.error));
       } else if constexpr (is_invocable_v<F>) {
-        forward<F>(fn)();
+        res_forward<F>(fn)();
       } else {
         static_assert(false, "Invalid application type.");
       }
@@ -1681,16 +1781,16 @@ namespace ti::util {
   template<typename V, typename E>
   template<typename... Args>
   constexpr void Result<V, E>::ctor_valid(Args&&... args) {
-    V* const new_ptr{addressof(storage_.valid)};
-    ::new (new_ptr) V{forward<Args>(args)...};
+    V* const new_ptr{TI_BUILTIN_ADDRESSOF(storage_.valid)};
+    ::new (new_ptr) V{res_forward<Args>(args)...};
     valid_flag_ = true;
   }
 
   template<typename V, typename E>
   template<typename... Args>
   constexpr void Result<V, E>::ctor_error(Args&&... args) {
-    E* const new_ptr{addressof(storage_.error)};
-    ::new (new_ptr) E{forward<Args>(args)...};
+    E* const new_ptr{TI_BUILTIN_ADDRESSOF(storage_.error)};
+    ::new (new_ptr) E{res_forward<Args>(args)...};
     valid_flag_ = false;
   }
 
@@ -1701,6 +1801,28 @@ namespace ti::util {
     } else {
       storage_.error.~E();
     }
+  }
+
+  template<typename Vl, typename El, typename Vr, typename Er>
+  constexpr bool operator==(const Result<Vl, El>& lhs, 
+      const Result<Vr, Er>& rhs) {
+    static_assert(is_equality_comparable_v<Vl, Vr>,
+        "'Vl' must be equality comparable with 'Vr'.");
+    static_assert(is_equality_comparable_v<El, Er>,
+        "'El' must be equality comparable with 'Er'.");
+    if (lhs.is_valid() && rhs.is_valid()) {
+      return lhs.valid() == rhs.valid();
+    } else if (lhs.is_error() && rhs.is_error()) {
+      return lhs.error() == rhs.error();
+    } else {
+      return false;
+    }
+  }
+
+  template<typename Vl, typename El, typename Vr, typename Er>
+  constexpr bool operator!=(const Result<Vl, El>& lhs, 
+      const Result<Vr, Er>& rhs) {
+    return !operator==(lhs, rhs);
   }
 
   /// @endinternal

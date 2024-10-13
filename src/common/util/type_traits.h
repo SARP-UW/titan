@@ -33,7 +33,7 @@ namespace ti::util {
   namespace {
 
     // Helper utility for generating values in unevaluated contexts.
-    template<typename T> T&& value;
+    template<typename T> T&& declval_() {};
 
     // Implementation for 'is_integral_v'
     template<typename T> inline constexpr bool raw_integral_v{false};
@@ -50,13 +50,13 @@ namespace ti::util {
     template<> inline constexpr bool raw_integral_v<bool>{true};
 
     // Implementation for 'is_function_v'
-    template<typename T> inline constexpr bool const_fn_test_v{true};
-    template<typename T> inline constexpr bool const_fn_test_v<const T>{false};
-    template<typename T> inline constexpr bool const_fn_test_v<const volatile T>{false};
-
-    template<typename T> inline constexpr bool ref_fn_test_v{true};
-    template<typename T> inline constexpr bool ref_fn_test_v<T&>{false};
-    template<typename T> inline constexpr bool ref_fn_test_v<T&&>{false};
+    // Note: must const qualify type before passing to this test.
+    template<typename T> inline constexpr bool fn_test_v{true};
+    template<typename T> inline constexpr bool fn_test_v<T&>{false};
+    template<typename T> inline constexpr bool fn_test_v<T&&>{false};
+    template<typename T> inline constexpr bool fn_test_v<const T>{false};
+    template<typename T> inline constexpr bool fn_test_v<const T&>{false};
+    template<typename T> inline constexpr bool fn_test_v<const T&&>{false};
 
     // Implementation for 'is_signed_v'
     template<typename T> inline constexpr bool raw_signed_v{false};
@@ -106,7 +106,7 @@ namespace ti::util {
 
     template<typename T, typename... Args>
     inline constexpr bool ctor_test_v<decltype(
-        void(T{value<Args>...})), T, Args...>{true};
+        void(T{declval_<Args>()...})), T, Args...>{true};
 
     // Implementation for 'is_default_constructible_v'.
     template<typename T, typename = void>
@@ -122,7 +122,7 @@ namespace ti::util {
 
     template<typename T, typename U>
     inline constexpr bool assign_test_v<T, U, decltype(
-        void(value<T> = value<U>))>{true};
+        void(declval_<T>() = declval_<U>()))>{true};
 
     // Implementation for 'is_equality_comparable_v'.
     template<typename T, typename U, typename = void>
@@ -130,7 +130,8 @@ namespace ti::util {
 
     template<typename T, typename U>
     inline constexpr bool eq_cmp_test_v<T, U, decltype(
-        void(value<T> == value<U>), void(value<T> != value<U>))>{true};
+        void(declval_<T>() == declval_<U>()), 
+        void(declval_<T>() != declval_<U>()))>{true};
 
     // Implementation for 'is_comparable_v'.
     template<typename T, typename U, typename = void>
@@ -138,8 +139,10 @@ namespace ti::util {
 
     template<typename T, typename U>
     inline constexpr bool cmp_test_v<T, U, decltype(
-        void(value<T> < value<U>), void(value<T> > value<U>),
-        void(value<T> >= value<U>), void(value<T> <= value<U>))>{true};
+        void(declval_<T>() < declval_<U>()),
+        void(declval_<T>() > declval_<U>()),
+        void(declval_<T>() >= declval_<U>()), 
+        void(declval_<T>() <= declval_<U>()))>{true};
 
     // Implementation for 'is_convertible_v'.
     template<typename From, typename To, typename = void>
@@ -147,8 +150,24 @@ namespace ti::util {
 
     template<typename From, typename To>
     inline constexpr bool convert_test_v<From, To, decltype(
-        void(value<void (&)(To)>(value<From>)),
+        void(declval_<void (&)(To)>()(declval_<From>())),
         void(static_cast<To(*)()>(nullptr)))>{true};
+
+    // Implementation for 'is_static_castable_v'.
+    template<typename From, typename To, typename = void>
+    inline constexpr bool static_cast_test_v{false};
+
+    template<typename From, typename To>
+    inline constexpr bool static_cast_test_v<From, To, decltype(
+        void(static_cast<To>(declval_<From>())))>{true};
+
+    // Implementation for 'is_reinterpret_castable_v'.
+    template<typename From, typename To, typename = void>
+    inline constexpr bool reinterpret_cast_test_v{false};
+
+    template<typename From, typename To>
+    inline constexpr bool reinterpret_cast_test_v<From, To, decltype(
+        void(reinterpret_cast<To>(declval_<From>())))>{true};
 
     // Implementation for 'is_invocable_v'.
     template<typename Enable, typename F, typename... Args>
@@ -156,7 +175,7 @@ namespace ti::util {
 
     template<typename F, typename... Args>
     inline constexpr bool invoke_test_v<decltype(
-        void(value<F>(value<Args>...))), F, Args...>{true};
+        void(declval_<F>()(declval_<Args>()...))), F, Args...>{true};
 
     // Implementation for 'remove_const_t'.
     template<typename T> struct R_ConstImpl { using Type = T; };
@@ -241,42 +260,63 @@ namespace ti::util {
     template<typename T, size_t N> struct R_AllExtentImpl<T[N]> { using Type = typename R_AllExtentImpl<T>::Type};    
 
     // Implementation for 'decay_t'.
-    template<typename T> struct DecayImpl { using Type = T; };
-    template<typename T> struct DecayImpl<T&> { using Type = T; };
-    template<typename T> struct DecayImpl<T&&> { using Type = T; };
+    template<typename T, bool = fn_test_v<const T>> struct DecayImpl { using Type = T; };
+    template<typename T> struct DecayImpl<T&, false> { using Type = T; };
+    template<typename T> struct DecayImpl<T&&, false> { using Type = T; };
 
-    template<typename T> struct DecayImpl<const T> { using Type = T; };
-    template<typename T> struct DecayImpl<const T&> { using Type = T; };
-    template<typename T> struct DecayImpl<const T&&> { using Type = T; };
+    template<typename T> struct DecayImpl<const T, false> { using Type = T; };
+    template<typename T> struct DecayImpl<const T&, false> { using Type = T; };
+    template<typename T> struct DecayImpl<const T&&, false> { using Type = T; };
 
-    template<typename T> struct DecayImpl<volatile T> { using Type = T; };
-    template<typename T> struct DecayImpl<volatile T&> { using Type = T; };
-    template<typename T> struct DecayImpl<volatile T&&> { using Type = T; };
+    template<typename T> struct DecayImpl<volatile T, false> { using Type = T; };
+    template<typename T> struct DecayImpl<volatile T&, false> { using Type = T; };
+    template<typename T> struct DecayImpl<volatile T&&, false> { using Type = T; };
 
-    template<typename T> struct DecayImpl<const volatile T> { using Type = T; };
-    template<typename T> struct DecayImpl<const volatile T&> { using Type = T; };
-    template<typename T> struct DecayImpl<const volatile T&&> { using Type = T; };
+    template<typename T> struct DecayImpl<const volatile T, false> { using Type = T; };
+    template<typename T> struct DecayImpl<const volatile T&, false> { using Type = T; };
+    template<typename T> struct DecayImpl<const volatile T&&, false> { using Type = T; };
 
-    template<typename T> struct DecayImpl<T[]> { using Type = T*; };
-    template<typename T> struct DecayImpl<T(&)[]> { using Type = T*; };
-    template<typename T> struct DecayImpl<T(&&)[]> { using Type = T*; };
+    template<typename T> struct DecayImpl<T[], false> { using Type = T*; };
+    template<typename T> struct DecayImpl<T(&)[], false> { using Type = T*; };
+    template<typename T> struct DecayImpl<T(&&)[], false> { using Type = T*; };
 
-    template<typename T, size_t N> struct DecayImpl<T[N]> { using Type = T*; };
-    template<typename T, size_t N> struct DecayImpl<T(&)[N]> { using Type = T*; };
-    template<typename T, size_t N> struct DecayImpl<T(&&)[N]> { using Type = T*; };
+    template<typename T, size_t N> struct DecayImpl<T[N], false> { using Type = T*; };
+    template<typename T, size_t N> struct DecayImpl<T(&)[N], false> { using Type = T*; };
+    template<typename T, size_t N> struct DecayImpl<T(&&)[N], false> { using Type = T*; };
 
-    template<typename R, typename... Args> struct DecayImpl<R(Args...)> { using Type = R(*)(Args...); };
+    template<typename T> struct DecayImpl<T, true> { using Type = T*; };
 
     // Implementation for 'enable_if_t'.
     template<bool cond, typename T> struct EnableType {};
     template<typename T> struct EnableType<true, T> { using Type = T; };
 
     // Implementation for 'conditional_t'.
-    template<bool cond, typename FalseT, typename TrueT> 
+    template<bool cond, typename TrueT, typename FalseT>
     struct CondType { using Type = TrueT; };
 
-    template<typename FalseT, typename TrueT> 
-    struct CondType<false, FalseT, TrueT> { using Type = FalseT; };
+    template<typename TrueT, typename FalseT> 
+    struct CondType<false, TrueT, FalseT> { using Type = FalseT; };
+
+    // Implementation for 'common_type_t'.
+    template<typename... T>
+    struct CommonTypeImpl {};
+
+    template<typename T>
+    struct CommonTypeImpl<T> {
+      using Type = typename CommonTypeImpl<T, T>::Type;
+    };
+
+    template<typename T, typename U>
+    struct CommonTypeImpl<T, U> {
+      using Type = typename DecayImpl<decltype(false ?
+          declval_<typename DecayImpl<T>::Type>() : 
+          declval_<typename DecayImpl<U>::Type>())>::Type;
+    };
+
+    template<typename T, typename U, typename... V>
+    struct CommonTypeImpl<T, U, V...> {
+      using Type = typename CommonTypeImpl<typename CommonTypeImpl<T, U>::Type, V...>::Type;
+    };
 
     // Implementation of 'type_index_v'.
     template<size_t index, typename T, typename... U>
@@ -309,6 +349,61 @@ namespace ti::util {
   } // namespace annoymous
 
   /// @endinternal
+
+  /************************************************************************************************
+   * @section Non-Standard Type Trait Utility Classes
+   ***********************************************************************************************/
+
+  /**
+   * @brief Class that wraps a constant (NTTP) value of any type.
+   * @tparam value_ The constant value to wrap/contain.
+   */
+  template<auto value_>
+  struct Constant {
+    
+    /** @brief The type of the contained value. */
+    using value_type = decltype(value_);
+
+    /** @brief The type of this 'Constant' object. */
+    using type = Constant;
+
+    /** @brief The value contained in the constant. */
+    static constexpr value_type value{value_};
+
+    /** @brief Implicit conversion operator that casts to the contained value. */
+    constexpr operator value_type() const { return value; }
+
+    /** @brief Function call operator that returns the contained value. */
+    constexpr value_type operator()() const { return value; }
+
+  }; // struct Constant
+
+  /************************************************************************************************
+   * @section Standard Type Trait Utility Classes
+   ***********************************************************************************************/
+
+  /**
+   * @brief Class that wraps a constant integral value.
+   * @tparam T The integral type of the contained value.
+   * @tparam value The value to wrap/contain.
+   */
+  template<typename T, T value>
+  struct integral_constant : public Constant<value> {
+    static_assert(is_integral_v<T>, "'T' must be an integral type.");
+  };
+
+  /**
+   * @brief Class that wraps a constant boolean value.
+   * @tparam value The boolean value to wrap/contain.
+   */
+  template<bool value>
+  using bool_constant = integral_constant<bool, value>;
+
+  /** @brief A bool_constant type that contains true. */
+  using true_type = integral_constant<bool, true>;
+
+  /** @brief A bool_constant type that contains false. */
+  using false_type = integral_constant<bool, false>;
 
   /**************************************************************************************************
    * @section Standard Primary Type Category Traits
@@ -379,8 +474,7 @@ namespace ti::util {
    * @tparam T The type to query.
    */
   template<typename T> 
-  inline constexpr bool is_function_v{
-      const_fn_test_v<const T> && ref_fn_test_v<T>};
+  inline constexpr bool is_function_v{fn_test_v<const T>};
 
   /**
    * @brief Template bool value that evaluates to true if the given type
@@ -666,6 +760,28 @@ namespace ti::util {
   inline constexpr bool is_invocable_v{invocable_test_v<void, F, Args...>};
 
   /**************************************************************************************************
+   * @section Non-Standard Type Relationship Traits
+   **************************************************************************************************/
+
+  /**
+   * @brief Template bool value that evaluates to true if @p 'From' can be
+   *        statically casted to @p 'To', or false otherwise.
+   * @tparam From The type to static_cast from.
+   * @tparam To The type to static_cast to.
+   */
+  template<typename From, typename To>
+  inline constexpr bool is_static_castable_v{static_cast_test_v<From, To>};
+
+  /**
+   * @brief Template bool value that evaluates to true if @p 'From' can be
+   *        reinterpret casted to @p 'To', or false otherwise.
+   * @tparam From The type to reinterpret_cast from.
+   * @tparam To The type to reinterpret_cast to.
+   */
+  template<typename From, typename To>
+  inline constexpr bool is_reinterpret_castable_v{reinterpret_cast_test_v<From, To>};
+
+  /**************************************************************************************************
    * @section Standard CV Transformation Traits
    **************************************************************************************************/
 
@@ -861,7 +977,7 @@ namespace ti::util {
    * @tparam FalseT The type to evaluate to if @p 'cond' is false.
    */
   template<bool cond, typename TrueT, typename FalseT>
-  using conditional_t = typename CondType<cond, FalseT, TrueT>::Type;
+  using conditional_t = typename CondType<cond, TrueT, FalseT>::Type;
 
   /**
    * @brief Template type alias that evaluates to the result of invoking the
@@ -870,7 +986,17 @@ namespace ti::util {
    * @tparam ...Args The argument types to invoke the callable with.
    */
   template<typename F, typename... Args>
-  using invoke_result_t = decltype(value<F>(value<Args>...));
+  using invoke_result_t = decltype(declval_<F>()(declval_<Args>()...));
+
+  /**
+   * @brief Template type alias that evaluates to the common type shared by the
+   *        given variadic pack of types.
+   * @tparam ...T The variadic pack of types to evaluate.
+   * @note - If two arithmetic types are given, their common type is the type
+   *         they are promoted to during arithmetic operations.
+   */
+  template<typename... T>
+  using common_type_t = typename CommonTypeImpl<T...>::Type;
 
   /**
    * @brief Template type alias that always evaluates to void and takes an
@@ -885,16 +1011,6 @@ namespace ti::util {
   /**************************************************************************************************
    * @section Non-Standard Type Transformation Traits
    **************************************************************************************************/
-
-  /**
-   * @brief Template type alias that evaluates to the promoted version of the
-   *        given types (this is the type they are implicitly converted to durring
-   *        arithmetic operations).
-   * @tparam T The left-hand integral type.
-   * @tparam U The right-hand integral type.
-   */
-  template<typename T, typename U>
-  using promoted_type_t = decltype(value<T> + value<U>);
 
   /**
    * @brief Template type alias that evaluates to a given type and takes an

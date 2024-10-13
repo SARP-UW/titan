@@ -46,58 +46,30 @@
 
   ////////////////////////////
 
-  /**
-   * @brief Gets the address of an object.
-   * @tparam T The type of the object.
-   * @param target A lvalue reference to object to get the address of.
-   * @returns A pointer to @p 'target'.
-   */
-  template<typename T>
-  [[nodiscard]] constexpr T* addressof(T& target);
+  /**************************************************************************************************
+   * @section Error Code Class Definition
+   **************************************************************************************************/
+  
 
-  template<typename T>
-  constexpr T* addressof(T& target) {
-    // return TI_BUILTIN_ADDRESSOF(target);
-    return __builtin_addressof(target); // TO REMOVE
-  }
 
-  ////////////////////////////
 
-  // Index Sequence
+  #define TI_TO_STR_FUNC_(x) #x
+  #define TI_TO_STR_(x) TI_TO_STR_FUNC_(x)
+  #define TI_CREATE_ERROR_MSG_(msg) "TITAN ERROR: File {"__FILE__ \
+      "}, Line {" TI_TO_STR_(__LINE__) "}, Message {" msg "}"
 
-  using size_t = decltype(sizeof(void)); // TO REMOVE
-
-  template<size_t... Is>
-  struct index_sequence_t;
-
-  // Implementation of 'make_index_sequence'
-  template<size_t index, size_t... Is>
-  struct MakeSeqImpl {
-    using Type = typename MakeSeqImpl<index - 1, index, Is...>::Type;
-  };
-
-  template<size_t... Is>
-  struct MakeSeqImpl<0, Is...> {
-    using Type = index_sequence_t<0, Is...>;
-  };
+  /// @endinternal
 
   /**
-   * @brief Template type that holds a sequence of values..
-   * @tparam ...Is A variadic pack of size_t NTTP values.
+   * @brief Formats an error message string.
+   * @param msg The message to format.
+   * @note - The format of the resulting string is: "TITAN ERROR: File {<file>}, 
+   *         Line {<line>}, Message {<msg>}".
+   * @note - The location embedded in the error message is the location (in code) 
+   *         where this macro function is used.
    */
-  template<size_t... Is>
-  struct index_sequence_t {
-    constexpr explicit index_sequence_t() = default;
-  };
+  #define TI_ERROR_MSG(msg) TI_CREATE_ERROR_MSG_(msg)
 
-  /**
-   * @brief Creates an index_sequence_t with the given number of indicies.
-   * @tparam N The number of indicies in the index sequence.
-   * @returns An index_sequence_t value with @p 'N' indicies.
-   */
-  template<size_t N>
-  [[nodiscard]] constexpr auto make_index_sequence() {
-    return typename MakeSeqImpl<N - 1>::Type{};
-  }
+
 
   ////////////////////////////

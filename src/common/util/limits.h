@@ -33,7 +33,7 @@ namespace ti::util {
 
     // Converts a type's max value to it's min value.
     template<typename T>
-    [[nodiscard]] constexpr T max_to_min(T&& max) {
+    [[nodiscard]] constexpr T max_to_min(const T max) {
       if constexpr (TI_TWO_COMPLEMENT) {
         return (-max) - T{1};
       } else if constexpr (TI_ONE_COMPLEMENT) {
@@ -45,7 +45,7 @@ namespace ti::util {
 
     // Converts signed type's max into equivalent unsigned type's max.
     template<typename T>
-    [[nodiscard]] constexpr auto s_to_u_max(T&& s_max) {
+    [[nodiscard]] constexpr auto s_to_u_max(const T s_max) {
       if constexpr (TI_TWO_COMPLEMENT || TI_SIGN_MAGNITUDE) {
         return (s_max * T{2}) + T{1};
       } else if constexpr (TI_ONE_COMPLEMENT) {
@@ -67,7 +67,7 @@ namespace ti::util {
 
     // Gets the max base 2 digits in a type.
     template<typename T>
-    [[nodiscard]] constexpr int get_digits2(const T t_max) {
+    [[nodiscard]] constexpr int get_digits(const T t_max) {
       int current_digits{1};
       T current_value{1};
       while (current_value <= (t_max / 2)) {
@@ -93,8 +93,7 @@ namespace ti::util {
   template<typename T>
   struct numeric_limits {
     
-    static_assert(!sizeof(T), "TITAN ERROR: numeric_limits "
-        + "is not implemented for the given type.");
+    static_assert(!sizeof(T), "TITAN ERROR: numeric_limits is not implemented for the given type.");
 
     /** @brief Returns the maximum value representable in this type. */
     static constexpr T max() { return 0; } 
@@ -124,201 +123,252 @@ namespace ti::util {
   template<>
   struct numeric_limits<signed char> {
 
-    using type = signed char;
-    using this_type = numeric_limits<type>;
+    using Type = signed char;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr signed char max() { return TI_CHAR_MAX; }
-    [[nodiscard]] static constexpr signed char min() { return max_to_min<type>(TI_CHAR_MAX); }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return TI_CHAR_MAX; }
+    [[nodiscard]] static constexpr Type min() { return max_to_min<Type>(TI_CHAR_MAX); }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
-    static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits{get_digits2(this_type::max())};
+    static constexpr int digits10{get_digits10(TI_CHAR_MAX)};
+    static constexpr int digits{get_digits(TI_CHAR_MAX)};
 
     static constexpr bool is_signed{true};
     static constexpr bool is_unsigned{false};
+
   };
+
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const signed char> : numeric_limits<signed char> {};
+  template<> struct numeric_limits<volatile signed char> : numeric_limits<signed char> {};
+  template<> struct numeric_limits<const volatile signed char> : numeric_limits<signed char> {};
 
   /** @brief numeric_limit specialization for unsigned char. */
   template<>
   struct numeric_limits<unsigned char> {
 
-    using type = unsigned char;
-    using this_type = numeric_limits<type>;
+    using Type = unsigned char;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr unsigned char max() { return s_to_u_max<type>(TI_CHAR_MAX); }
-    [[nodiscard]] static constexpr unsigned char min() { return 0; }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return s_to_u_max<Type>(TI_CHAR_MAX); }
+    [[nodiscard]] static constexpr Type min() { return 0; }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
-    static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits{get_digits2(this_type::max())};
+    static constexpr int digits10{get_digits10(s_to_u_max<Type>(TI_CHAR_MAX))};
+    static constexpr int digits{get_digits(s_to_u_max<Type>(TI_CHAR_MAX))};
     
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};
     
   };
+
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const unsigned char> : numeric_limits<unsigned char> {};
+  template<> struct numeric_limits<volatile unsigned char> : numeric_limits<unsigned char> {};
+  template<> struct numeric_limits<const volatile unsigned char> : numeric_limits<unsigned char> {};
 
   /** @brief numeric_limit specialization for signed short int. */
   template<>
   struct numeric_limits<signed short> {
 
-    using type = signed short;
-    using this_type = numeric_limits<type>;
+    using Type = signed short;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr signed short max() { return TI_SHORT_MAX; }
-    [[nodiscard]] static constexpr signed short min() { return max_to_min<type>(TI_SHORT_MAX); }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return TI_SHORT_MAX; }
+    [[nodiscard]] static constexpr Type min() { return max_to_min<Type>(TI_SHORT_MAX); }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
-    static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits{get_digits2(this_type::max())};
+    static constexpr int digits10{get_digits10(TI_SHORT_MAX)};
+    static constexpr int digits{get_digits(TI_SHORT_MAX)};
 
     static constexpr bool is_signed{true};
     static constexpr bool is_unsigned{false};
 
   };
+
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const signed short> : numeric_limits<signed short> {};
+  template<> struct numeric_limits<volatile signed short> : numeric_limits<signed short> {};
+  template<> struct numeric_limits<const volatile signed short> : numeric_limits<signed short> {};
 
   /** @brief numeric_limit specialization for unsigned short int. */
   template<>
   struct numeric_limits<unsigned short> {
 
-    using type = unsigned short;
-    using this_type = numeric_limits<type>;
+    using Type = unsigned short;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr unsigned short max() { return s_to_u_max<type>(TI_SHORT_MAX); }
-    [[nodiscard]] static constexpr unsigned short min() { return 0; }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return s_to_u_max<Type>(TI_SHORT_MAX); }
+    [[nodiscard]] static constexpr Type min() { return 0; }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
-    static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits{get_digits2(this_type::max())};
+    static constexpr int digits10{get_digits10(s_to_u_max<Type>(TI_SHORT_MAX))};
+    static constexpr int digits{get_digits(s_to_u_max<Type>(TI_SHORT_MAX))};
 
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};
 
   };
+
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const unsigned short> : numeric_limits<unsigned short> {};
+  template<> struct numeric_limits<volatile unsigned short> : numeric_limits<unsigned short> {};
+  template<> struct numeric_limits<const volatile unsigned short> : numeric_limits<unsigned short> {};
 
   /** @brief numeric_limit specialization for signed int. */
   template<>
   struct numeric_limits<signed int> {
 
-    using type = signed int;
-    using this_type = numeric_limits<type>;
+    using Type = signed int;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr signed int max() { return TI_INT_MAX; }
-    [[nodiscard]] static constexpr signed int min() { return max_to_min<type>(TI_INT_MAX); }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return TI_INT_MAX; }
+    [[nodiscard]] static constexpr Type min() { return max_to_min<Type>(TI_INT_MAX); }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
-    static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits{get_digits2(this_type::max())};
+    static constexpr int digits10{get_digits10(TI_INT_MAX)};
+    static constexpr int digits{get_digits(TI_INT_MAX)};
 
     static constexpr bool is_signed{true};
     static constexpr bool is_unsigned{false};
 
   };
+
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const signed int> : numeric_limits<signed int> {};
+  template<> struct numeric_limits<volatile signed int> : numeric_limits<signed int> {};
+  template<> struct numeric_limits<const volatile signed int> : numeric_limits<signed int> {};
 
   /** @brief numeric_limit specialization for unsigned int. */
   template<>
   struct numeric_limits<unsigned int> {
 
-    using type = unsigned int;
-    using this_type = numeric_limits<type>;
+    using Type = unsigned int;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr unsigned int max() { return s_to_u_max<type>(TI_INT_MAX); }
-    [[nodiscard]] static constexpr unsigned int min() { return 0; }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return s_to_u_max<Type>(TI_INT_MAX); }
+    [[nodiscard]] static constexpr Type min() { return 0; }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
-    static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits{get_digits2(this_type::max())};
+    static constexpr int digits10{get_digits10(s_to_u_max<Type>(TI_INT_MAX))};
+    static constexpr int digits{get_digits(s_to_u_max<Type>(TI_INT_MAX))};
 
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};
 
   };
+
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const unsigned int> : numeric_limits<unsigned int> {};
+  template<> struct numeric_limits<volatile unsigned int> : numeric_limits<unsigned int> {};
+  template<> struct numeric_limits<const volatile unsigned int> : numeric_limits<unsigned int> {};
 
   /** @brief numeric_limit specialization for signed long int. */
   template<>
   struct numeric_limits<signed long> {
 
-    using type = signed long;
-    using this_type = numeric_limits<type>;
+    using Type = signed long;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr signed long max() { return TI_LONG_MAX; }
-    [[nodiscard]] static constexpr signed long min() { return max_to_min<type>(TI_LONG_MAX); }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return TI_LONG_MAX; }
+    [[nodiscard]] static constexpr Type min() { return max_to_min<Type>(TI_LONG_MAX); }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
-    static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits{get_digits2(this_type::max())};
+    static constexpr int digits10{get_digits10(TI_LONG_MAX)};
+    static constexpr int digits{get_digits(TI_LONG_MAX)};
 
     static constexpr bool is_signed{true};
     static constexpr bool is_unsigned{false};
 
   };
+
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const signed long> : numeric_limits<signed long> {};
+  template<> struct numeric_limits<volatile signed long> : numeric_limits<signed long> {};
+  template<> struct numeric_limits<const volatile signed long> : numeric_limits<signed long> {};
 
   /** @brief numeric_limit specialization for unsigned long int. */
   template<>
   struct numeric_limits<unsigned long> {
 
-    using type = unsigned long;
-    using this_type = numeric_limits<type>;
+    using Type = unsigned long;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr unsigned long max() { return s_to_u_max<type>(TI_LONG_MAX); }
-    [[nodiscard]] static constexpr unsigned long min() { return 0; }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return s_to_u_max<Type>(TI_LONG_MAX); }
+    [[nodiscard]] static constexpr Type min() { return 0; }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
-    static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits{get_digits2(this_type::max())};
+    static constexpr int digits10{get_digits10(s_to_u_max<Type>(TI_LONG_MAX))};
+    static constexpr int digits{get_digits(s_to_u_max<Type>(TI_LONG_MAX))};
 
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};
 
   };
 
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const unsigned long> : numeric_limits<unsigned long> {};
+  template<> struct numeric_limits<volatile unsigned long> : numeric_limits<unsigned long> {};
+  template<> struct numeric_limits<const volatile unsigned long> : numeric_limits<unsigned long> {};
+
   /** @brief numeric_limit specialization for signed long long int. */
   template<>
   struct numeric_limits<signed long long> {
 
-    using type = signed long long;
-    using this_type = numeric_limits<type>;
+    using Type = signed long long;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr signed long long max() { return TI_LONG_LONG_MAX; }
-    [[nodiscard]] static constexpr signed long long min() { return max_to_min<type>(TI_LONG_LONG_MAX); }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return TI_LONG_LONG_MAX; }
+    [[nodiscard]] static constexpr Type min() { return max_to_min<Type>(TI_LONG_LONG_MAX); }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
-    static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits{get_digits2(this_type::max())};
+    static constexpr int digits10{get_digits10(TI_LONG_LONG_MAX)};
+    static constexpr int digits{get_digits(TI_LONG_LONG_MAX)};
 
     static constexpr bool is_signed{true};
     static constexpr bool is_unsigned{false};
 
   };
 
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const signed long long> : numeric_limits<signed long long> {};
+  template<> struct numeric_limits<volatile signed long long> : numeric_limits<signed long long> {};
+  template<> struct numeric_limits<const volatile signed long long> : numeric_limits<signed long long> {};
+
   /** @brief numeric_limit specialization for unsigned long long int. */
   template<>
   struct numeric_limits<unsigned long long> {
 
-    using type = unsigned long long;
-    using this_type = numeric_limits<type>;
+    using Type = unsigned long long;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr unsigned long long max() { return s_to_u_max<type>(TI_LONG_LONG_MAX); }
-    [[nodiscard]] static constexpr unsigned long long min() { return 0; }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return s_to_u_max<Type>(TI_LONG_LONG_MAX); }
+    [[nodiscard]] static constexpr Type min() { return 0; }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
-    static constexpr int digits10{get_digits10(this_type::max())};
-    static constexpr int digits{get_digits2(this_type::max())};
+    static constexpr int digits10{get_digits10(s_to_u_max<Type>(TI_LONG_LONG_MAX))};
+    static constexpr int digits{get_digits(s_to_u_max<Type>(TI_LONG_LONG_MAX))};
 
     static constexpr bool is_signed{false};
     static constexpr bool is_unsigned{true};
 
   };
 
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const unsigned long long> : numeric_limits<unsigned long long> {};
+  template<> struct numeric_limits<volatile unsigned long long> : numeric_limits<unsigned long long> {};
+  template<> struct numeric_limits<const volatile unsigned long long> : numeric_limits<unsigned long long> {};
+
   /** @brief numeric_limit specialization for bool. */
   template<>
   struct numeric_limits<bool> {
 
-    using type = bool;
-    using this_type = numeric_limits<type>;
+    using Type = bool;
+    using ThisType = numeric_limits<Type>;
 
-    [[nodiscard]] static constexpr bool max() { return true; }
-    [[nodiscard]] static constexpr bool min() { return false; }
-    [[nodiscard]] static constexpr signed char lowest() { return min(); }
+    [[nodiscard]] static constexpr Type max() { return true; }
+    [[nodiscard]] static constexpr Type min() { return false; }
+    [[nodiscard]] static constexpr Type lowest() { return min(); }
 
     static constexpr int digits10{0};
     static constexpr int digits{1};
@@ -327,5 +377,10 @@ namespace ti::util {
     static constexpr bool is_unsigned{true};
 
   };
+
+  // Specializations for cv qualified types.
+  template<> struct numeric_limits<const bool> : numeric_limits<bool> {};
+  template<> struct numeric_limits<volatile bool> : numeric_limits<bool> {};
+  template<> struct numeric_limits<const volatile bool> : numeric_limits<bool> {};
 
 } // namespace ti::util
