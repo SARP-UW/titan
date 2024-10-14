@@ -9,9 +9,8 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/bin/cmake/arm_gcc_toolchain
 project(titan)
 
 # Set language config
-enable_language(CXX C ASM)
+enable_language(C ASM)
 set(CMAKE_C_STANDARD_REQUIRED 11)
-set(CMAKE_CXX_STANDARD_REQUIRED 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 

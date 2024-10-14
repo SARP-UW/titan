@@ -15,7 +15,6 @@
       ],
       "compilerPath": "${workspaceFolder}/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe",
       "cStandard": "c11",
-      "cppStandard": "c++17",
       "intelliSenseMode": "gcc-arm",
       "configurationProvider": "ms-vscode.cmake-tools"
     }
