@@ -1,5 +1,10 @@
 # TODO
 
+  ## Utils
+  - [ ] Integer math utilies (abs, pow...)
+  - [ ] Error handling (error code, assert, abort)
+  - [ ] Bit manipulation () -> clz, ctz, bit_mask
+
   ## Arch
   - [ ] Systick driver. (port)
   - [ ] Fault management driver. (port)
@@ -18,11 +23,11 @@
   - [ ] I2C driver.
   - [ ] GPIO driver.
   - [ ] Watchdog timer driver.
-  - [ ] NVM driver.
-  - [ ] QSPI driver (?).
+  - [ ] NVM driver (non volatile memory - flash memory).
+  - [ ] QSPI driver (?) -> external.
 
   ## Other
-  - [ ] RTOS scheduler.
+  - [ ] RTOS scheduler. (?)
   - [ ] RTOS task controller.
   - [ ] Error logging/reporting system.
   - [ ] Data logging/reporting system.

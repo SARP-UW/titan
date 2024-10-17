@@ -18,3 +18,4 @@
  * @authors Aaron McBride
  * @brief Bit manipulation utilities
  */
+
