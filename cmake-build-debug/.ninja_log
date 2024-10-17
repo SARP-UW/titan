@@ -1,0 +1,4 @@
+# ninja log v6
+8	106	7508413215300163	build.ninja	91c450b5a306198e
+263	688	7508409386273427	titan.elf	fe394e515a6e959a
+13	262	7508409383772911	CMakeFiles/titan.elf.dir/test/main.c.obj	fbda50d97f73bdea

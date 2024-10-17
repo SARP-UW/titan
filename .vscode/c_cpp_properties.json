@@ -15,14 +15,6 @@
         "TI_PLATFORM_STMH745",
         "TI_BOARD_STM32H745ZI",
         "TI_PACK_TQFP144"
-      ],
-      "compilerArgs": [
-        "freestanding",
-        "std=c11",
-        "fno-builtin",
-        "Wpedantic",
-        "Wall",
-        "Wextra"
       ]
     }
   ],
