@@ -1,0 +1,3 @@
+C:/Users/matin/OneDrive/Desktop/titan/cmake-build-debug/CMakeFiles/titan.elf.dir
+C:/Users/matin/OneDrive/Desktop/titan/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/matin/OneDrive/Desktop/titan/cmake-build-debug/CMakeFiles/rebuild_cache.dir

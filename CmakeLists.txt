@@ -16,7 +16,8 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 # Set executable and linker file
 set(EXECUTABLE ${PROJECT_NAME}.elf)
-add_executable(${EXECUTABLE} test/main.c)
+add_executable(${EXECUTABLE} test/main.c
+        src/common/util/math.h)
 
 # Set compiler defines
 target_compile_definitions(${EXECUTABLE} PRIVATE
@@ -33,14 +34,7 @@ target_compile_options(${EXECUTABLE} PRIVATE
     -mthumb 
     -mfpu=fpv4-sp-d16 
     -mfloat-abi=hard
-    -fdata-sections 
-    -ffunction-sections
-    -freestanding
-    -std=c11
-    -fno-builtin
-    -Wpedantic
-    -Wall
-    -Wextra
+    -fdata-sections
     -O2
     -g3)
 
