@@ -6,6 +6,9 @@
     "latch": "cpp",
     "limits": "cpp",
     "semaphore": "cpp",
-    "valarray": "cpp"
+    "valarray": "cpp",
+    "bitset": "c",
+    "algorithm": "c",
+    "format": "c"
   }
 }

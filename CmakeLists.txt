@@ -35,13 +35,13 @@ target_compile_options(${EXECUTABLE} PRIVATE
     -mfloat-abi=hard
     -fdata-sections 
     -ffunction-sections
-    -freestanding,
-    -std=c11,
-    -fno-builtin,
-    -Wpedantic,
-    -Wall,
-    -Wextra,
-    -O2,
+    -freestanding
+    -std=c11
+    -fno-builtin
+    -Wpedantic
+    -Wall
+    -Wextra
+    -O2
     -g3)
 
 # Set linker config
