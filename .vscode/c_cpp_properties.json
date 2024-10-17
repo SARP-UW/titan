@@ -1,7 +1,9 @@
 {
   "configurations": [
     {
-      "name": "arm_gcc",
+      "name": "titan_arm_gcc_config",
+      "compilerPath": "${workspaceFolder}/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe",
+      "intelliSenseMode": "gcc-arm",
       "includePath": [
         "${workspaceFolder}/src",
         "${workspaceFolder}/include"
@@ -9,14 +11,19 @@
       "defines": [
         "TI_DEBUG",
         "TI_ARCH_ARMV7",
-        "TI_PLATFORM_STMH7",
         "TI_ARCH_FPU",
-        "TI_BOARD_STM32H743ZIT3_DC"
+        "TI_PLATFORM_STMH745",
+        "TI_BOARD_STM32H745ZI",
+        "TI_PACK_TQFP144"
       ],
-      "compilerPath": "${workspaceFolder}/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe",
-      "cStandard": "c11",
-      "intelliSenseMode": "gcc-arm",
-      "configurationProvider": "ms-vscode.cmake-tools"
+      "compilerArgs": [
+        "freestanding",
+        "std=c11",
+        "fno-builtin",
+        "Wpedantic",
+        "Wall",
+        "Wextra"
+      ]
     }
   ],
   "version": 4
