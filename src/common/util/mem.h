@@ -30,10 +30,10 @@
 #endif
 
 // todo -> implement, doc
-void ti_memcpy(void* dst, void* src, size_t size);
+void* ti_memcpy(void* dst, void* src, size_t size);
 
 // todo -> implement, doc
-void ti_memset(void* mem, int value, size_t size);
+void* ti_memset(void* mem, char value, size_t size);
 
 // todo -> implement, doc
 void ti_memmove(void* dst, void* src, size_t size);

@@ -21,3 +21,24 @@
 
 #pragma once
 #include "common/util/mem.h"
+
+void* ti_memcpy(void* dst, void* src, size_t size)
+{
+    char *d = dst;
+    const char *s = src;
+
+    for (i=0; i<size; i++) {
+        *(d + i) = *(s + i);
+    }
+    return dst;
+}
+
+void* ti_memset(void* mem, char value, size_t size){
+
+    char *d = mem;
+    for(int i = 0; i < size; i++){
+        *(d + i) = value;
+    }
+
+    return mem;
+}
