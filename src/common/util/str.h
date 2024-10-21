@@ -34,23 +34,23 @@
    **************************************************************************************************/
 
   // todo -> implement, doc
-  // Appends src to dst and returns dst.
-  ti_fn_attr_inline inline char* ti_strcat (char* dst, const char* src);
+  // Appends src to dest and returns dest.
+  ti_fn_attr_inline inline char* ti_strcat (char* dest, const char* src);
 
   // todo -> implement, doc
   // Returns pointer to first occurrence of qchar in str.
-  ti_fn_attr_inline inline const char* ti_strchr(const char* str, char qchar);
+  ti_fn_attr_inline inline char* ti_strchr(const char* s, char c);
 
   // todo -> implement, doc
   // Return strue if str_a and str_b are equal.
   ti_fn_attr_inline inline bool ti_strcmp(const char* str_a, const char* str_b);
 
   // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strmove(char* dst, const char* src);
+  ti_fn_attr_inline inline char* ti_strmove(char* dest, const char* src);
 
   // todo -> implement, doc
-  // Copies src to dst and returns dst.
-  ti_fn_attr_inline inline char* ti_strcpy(char* dst, const char* src);
+  // Copies src to dest and returns dest.
+  ti_fn_attr_inline inline char* ti_strcpy(char* restrict dest, const char* restrict src);
 
   // todo -> implement, doc
   ti_fn_attr_inline inline int32_t ti_strcspn(const char* str, const char* qstr);
@@ -59,13 +59,13 @@
   ti_fn_attr_inline inline int32_t ti_strlen(const char* str);
 
   // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strncat(char* dst, const char* src, int32_t n);
+  ti_fn_attr_inline inline char* ti_strncat(char* dest, const char* src, int32_t n);
 
   // todo -> implement, doc
   ti_fn_attr_inline inline bool ti_strncmp(const char* str_a, const char* str_b, int32_t n);
 
   // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strncpy(char* dst, const char* src, int32_t n);
+  ti_fn_attr_inline inline char* ti_strncpy(char* dest, const char* src, int32_t n);
 
   // todo -> implement, doc
   ti_fn_attr_inline inline char* ti_strpbrk(const char* qstr, const char* str);
@@ -95,43 +95,51 @@
    * @internal Implementation
    **************************************************************************************************/
 
-  char* ti_strcat (char* dst, const char* src) {
-    if (dst != NULL) {
-      const int32_t dst_offset = ti_strlen(dst) - 1;
-      int32_t i = 0;
-      while (src[i] != 0) {
-        dst[dst_offset + i] = src[i];
-        ++i;
-      }
-      dst[dst_offset + i] = 0;
-    }
-    return dst;
+  #define ti_invalid_index -1
+
+  char* ti_strcat (char* dest, const char* src) {
+    char *ret = dest;
+    while (*dest) { dest++; }
+    while (*dest++ = *src++);
+    return ret;
   }
 
-  const char* ti_strchr(const char* str, char qchar) {
-    int32_t chr_index = ti_stridx(str, qchar);
-    return chr_index == -1 ? NULL : str + chr_index;
+  char* ti_strchr(const char* s, char c) {
+    while (*s != (char)c) {
+      if (!*s++) { return 0; }
+    }
+    return (char*)s;
   }
 
   int32_t ti_stridx(const char* str, const char qchar) {
-    if (str == NULL) { return -1; }
-    int32_t i = 0;
-    while (str[i] != qchar) {
-      if (str[i] == 0) { return -1; }
+    for (*s != (char)c) {
+      if (!*s++) { return ti_invalid_index; }
     }
-    return i;
   }
 
   bool ti_strcmp(const char* str_a, const char* str_b) {
-
+    if (str_a == NULL || str_b == NULL) { return false; }
+    for (int32_t i = 0; true; ++i) {
+      if (str_a[i] != str_b[i]) { return false; }
+      if (str_a[i] == 0) { break; }
+    }
+    return true;
   }
 
-  char* ti_strmove(char* dst, const char* src) {
-
+  char* ti_strmove(char* dest, const char* src) {
+    if (dest != NULL && src != NULL) {
+      for (int32_t i = 0; true; ++i) {
+        dest[i] = src[i];
+        if (src[i] == 0) { break; }
+      }
+    }
+    return dest;
   }
 
-  char* ti_strcpy(char* dst, const char* src) {
-
+  char* ti_strcpy(char* restrict dest, const char* restrict src) {
+    char *ret = dest;
+    while (*dest++ = *src++);
+    return ret;
   }
 
   int32_t ti_strcspn(const char* str, const char* qstr) {
@@ -144,13 +152,13 @@
     return i;
   }
 
-  char* ti_strncat(char* dst, const char* src, int32_t n) {
+  char* ti_strncat(char* dest, const char* src, int32_t n) {
 
   }
 
   bool ti_strncmp(const char* str_a, const char* str_b, int32_t n);
 
-  char* ti_strncpy(char* dst, const char* src, int32_t n);
+  char* ti_strncpy(char* dest, const char* src, int32_t n);
 
   char* ti_strpbrk(const char* qstr, const char* str);
 
