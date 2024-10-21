@@ -1,4 +1,35 @@
-C:\Users\matin\AppData\Local\Programs\CLion\bin\cmake\win\x64\bin\cmake.exe -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=C:/Users/matin/AppData/Local/Programs/CLion/bin/ninja/win/x64/ninja.exe -G Ninja -S C:\Users\matin\OneDrive\Desktop\titan -B C:\Users\matin\OneDrive\Desktop\titan\cmake-build-debug
--- Configuring done (0.2s)
--- Generating done (0.0s)
--- Build files have been written to: C:/Users/matin/OneDrive/Desktop/titan/cmake-build-debug
+/Users/joshua_beard/Applications/CLion.app/Contents/bin/cmake/mac/aarch64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/Users/joshua_beard/Applications/CLion.app/Contents/bin/ninja/mac/aarch64/ninja -G Ninja -S /Users/joshua_beard/Desktop/titan -B /Users/joshua_beard/Desktop/titan/cmake-build-debug
+-- The C compiler identification is unknown
+-- The CXX compiler identification is AppleClang 15.0.0.15000040
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - failed
+-- Check for working C compiler: /Users/joshua_beard/Desktop/titan/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe
+-- Check for working C compiler: /Users/joshua_beard/Desktop/titan/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe - broken
+CMake Error at /Users/joshua_beard/Applications/CLion.app/Contents/bin/cmake/mac/aarch64/share/cmake-3.30/Modules/CMakeTestCCompiler.cmake:67 (message):
+  The C compiler
+
+    "/Users/joshua_beard/Desktop/titan/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: '/Users/joshua_beard/Desktop/titan/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-AJNvSp'
+    
+    Run Build Command(s): /Users/joshua_beard/Applications/CLion.app/Contents/bin/ninja/mac/aarch64/ninja -v cmTC_a2a88
+    [1/2] "/Users/joshua_beard/Desktop/titan/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe"    -o CMakeFiles/cmTC_a2a88.dir/testCCompiler.c.obj -c /Users/joshua_beard/Desktop/titan/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-AJNvSp/testCCompiler.c
+    FAILED: CMakeFiles/cmTC_a2a88.dir/testCCompiler.c.obj 
+    "/Users/joshua_beard/Desktop/titan/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe"    -o CMakeFiles/cmTC_a2a88.dir/testCCompiler.c.obj -c /Users/joshua_beard/Desktop/titan/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-AJNvSp/testCCompiler.c
+    /bin/sh: /Users/joshua_beard/Desktop/titan/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe: Permission denied
+    ninja: build stopped: subcommand failed.
+    
+    
+
+  
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:9 (project)
+
+
+-- Configuring incomplete, errors occurred!
