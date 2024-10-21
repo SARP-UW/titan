@@ -9,19 +9,17 @@
   - This project is using a CMAKE build system.
 
   ## General Rules
-  - Allman bracket styling for functions and K&R for everything else
-    (commonly known as "linux kernal style").
+  - K&R bracket style.
   - 100 col. max (prefer ~80).
   - Indent scopes using 2 spaces.
   - Indent wrapped lines using 4 spaces.
-  - Add a spaces between control statement keywords and condition expressions
-    -> if ()... while ()... for ()...
-  - No space between function names and argument lists -> my_fn(args...)
-  - Name types using PascalCase.
+  - Name types using snake_case_t.
   - Name functions using snake_case.
   - Name variables using snake_case.
-  - All externally visible types/functions/variables should have the prefix ti_ 
-    (or Ti for types).
+  - All externally visible names should have the prefix "ti_".
+  - No space between function names and argument lists -> my_fn(args...)
+  - Add a spaces between control statement keywords and condition expressions
+    -> if ()... while ()... for ()...
 
   ## Misc Rules & Info
   - Avoid direct use of any compiler specific features. If a compiler-specific

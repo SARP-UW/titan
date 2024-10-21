@@ -1,5 +1,6 @@
 {
   "files.associations": {
+    "*.h": "c",
     "barrier": "cpp",
     "chrono": "cpp",
     "random": "cpp",
@@ -9,6 +10,25 @@
     "valarray": "cpp",
     "bitset": "c",
     "algorithm": "c",
-    "format": "c"
+    "format": "c",
+    "*.tcc": "cpp",
+    "charconv": "cpp",
+    "expected": "cpp",
+    "optional": "cpp",
+    "ratio": "cpp",
+    "system_error": "cpp",
+    "array": "cpp",
+    "functional": "cpp",
+    "regex": "cpp",
+    "tuple": "cpp",
+    "type_traits": "cpp",
+    "utility": "cpp",
+    "any": "cpp",
+    "compare": "cpp",
+    "complex": "cpp",
+    "ranges": "cpp",
+    "scoped_allocator": "cpp",
+    "variant": "cpp",
+    "cstdint": "c"
   }
 }
