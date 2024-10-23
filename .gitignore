@@ -1,6 +1,10 @@
 # Created by https://www.toptal.com/developers/gitignore/api/cmake,c,c++,clion,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=cmake,c,c++,clion,macos
 
+build/
+bin/cmake/toolchain_cache/
+.cache/
+
 ### C ###
 # Prerequisites
 *.d
