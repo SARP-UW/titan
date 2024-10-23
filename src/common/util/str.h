@@ -25,140 +25,309 @@
 #include <stddef.h>
 #include "common/util/attribute.h"
 
+#define ti_err_idx -1
+
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
   /**************************************************************************************************
-   * @section C-String Utilities
+   * @section String Transformation Utilities
    **************************************************************************************************/
 
-  // todo -> implement, doc
-  // Appends src to dest and returns dest.
-  ti_fn_attr_inline inline char* ti_strcat (char* dest, const char* src);
+  ti_fn_attr_inline inline char* ti_strcat(char* dest, const char* src); // FINAL
 
-  // todo -> implement, doc
-  // Returns pointer to first occurrence of qchar in str.
-  ti_fn_attr_inline inline char* ti_strchr(const char* s, char c);
+  ti_fn_attr_inline inline char* ti_strncat(char* dest, const char* src, int32_t n); // FINAL
 
-  // todo -> implement, doc
-  // Return strue if str_a and str_b are equal.
-  ti_fn_attr_inline inline bool ti_strcmp(const char* str_a, const char* str_b);
+  ti_fn_attr_inline inline char* ti_strcpy(char* restrict dest, const char* restrict src); // FINAL
 
-  // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strmove(char* dest, const char* src);
+  /**************************************************************************************************
+   * @section String Comparison Utilities
+   **************************************************************************************************/
 
-  // todo -> implement, doc
-  // Copies src to dest and returns dest.
-  ti_fn_attr_inline inline char* ti_strcpy(char* restrict dest, const char* restrict src);
+  ti_fn_attr_inline inline int32_t ti_strcmp(const char* str_l, const char* str_r); // FINAL
 
-  // todo -> implement, doc
+  ti_fn_attr_inline inline int32_t ti_strncmp(const char* str_l, const char* str_r, int32_t n); // FINAL
+
+
+  /**************************************************************************************************
+   * @section Character Query Utilities
+   **************************************************************************************************/
+
+  ti_fn_attr_inline inline char* ti_strchr(const char* str, char qchar); // FINAL
+
+  ti_fn_attr_inline inline char* ti_strrchr(const char* str, char qchar); // FINAL
+
+  ti_fn_attr_inline inline char* ti_strnchr(const char* str, char qchar, int32_t n); // FINAL
+
+
+  ti_fn_attr_inline inline int32_t ti_stridx(const char* str, char qchar); // FINAL
+
+  ti_fn_attr_inline inline int32_t ti_strridx(const char* str, char qchar); // FINAL
+
+  ti_fn_attr_inline inline int32_t ti_strnidx(const char* str, char qchar, int32_t n); // FINAL
+
+
+  ti_fn_attr_inline inline int32_t ti_strspn(const char* dest, const char* src);
+
   ti_fn_attr_inline inline int32_t ti_strcspn(const char* str, const char* qstr);
 
-  // todo -> implement, doc
-  ti_fn_attr_inline inline int32_t ti_strlen(const char* str);
-
-  // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strncat(char* dest, const char* src, int32_t n);
-
-  // todo -> implement, doc
-  ti_fn_attr_inline inline bool ti_strncmp(const char* str_a, const char* str_b, int32_t n);
-
-  // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strncpy(char* dest, const char* src, int32_t n);
-
-  // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strpbrk(const char* qstr, const char* str);
-
-  // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strrchr(const char* str, char qchar);
-
-  // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strnchr(const char* str, char qchar, int32_t n);
-
-  // todo -> implement, doc
   ti_fn_attr_inline inline int32_t ti_strspn(const char* str, const char* qstr);
 
-  // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strstr(const char* str, const char* qstr);
 
-  // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strnstr(const char* str, const char* qstr, int32_t n);
+  /**************************************************************************************************
+   * @section String Query Utilities
+   **************************************************************************************************/
 
-  // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strrstr(const char* str, const char* qstr);
 
-  // todo -> implement, doc
-  ti_fn_attr_inline inline char* ti_strtok(char* str, const char* delim);
+
+
+  // // todo -> implement, doc
+
+  // // todo -> implement, doc
+  // ti_fn_attr_inline inline int32_t ti_strlen(const char* str);
+
+
+  // // todo -> implement, doc
+
+  // // todo -> implement, doc
+  // ti_fn_attr_inline inline char* ti_strncpy(char* dest, const char* src, int32_t n);
+
+  // // todo -> implement, doc
+  // ti_fn_attr_inline inline char* ti_strpbrk(const char* qstr, const char* str);
+
+
+  // // todo -> implement, doc
+
+  // // todo -> implement, doc
+  // ti_fn_attr_inline inline char* ti_strstr(const char* str, const char* qstr);
+
+  // // todo -> implement, doc
+  // ti_fn_attr_inline inline char* ti_strnstr(const char* str, const char* qstr, int32_t n);
+
+  // // todo -> implement, doc
+  // ti_fn_attr_inline inline char* ti_strrstr(const char* str, const char* qstr);
+
+  // // todo -> implement, doc
+  // ti_fn_attr_inline inline char* ti_strtok(char* str, const char* delim);
 
   /**************************************************************************************************
    * @internal Implementation
    **************************************************************************************************/
 
-  #define ti_invalid_index -1
+  // Transform
 
   char* ti_strcat (char* dest, const char* src) {
-    char *ret = dest;
-    while (*dest) { dest++; }
-    while (*dest++ = *src++);
-    return ret;
-  }
-
-  char* ti_strchr(const char* s, char c) {
-    while (*s != (char)c) {
-      if (!*s++) { return 0; }
+    if (dest && src) {
+      char* tdest = dest;
+      while (*tdest) { ++tdest; }
+      while (*src) { 
+        *tdest = *src; 
+        ++tdest;
+        ++src;
+      }
     }
-    return (char*)s;
+    return dest;
   }
 
-  int32_t ti_stridx(const char* str, const char qchar) {
-    for (*s != (char)c) {
-      if (!*s++) { return ti_invalid_index; }
-    }
-  }
-
-  bool ti_strcmp(const char* str_a, const char* str_b) {
-    if (str_a == NULL || str_b == NULL) { return false; }
-    for (int32_t i = 0; true; ++i) {
-      if (str_a[i] != str_b[i]) { return false; }
-      if (str_a[i] == 0) { break; }
-    }
-    return true;
-  }
-
-  char* ti_strmove(char* dest, const char* src) {
-    if (dest != NULL && src != NULL) {
-      for (int32_t i = 0; true; ++i) {
-        dest[i] = src[i];
-        if (src[i] == 0) { break; }
+  char* ti_strncat(char* dest, const char* src, int32_t n) {
+    if (dest && src && n > 0) {
+      char* tdest = dest;
+      while (*tdest) { ++tdest; }
+      for (int32_t i = 0; i < n && *src; ++i) {
+        *tdest = *src;
+        ++tdest;
+        ++src;
       }
     }
     return dest;
   }
 
   char* ti_strcpy(char* restrict dest, const char* restrict src) {
-    char *ret = dest;
-    while (*dest++ = *src++);
-    return ret;
+    if (dest && src) {
+      char* tdest = dest;
+      while (*src) {
+        *tdest = *src;
+        ++tdest;
+        ++src;
+      }
+    }
+    return dest;
   }
 
-  int32_t ti_strcspn(const char* str, const char* qstr) {
 
+  // Compare
+
+  int32_t ti_strcmp(const char* str_l, const char* str_r) {
+    if (!str_l || !str_r) { return 0; }
+    while (*str_l == *str_r && *str_l && *str_r) {
+      str_l++;
+      str_r++;
+    }
+    return (int32_t)*str_l - (int32_t)*str_r;
   }
 
-  int32_t ti_strlen(const char* str) {
+  int32_t ti_strncmp(const char* str_l, const char* str_r, int32_t n) {
+    if (str_l && str_r && n > 0) {
+      for (int32_t i = 0; i < n; ++i) {
+        if (*str_l != *str_r || !*str_l || !*str_r) { 
+          return (int32_t)*str_l - (int32_t)*str_r; 
+        }
+        ++str_l;
+        ++str_r;
+      }
+    }
+    return 0;
+  }
+
+
+  // Query
+
+  char* ti_strchr(const char* str, char qchar) {
+    if (str) {
+      while (*str != qchar) {
+        if (!*str) { return NULL; }
+        ++str;
+      }
+    }
+    return (char*)str;
+  }
+
+  char* ti_strrchr(const char* str, char qchar) {
+    if (str) {
+      const char* tstr = str;
+      while (*tstr) {
+        if (*tstr == qchar) { str = tstr; }
+        ++tstr;
+      }
+      if (!qchar) { return (char*)tstr; }
+    }
+    return (char*)str;
+  }
+
+  char* ti_strnchr(const char* str, char qchar, int32_t n) {
+    if (str && n > 0)  {
+      int32_t count = 0;
+      while (*str) {
+        if (*str == qchar) {
+          ++count;
+          if (count >= n) { return (char*)str; }
+        }
+        ++str;
+      }
+      if (!qchar && n == 1) { return (char*)str; }
+    }
+    return NULL;
+  }
+
+
+
+  int32_t ti_stridx(const char* str, char qchar) {
+    if (!str) { return ti_err_idx; }
     int32_t i = 0;
-    while (str[i++] != 0);
+    while (*str != qchar) {
+      if (!*str) { return ti_err_idx; }
+      ++str;
+      ++i;
+    }
     return i;
   }
 
-  char* ti_strncat(char* dest, const char* src, int32_t n) {
+  int32_t ti_strridx(const char* str, char qchar) {
+    int32_t ret = ti_err_idx;
+    if (str) {
+      int32_t i = 0;
+      while (*str) {
+        if (*str == qchar) { ret == i; }
+        ++str;
+        ++i;
+      }
+      if (!qchar) { return i; }
+    }
+    return ret;
+  }
+
+  int32_t ti_strnidx(const char* str, char qchar, int32_t n) {
+    if (str) {
+      int32_t count = 0;
+      int32_t i = 0;
+      while (*str) {
+        if (*str == qchar) {
+          ++count;
+          if (count >= n) { return i; }
+        }
+        ++str;
+        ++i;
+      }
+      if (!qchar && n == 1) { return i; }
+    }
+    return ti_err_idx;
+  }
+
+
+
+  int32_t ti_strspn(const char* dest, const char* src) {
+    
 
   }
 
-  bool ti_strncmp(const char* str_a, const char* str_b, int32_t n);
+  int32_t ti_strcspn(const char* str, const char* qstr);
 
-  char* ti_strncpy(char* dest, const char* src, int32_t n);
+  int32_t ti_strspn(const char* str, const char* qstr);
+
+
+
+
+
+  int32_t ti_strspn(const char* str, const char* qstr) {
+    if (!str || !qstr) { return ti_err_idx; }
+    int32_t i = 0;
+    while (str[i]) {
+      int32_t j = 0;
+      while (qstr[j] != str[i]) {
+        if (!qstr[j]) { return i; }
+        ++j;
+      }
+      ++i;
+    }
+    return i;
+  }
+
+  int32_t ti_strcspn(const char* str, const char* qstr) {
+    if (!str || !qstr) { return ti_err_idx; }
+    int32_t i = 0;
+    while (str[i]) {
+      int32_t j = 0;
+      while (qstr[j]) {
+        if (str[i] == qstr[j]) { return i; }
+        ++j;
+      }
+      ++i;
+    }
+    return i;
+  }
+
+  int32_t ti_strlen(const char* str) {
+    if (!str) { return ti_err_idx; }
+    int32_t i;
+    for (i = 0; str[i]; ++i);
+    return i;
+  }
+
+  // head
+
+
+  char* ti_strncpy(char* dest, const char* src, int32_t n) {
+    if (dest && src) {
+      char* tdest = dest;
+      for (int32_t i = 0; i < n && *tdest && *src; ++i) {
+        *tdest = *src;
+        ++tdest;
+        ++src;
+      }
+    }
+    return dest;
+  }
 
   char* ti_strpbrk(const char* qstr, const char* str);
 
