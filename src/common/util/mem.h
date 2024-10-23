@@ -29,35 +29,31 @@
   extern "C" {
 #endif
 
-// todo -> implement, doc
+
 void* ti_memcpy(void* dst, void* src, size_t size);
 
-// todo -> implement, doc
 void* ti_memset(void* mem, char value, size_t size);
 
-// todo -> implement, doc
-void ti_memmove(void* dst, void* src, size_t size);
+// todo impl (ask abt though)
+void* ti_memmove(void* dst, void* src, size_t size);
 
-// todo -> implement, doc
-void ti_memexch(void* dst, void* src, int value, size_t size);
+void* ti_memexch(void* dst, void* src, char value, size_t size);
 
-// todo -> implement, doc
 void ti_memswap(void* mem_a, void* mem_b, size_t size);
 
-// todo -> implement, doc
 bool ti_memcmp(void* mem_a, void* mem_b, size_t size);
 
 // todo -> implement, doc
 bool ti_memeq(void* mem, int value, size_t size);
 
 // todo -> implement, doc
-void* ti_memchr(void* mem_a, int value, size_t size);
+void* ti_memchr(void* mem_a, char value, size_t size);
 
 // todo -> implement, doc
-void* ti_memrchr(void* mem_a, int value, size_t size);
+void* ti_memrchr(void* mem_a, char value, size_t size);
 
 // todo -> implement, doc
-void* ti_memchrn(void* mem, int value, size_t size, size_t n);
+void* ti_memchrn(void* mem, char value, size_t size, size_t n);
 
 void* ti_memsort(void* mem, size_t size, int (*cmp_fn)(const int*));
 

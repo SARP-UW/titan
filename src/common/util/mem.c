@@ -27,13 +27,14 @@ void* ti_memcpy(void* dst, void* src, size_t size)
     char *d = dst;
     const char *s = src;
 
-    for (i=0; i<size; i++) {
+    for (int i=0; i<size; i++) {
         *(d + i) = *(s + i);
     }
     return dst;
 }
 
-void* ti_memset(void* mem, char value, size_t size){
+void* ti_memset(void* mem, char value, size_t size)
+{
 
     char *d = mem;
     for(int i = 0; i < size; i++){
@@ -41,4 +42,44 @@ void* ti_memset(void* mem, char value, size_t size){
     }
 
     return mem;
+}
+
+void* ti_memexch(void* dst, void* src, char value, size_t size)
+{
+    ti_memcpy(dst, src, size);
+    ti_memset(src, value, size);
+    return dst;
+}
+
+void ti_memswap(void* mem_a, void* mem_b, size_t size)
+{
+    char *pA = mem_a;
+    char *pB = mem_b;
+
+    for(int i = 0; i < size; i++){
+        char a = *(pA + i);
+        *(pA + i) = *(pB + i);
+        *(pB + i) = a;
+    }
+}
+
+
+bool ti_memcmp(void* mem_a, void* mem_b, size_t size)
+{
+    char *pA = mem_a;
+    char *pB = mem_b;
+
+
+    for(int i = 0; i < size; i++){
+        char a = *(pA + i);
+        char b = *(pB + i);
+
+        if(a > b){
+            return 1;
+        }
+        if(b > a){
+            return -1;
+        }
+    }
+    return 0;
 }
