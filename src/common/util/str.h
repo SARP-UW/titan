@@ -61,52 +61,37 @@
   ti_fn_attr_inline inline char* ti_strnchr(const char* str, char qchar, int32_t n); // FINAL
 
 
-  ti_fn_attr_inline inline int32_t ti_stridx(const char* str, char qchar); // FINAL
+  ti_fn_attr_inline inline int32_t ti_strchr_i(const char* str, char qchar); // FINAL
 
-  ti_fn_attr_inline inline int32_t ti_strridx(const char* str, char qchar); // FINAL
+  ti_fn_attr_inline inline int32_t ti_strrchr_i(const char* str, char qchar); // FINAL
 
-  ti_fn_attr_inline inline int32_t ti_strnidx(const char* str, char qchar, int32_t n); // FINAL
-
-
-  ti_fn_attr_inline inline int32_t ti_strspn(const char* dest, const char* src);
-
-  ti_fn_attr_inline inline int32_t ti_strcspn(const char* str, const char* qstr);
-
-  ti_fn_attr_inline inline int32_t ti_strspn(const char* str, const char* qstr);
+  ti_fn_attr_inline inline int32_t ti_strnchr_i(const char* str, char qchar, int32_t n); // FINAL
 
 
-  /**************************************************************************************************
-   * @section String Query Utilities
-   **************************************************************************************************/
+  ti_fn_attr_inline inline int32_t ti_strspn(const char* str, const char* qstr); // FINAL
+
+  ti_fn_attr_inline inline int32_t ti_strcspn(const char* str, const char* qstr); // FINAL
 
 
+  ti_fn_attr_inline inline char* ti_strstr(const char* str, const char* qstr);
+
+  ti_fn_attr_inline inline char* ti_strnstr(const char* str, const char* qstr, int32_t n);
+
+  ti_fn_attr_inline inline char* ti_strrstr(const char* str, const char* qstr);
 
 
-  // // todo -> implement, doc
+  ti_fn_attr_inline inline int32_t ti_strstr_i(const char* str, const char* qstr);
 
-  // // todo -> implement, doc
-  // ti_fn_attr_inline inline int32_t ti_strlen(const char* str);
+  ti_fn_attr_inline inline int32_t ti_strrstr_i(const char* str, const char* qstr);
 
-
-  // // todo -> implement, doc
-
-  // // todo -> implement, doc
-  // ti_fn_attr_inline inline char* ti_strncpy(char* dest, const char* src, int32_t n);
-
-  // // todo -> implement, doc
-  // ti_fn_attr_inline inline char* ti_strpbrk(const char* qstr, const char* str);
+  ti_fn_attr_inline inline int32_t ti_strnstr_i(const char* str, const char* qstr, int32_t n);
 
 
-  // // todo -> implement, doc
+  ti_fn_attr_inline inline char* ti_strpbrk(const char* qstr, const char* str);
 
-  // // todo -> implement, doc
-  // ti_fn_attr_inline inline char* ti_strstr(const char* str, const char* qstr);
+  ti_fn_attr_inline inline int32_t ti_strlen(const char* str);
 
-  // // todo -> implement, doc
-  // ti_fn_attr_inline inline char* ti_strnstr(const char* str, const char* qstr, int32_t n);
 
-  // // todo -> implement, doc
-  // ti_fn_attr_inline inline char* ti_strrstr(const char* str, const char* qstr);
 
   // // todo -> implement, doc
   // ti_fn_attr_inline inline char* ti_strtok(char* str, const char* delim);
@@ -181,7 +166,7 @@
   }
 
 
-  // Query
+  // Query chr functions
 
   char* ti_strchr(const char* str, char qchar) {
     if (str) {
@@ -221,8 +206,9 @@
   }
 
 
+  // Query idx functions
 
-  int32_t ti_stridx(const char* str, char qchar) {
+  int32_t ti_strchr_i(const char* str, char qchar) {
     if (!str) { return ti_err_idx; }
     int32_t i = 0;
     while (*str != qchar) {
@@ -233,7 +219,7 @@
     return i;
   }
 
-  int32_t ti_strridx(const char* str, char qchar) {
+  int32_t ti_strrchr_i(const char* str, char qchar) {
     int32_t ret = ti_err_idx;
     if (str) {
       int32_t i = 0;
@@ -247,7 +233,7 @@
     return ret;
   }
 
-  int32_t ti_strnidx(const char* str, char qchar, int32_t n) {
+  int32_t ti_strnchr_i(const char* str, char qchar, int32_t n) {
     if (str) {
       int32_t count = 0;
       int32_t i = 0;
@@ -265,15 +251,128 @@
   }
 
 
+  // Query spn function
 
-  int32_t ti_strspn(const char* dest, const char* src) {
-    
-
+  int32_t ti_strspn(const char* str, const char* qstr) {
+    if (!str || !qstr) { return ti_err_idx; }
+    int32_t count = 0;
+    while (*str) {
+      const char* tqstr = qstr;
+      while (*str != *tqstr) {
+        ++tqstr;
+        if (!*tqstr) { return count; }
+      }
+      ++count;
+      ++str;
+    }
+    return count;
   }
 
-  int32_t ti_strcspn(const char* str, const char* qstr);
+  int32_t ti_strcspn(const char* str, const char* qstr) {
+    if (!str || !qstr) { return ti_err_idx; }
+    int32_t count = 0;
+    while (*str) {
+      const char* tqstr = qstr;
+      while (*tqstr) {
+        if (*tqstr == str) { return count; }
+        ++tqstr;
+      }
+      ++count;
+      ++str;
+    }
+    return count;
+  }
 
-  int32_t ti_strspn(const char* str, const char* qstr);
+
+  // Query str function
+
+  char* ti_strstr(const char* str, const char* qstr) {
+    if (str && qstr) {
+      const char* tstr = str;
+      const char* tqstr = qstr;
+      while (*str) {
+        if (*tqstr == *str) {
+          ++tqstr;
+          if (!*tqstr) { return tstr; }
+        } else {
+          tqstr = qstr;
+          tstr = str;
+        }
+        ++str;
+      }
+    }
+    return NULL;
+  }
+
+  char* ti_strnstr(const char* str, const char* qstr, int32_t n) {
+    if (str && qstr) {
+      int32_t count = 0;
+      const char* tqstr = qstr;
+      while (*str) {
+        if (*tqstr == *str) {
+          ++tqstr;
+          if (!*tqstr) {
+            ++count;
+            if (count == n) { return tqstr; }
+          }
+        } else {
+          tqstr = qstr;
+        }
+        ++str;
+      }
+    }
+    return NULL;
+  }
+
+  char* ti_strrstr(const char* str, const char* qstr) {
+    const char* lstr = NULL;
+    if (str && qstr) {
+      const char* tstr = str;
+      const char* tqstr = qstr;
+      while (*str) {
+        if (*tqstr == *str) {
+          ++tqstr;
+          if (tqstr == *str) { lstr = tstr; }
+        } else {
+          tqstr = qstr;
+          tstr = str; 
+        }
+        ++str;
+      }
+    }
+    return lstr;
+  }
+
+
+  // Query str index functions
+
+  int32_t ti_strstr_i(const char* str, const char* qstr) {
+    if (str && qstr) {
+      int32_t i = 0;
+      while (*str) {
+        const char* tqstr = qstr;
+        if (*tqstr == *str) {
+          ++tqstr;
+          if (!*tqstr) { return i; }
+        } else {
+          
+        }
+      }
+
+    }
+  }
+
+  int32_t ti_strrstr_i(const char* str, const char* qstr);
+
+  int32_t ti_strnstr_i(const char* str, const char* qstr, int32_t n);
+
+  // Query misc functions
+
+
+
+  char* ti_strpbrk(const char* qstr, const char* str);
+
+  int32_t ti_strlen(const char* str);
 
 
 
