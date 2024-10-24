@@ -74,12 +74,10 @@ bool ti_memcmp(void* mem_a, void* mem_b, size_t size)
         char a = *(pA + i);
         char b = *(pB + i);
 
-        if(a > b){
-            return 1;
+        if(a == b){
+            continue;
         }
-        if(b > a){
-            return -1;
-        }
+        return a-b;
     }
     return 0;
 }
