@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * @file common/util/core.h
- * @authors Aaron McBride
+ * @authors Joshua Beard
  * @brief Core utilities.
  */
 

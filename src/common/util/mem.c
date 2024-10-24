@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @file common/util/mem.h
- * @authors Aaron McBride
+ * @authors Joshua Beard
  * @brief Memory manipulation and querying utilities.
  */
 
@@ -77,7 +77,14 @@ bool ti_memcmp(void* mem_a, void* mem_b, size_t size)
         if(a == b){
             continue;
         }
-        return a-b;
+        return a < b ? -1 : 1;
     }
     return 0;
+}
+
+bool ti_memeq(void* mem, char value, size_t size)
+{
+    for(int i = 0; i < size; i++){
+        
+    }
 }
