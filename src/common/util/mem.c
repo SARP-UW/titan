@@ -92,3 +92,30 @@ bool ti_memeq(void* mem, char value, size_t size)
     }
     return 1;
 }
+
+void* ti_memchr(void* mem_a, char value, size_t size)
+{
+    char *pA = mem_a;
+    for(int i = 0; i < size; i++){
+        if(*pA == value){
+            return pA;
+        }
+        ++pA;
+    }
+    return (void *) 0;
+}
+
+
+void* ti_memrchr(void* mem_a, char value, size_t size)
+{
+    char *pA = mem_a;
+    pA += (size - 1); // TODO TEST IF OFF BY ONE
+
+    for(int i = 0; i < size; i++){
+        if(*pA == value){
+            return pA;
+        }
+        --pA;
+    }
+    return (void *) 0;
+}
