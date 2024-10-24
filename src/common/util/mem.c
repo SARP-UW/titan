@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @file common/util/mem.h
- * @authors Aaron McBride
+ * @authors Joshua Beard
  * @brief Memory manipulation and querying utilities.
  */
 
@@ -64,7 +64,7 @@ void ti_memswap(void* mem_a, void* mem_b, size_t size)
 }
 
 
-bool ti_memcmp(void* mem_a, void* mem_b, size_t size)
+int ti_memcmp(void* mem_a, void* mem_b, size_t size)
 {
     char *pA = mem_a;
     char *pB = mem_b;
@@ -74,12 +74,21 @@ bool ti_memcmp(void* mem_a, void* mem_b, size_t size)
         char a = *(pA + i);
         char b = *(pB + i);
 
-        if(a > b){
-            return 1;
+        if(a == b){
+            continue;
         }
-        if(b > a){
-            return -1;
-        }
+        return a < b ? -1 : 1;
     }
     return 0;
+}
+
+bool ti_memeq(void* mem, char value, size_t size)
+{
+    char *pA = mem;
+    for(int i = 0; i < size; i++){
+        if(*pA != value){
+            return 0;
+        }
+    }
+    return 1;
 }

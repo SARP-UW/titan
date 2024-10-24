@@ -41,10 +41,10 @@ void* ti_memexch(void* dst, void* src, char value, size_t size);
 
 void ti_memswap(void* mem_a, void* mem_b, size_t size);
 
-bool ti_memcmp(void* mem_a, void* mem_b, size_t size);
+int ti_memcmp(void* mem_a, void* mem_b, size_t size);
 
-// todo -> implement, doc
-bool ti_memeq(void* mem, int value, size_t size);
+bool ti_memeq(void* mem, char value, size_t size);
+
 
 // todo -> implement, doc
 void* ti_memchr(void* mem_a, char value, size_t size);
