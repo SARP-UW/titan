@@ -49,9 +49,13 @@ void* ti_memchr(void* mem_a, char value, size_t size);
 
 void* ti_memrchr(void* mem_a, char value, size_t size);
 
-// todo -> implement, doc
+/**
+ * Finds the n'th instance of value at the given location.  
+ * Eg: n = 1, returns first, NOT SECOND (indexing from 1)
+ */
 void* ti_memchrn(void* mem, char value, size_t size, size_t n);
 
+// todo impl
 void* ti_memsort(void* mem, size_t size, int (*cmp_fn)(const int*));
 
 #if defined(__cplusplus)

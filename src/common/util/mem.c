@@ -119,3 +119,27 @@ void* ti_memrchr(void* mem_a, char value, size_t size)
     }
     return (void *) 0;
 }
+
+
+void* ti_memchrn(void* mem, char value, size_t size, size_t n)
+{
+    char *pA = mem;
+
+    int occurence = 0;
+    for (int i = 0; i < size; i++) {
+        if (*pA == value) {
+            occurence++;
+            if(occurence == n){
+                return pA;
+            }
+        }
+        pA++;
+    }
+
+    return (void *) 0;
+}
+
+void* ti_memsort(void* mem, size_t size, int (*cmp_fn)(const char*))
+{
+    
+}
