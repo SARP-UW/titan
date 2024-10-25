@@ -55,8 +55,7 @@ void* ti_memrchr(void* mem_a, char value, size_t size);
  */
 void* ti_memchrn(void* mem, char value, size_t size, size_t n);
 
-// todo impl
-void* ti_memsort(void* mem, size_t size, int (*cmp_fn)(const int*));
+void* ti_memsort(void* mem, size_t size, int (*cmp_fn)(const char*, const char*));
 
 #if defined(__cplusplus)
   }
