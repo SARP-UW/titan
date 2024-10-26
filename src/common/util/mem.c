@@ -139,55 +139,48 @@ void* ti_memchrn(void* mem, char value, size_t size, size_t n)
     return (void *) 0;
 }
 
-// Orders each integer in the memory based on the value returned by cmp_fn.
-//    i.e. cmp_fn will return 1 if the first int should come first, before the second int
-//    in the memory section, 0 if it should keep its order relative to the second int, 
-//    or -1 if it should be come after then the second int in the memory section.
-//    (sort of the same way that priority_queue works in java, except that instead
-//    of each object in the container implementing a compare() method, here we
-//    are just manually passing two memory locations to a function to see which should
-//    be ranked "higher" then the other. This one is quite difficult, and probably not
-//    needed so feel free to skip this one if you can't figure it out.
-
-void* ti_memsort(void* mem, size_t size, int (*cmp_fn)(const char*, const char*))
-{
-    ti_mem_quicksort(mem, cmp_fn, 0, size - 1);
-    return mem;
-}
-
 static void ti_mem_quicksort(void* mem, int (*cmp_fn)(const char*, const char*), int low, int high)
 {
+    char* pA = (char*) mem;
+
     if (low < high) {
-        char* arr = mem;
-        char* pivot = &arr[high];
+        char* pivot = &pA[high];
+        char* greater = (char*) 0;
+        int greater_index = 0;
 
-        char* greatest = (void *) 0;
-        int j = low;
-
-        for(; j < high - 1; j++){
-            if(cmp_fn(pivot, &arr[j]) > 0){ // pivot less than arr[i]
-                greatest = &arr[j];
+        for(int i = 0; i <= high - 1; i++){
+            if(cmp_fn(&pA[i], pivot) < 0){
+                greater = &pA[i];
+                greater_index = i;
                 break;
             }
         }
 
-        if(greatest != (void *) 0){ // if false, already partitioned 
-            // partition
-            for(int i = low; i < high - 1; i++){
-                
-                if(cmp_fn(pivot, &arr[i]) < 0){ // pivot greater than arr[i]
-                    ti_memswap(greatest, &arr[i], 1);
-                    greatest++;
-                    j++;
+        if(greater != (char*) 0){
+            for (int i = greater_index; i <= high; i++) {
+                if(cmp_fn(&pA[i], pivot) > 0){
+                    ti_memswap(greater, &pA[i], 1);
+                    greater++;
+                    greater_index++;
                 }
             }
-            ti_memswap(greatest, pivot, 1);
-        }
 
-        j++; // pretty sure there is an off by one that makes this needed, gotta test though
-        
-        ti_mem_quicksort(mem, cmp_fn, 0, j - 1);
-        ti_mem_quicksort(mem, cmp_fn, j + 1, high);
+
+            ti_memswap(pivot, greater, 1);
+
+            ti_mem_quicksort(mem, cmp_fn, low, greater_index - 1);
+            ti_mem_quicksort(mem, cmp_fn, greater_index - 1, high);
+        }else{
+            ti_mem_quicksort(mem, cmp_fn, low, high - 1);
+        }
     }
 }
+
+void* ti_memsort(void* mem, size_t size, int (*cmp_fn)(const char*, const char*))
+{
+    ti_mem_quicksort(mem, cmp_fn, 0, (int)size - 1);
+    return mem;
+}
+
+
 
