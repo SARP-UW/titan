@@ -30,39 +30,55 @@
 #endif
 
   /**************************************************************************************************
-   * @internal Implementation
+   * @internal Forward Implementation
    **************************************************************************************************/
 
-  /** Compiler-agnostic sys endian defines */
-  #if defined(__GNUC__)
-    #define ti_endl__ (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
-    #define ti_endb__ (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+  /** Sets ti_sys_endian for multiple different compilers. */
+  #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && \
+      defined(__ORDER_BIG_ENDIAN__)
+    #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+      #define ti_sys_endian ti_little_endian
+    #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+      #define ti_sys_endian ti_big_endian
+    #else
+      #error "Unknown system endianness.
+    #endif
+  #else 
+    #warning "Unknown system endianness. Defaulting to little endian."
+    #define ti_sys_endian ti_little_endian
   #endif
 
-  /** @endinternal */
+  /** @internal */
 
   /**************************************************************************************************
    * @section Bit Manipulation Utilities
    **************************************************************************************************/
 
+  /** 
+   * @brief Value of ti_sys_endian if current system is little endian.
+   * @see ti_sys_endian
+   */
+  #define ti_little_endian_v -1 
+
+  /** 
+   * @brief Value of ti_sys_endian if current system is big endian. 
+   * @see ti_sys_endian
+   */
+  #define ti_big_endian_v 1
+
+  /** 
+   * @brief Evaluates to ti_little_endian_v if the current system is little 
+   *        endian, or ti_big_endian_v if the current system is big endian.
+   * @see ti_little_endian_v
+   * @see ti_big_endian_v
+   */
+  #define ti_sys_endian ti_sys_endian
+
   /**
    * @brief Evaluates to the number of bits in @p 'type'.
    * @param type The type to get the bit size of.
    */
-  #define ti_bit_size(type) \
-      (sizeof(type) * CHAR_BIT)
-
-  /**
-   * @brief Evaluates to true if the system is little endian, 
-   *        or false otherwise.
-   */
-  #define ti_little_endian ti_endl__
-
-  /**
-   * @brief Evaluates to true if the system is big endian, 
-   *        or false otherwise.
-   */
-  #define ti_big_endian ti_endb__
+  #define ti_bit_size(type) (sizeof(type) * CHAR_BIT)
 
   /**
    * @brief Reverses the bits of an integer.

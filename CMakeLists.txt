@@ -19,8 +19,8 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 # Set executable and linker file
 set(EXECUTABLE ${PROJECT_NAME}.elf)
-add_executable(${EXECUTABLE} test/main.c src/platform/startup.c
-                             src/common/util/math.c)
+add_executable(${EXECUTABLE} test/devboard_startup.S 
+                             test/main.c)
 
 # Set compiler defines
 target_compile_definitions(
@@ -37,11 +37,13 @@ target_compile_options(
           -mfpu=fpv4-sp-d16
           -mfloat-abi=hard
           -fdata-sections
+          -ffreestanding
+          -T devboard.ld
           -O2
           -g3)
 
 # Set linker config
-set(LINKER_FILE ${CMAKE_SOURCE_DIR}/bin/link/tmp.ld)
+set(LINKER_FILE ${CMAKE_SOURCE_DIR}/bin/link/devboard.ld)
 target_link_options(
   ${EXECUTABLE}
   PRIVATE
@@ -51,8 +53,6 @@ target_link_options(
   -mfpu=fpv4-sp-d16
   -mfloat-abi=hard
   -specs=nano.specs
-  -lc
-  -lm
   -lnosys
   -Wl,-Map=${PROJECT_NAME}.map,--cref
   -Wl,--gc-sections

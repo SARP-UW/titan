@@ -3,32 +3,40 @@
   "tasks": [
     {
       "type": "shell",
-      "label": "Build Titan",
-      "command": "cmake --build .",
+      "label": "configure",
+      "detail": "Configures cmake for project.",
+      "command": "cmake . -B build -G Ninja",
+      "problemMatcher": [],
+    },
+    {
+      "type": "shell",
+      "label": "clean",
+      "detail": "Removes all built files.",
+      "command": "ninja clean",
+      "problemMatcher": [],
       "options": {
         "cwd": "${workspaceFolder}/build"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": {
-        "base": "$gcc", 
-        "fileLocation": ["relative", "${workspaceFolder}/build"]
       }
     },
     {
       "type": "shell",
-      "label": "Clean and Build Titan",
-      "command": "cmake --build . --clean-first",
+      "label": "build",
+      "detail": "Builds project.",
+      "command": "ninja",
+      "problemMatcher": "$gcc",
       "options": {
-          "cwd": "${workspaceFolder}/build"
-      },
-      "group": "build",
-      "problemMatcher": {
-          "base": "$gcc", 
-          "fileLocation": ["relative", "${workspaceFolder}/build"]
+        "cwd": "${workspaceFolder}/build"
       }
-    }
+    },
+    {
+      "type": "shell",
+      "label": "flash dev",
+      "detail": "Flashes current build to devboard.",
+      "command": "openocd -f bin/openocd/devboard.cfg -c 'program build/titan.elf verify reset exit'",
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
   ]
 }
