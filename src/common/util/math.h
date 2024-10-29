@@ -14,11 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * @file common/util/core.h
- * @authors Aaron McBride
- * @brief Core utilities.
- */
-
+ * @file common/util/math.h
+ * @authors Joshua Beard
+ * @brief Math utilities
+*/
 #include <stdint.h>
 // 8, 32, 64
 #ifndef MATH_H

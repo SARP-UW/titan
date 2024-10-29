@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @file common/util/mem.h
- * @authors Aaron McBride
+ * @authors Aaron McBride, Joshua Beard
  * @brief Memory manipulation and querying utilities.
  */
 

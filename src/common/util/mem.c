@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file common/util/mem.h
+ * @file common/util/mem.c
  * @authors Joshua Beard
  * @brief Memory manipulation and querying utilities.
  */
