@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * @file common/util/math.c
- * @authors Aaron McBride, Joshua Beard
+ * @authors Joshua Beard
  * @brief Math utilities
  */
 

@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * @file common/util/math.h
- * @authors Joshua Beard
+ * @authors Aaron McBride, Joshua Beard
  * @brief Math utilities
 */
 #include <stdint.h>
