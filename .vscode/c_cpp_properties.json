@@ -1,13 +1,13 @@
 {
   "configurations": [
     {
-      "name": "titan_arm_gcc_config",
-      "compilerPath": "${workspaceFolder}/dev/arm_gcc_toolchain/13.3 rel1/bin/arm-none-eabi-gcc.exe",
+      "name": "titan_gcc_arm",
       "intelliSenseMode": "gcc-arm",
       "includePath": [
         "${workspaceFolder}/src",
         "${workspaceFolder}/include"
       ],
+      "compilerPath": "${workspaceFolder}/build/toolchain_cache/toolchain/arm-gnu-toolchain/bin/arm-none-eabi-gcc",
       "defines": [
         "TI_DEBUG",
         "TI_ARCH_ARMV7",
