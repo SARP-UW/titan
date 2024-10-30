@@ -22,7 +22,7 @@
   - [ ] USART driver.
   - [ ] I2C driver.
   - [ ] GPIO driver.
-  - [ ] Watchdog timer driver.
+  - [x] Watchdog timer driver.
   - [ ] NVM driver (non volatile memory - flash memory).
   - [ ] QSPI driver (?) -> external.
 
