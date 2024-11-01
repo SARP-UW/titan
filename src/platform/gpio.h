@@ -36,7 +36,7 @@
 
 // Enties in this table are the pin numbers.  
 int32_t pins[11][16] = {
-// PIN #
+// PIN # Within Port
 // 0   0   0   0   0   0   0   0   0   0   1   1   1   1   1   1
 // 0   1   2   3   4   5   6   7   8   9   0   1   2   3   4   5     PORT
   {37 ,38 ,39 ,40 ,43 ,44 ,45 ,46 ,97 ,98 ,99 ,100,101,102,107,108}, // A
@@ -53,10 +53,45 @@ int32_t pins[11][16] = {
 };
 
 // would be size 11 but ports I J and K do not have any pins connected so no point in storing their address
-int32_t port_registers[8]
+volatile int32_t* port_registers[8] = {
+  (int32_t*)1476526080,
+  (int32_t*)1476527104,
+  (int32_t*)1476528128,
+  (int32_t*)1476529152,
+  (int32_t*)1476530176,
+  (int32_t*)1476531200,
+  (int32_t*)1476532224,
+  (int32_t*)1476533248
+};
+
+/**
+ * @param pin: The single integer value of the pin, found in specific docs page 60
+ * @param mode: -1 for in, 1 for out
+*/
+void ti_set_mode(int pin, int mode);
+
+/**
+ * @param pin: The single integer value of the pin, found in specific docs page 60
+ * @param pull: -1 for low, 0 for floating, 1 for high
+*/
+void ti_pull_pin(int pin, int pull);
+
+/**
+ * @param pin: The single integer value of the pin, found in specific docs page 60
+ * @param value: 0 for off, 1 for on
+*/
+void ti_set_pin(int pin, int value);
 
 
+/**
+ * @param pin: The single integer value of the pin, found in specific docs page 60
+ * 
+ * @return true if pin is high, false if pin is low
+*/
+bool ti_read_pin(int pin);
 
+
+// add read and write buffer as well
 
 #if defined(__cplusplus)
   }
