@@ -57,6 +57,7 @@
 
 /**
  * port_index_from_pin[overall pin #] = 100 * port + PIN # Within Port
+ * -1 if pin doesn't exist
 */
 int32_t port_index_from_pin[140] = {-1,402,403,404,405,406,-1,-1,-1,213,
                                     214,215,-1,-1,-1,-1,-1,-1,-1,-1,
@@ -121,7 +122,7 @@ void ti_set_mode(int pin, int mode)
   int port = v / 100;
   int index = v - 100 * port;
 
-  
+
 }
 
 
