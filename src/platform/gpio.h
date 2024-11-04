@@ -125,7 +125,7 @@ void ti_set_mode(int pin, int mode)
   int port = v / 100;
   int index = v - 100 * port;
 
-  int32_t* output_type_reg = port_registers[port];
+  int32_t* output_type_reg = port_registers[port] + MODER_OFFSET;
 
   if(mode == 1){
     // write 01 to output_type_reg[index] 
