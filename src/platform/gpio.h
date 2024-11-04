@@ -86,6 +86,9 @@ volatile int32_t* port_registers[8] = {
   (int32_t*)1476533248
 };
 
+
+int32_t MODER_OFFSET = 0;
+
 /**
  * @param pin: The single integer value of the pin, found in specific docs page 60
  * @param mode: -1 for in, 1 for out
@@ -122,7 +125,13 @@ void ti_set_mode(int pin, int mode)
   int port = v / 100;
   int index = v - 100 * port;
 
+  int32_t* output_type_reg = port_registers[port];
 
+  if(mode == 1){
+    // write 01 to output_type_reg[index] 
+  }else if(mode == -1){
+    // write 00 to same spot
+  }
 }
 
 
