@@ -5,16 +5,16 @@
       "type": "cortex-debug",
       "cwd": "${workspaceFolder}",
       "configFiles": [
-        "${workspaceFolder}/bin/openocd/devboard.cfg",
+        "${workspaceFolder}/dev/devboard/flash_config.cfg",
       ],
       "device": "STM32H745ZIT3",
       "interface":"swd",
-      "name": "dev debug cm7",
+      "name": "devboard CM7",
       "request": "launch",
       "runToEntryPoint": "",
       "serialNumber": "",
       "servertype": "openocd",
-      "svdFile": "${workspaceFolder}/bin/svd/STM32H745_CM7.svd",
+      "svdFile": "${workspaceFolder}/dev/devboard/STM32H745_CM7.svd",
       "swoConfig": {
         "enabled": true,
         "cpuFrequency": 480000000,
@@ -28,8 +28,8 @@
           }
         ]
       },
-      "armToolchainPath": "${workspaceFolder}/build/toolchain_cache/toolchain/arm-gnu-toolchain/bin",
-      "gdbPath": "${workspaceFolder}/build/toolchain_cache/toolchain/arm-gnu-toolchain/bin/arm-none-eabi-gdb",
+      "armToolchainPath": "${env:ARM_GNU_TOOLCHAIN}/bin",
+      "gdbPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gdb",
       "executable": "${workspaceFolder}/build/titan.elf",
       "numberOfProcessors": 2,
       "targetProcessor": 0

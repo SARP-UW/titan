@@ -5,13 +5,13 @@
       "type": "shell",
       "label": "configure",
       "detail": "Configures cmake for project.",
-      "command": "cmake . -B build -G Ninja",
+      "command": "cmake -B build -G ninja",
       "problemMatcher": [],
     },
     {
       "type": "shell",
       "label": "clean",
-      "detail": "Removes all built files.",
+      "detail": "Removes all build files.",
       "command": "ninja clean",
       "problemMatcher": [],
       "options": {
@@ -30,13 +30,10 @@
     },
     {
       "type": "shell",
-      "label": "flash dev",
-      "detail": "Flashes current build to devboard.",
-      "command": "openocd -f bin/openocd/devboard.cfg -c 'program build/titan.elf verify reset exit'",
+      "label": "flash",
+      "detail": "Flashes current build to dev board.",
+      "command": "openocd -f dev/devboard/flash_config.cfg -c 'program build/titan.elf verify reset exit'",
       "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
     },
   ]
 }

@@ -1,20 +1,19 @@
 {
   "configurations": [
     {
-      "name": "titan_gcc_arm",
+      "name": "tal_dev_win",
       "intelliSenseMode": "gcc-arm",
       "includePath": [
         "${workspaceFolder}/src",
         "${workspaceFolder}/include"
       ],
-      "compilerPath": "${workspaceFolder}/build/toolchain_cache/toolchain/arm-gnu-toolchain/bin/arm-none-eabi-gcc",
+      "compilerPath": "${env:ARM_GNU_TOOLCHAIN}\\bin\\arm-none-eabi-gcc",
       "defines": [
-        "TI_DEBUG",
-        "TI_ARCH_ARMV7",
-        "TI_ARCH_FPU",
-        "TI_PLATFORM_STMH745",
-        "TI_BOARD_STM32H745ZI",
-        "TI_PACK_TQFP144"
+        "TAL_DEBUG",
+        "TAL_ARCH_ARMV7",
+        "TAL_ARCH_FPU",
+        "TAL_PLATFORM_STMH7X5",
+        "TAL_PACK_144"
       ]
     }
   ],
