@@ -88,6 +88,9 @@ volatile int32_t* port_registers[8] = {
 
 
 int32_t MODER_OFFSET = 0;
+int32_t PUPDR_OFFSET = 12;
+int32_t IDR_OFFSET   = 16;
+int32_t ODR_OFFSET   = 20;
 
 /**
  * @param pin: The single integer value of the pin, found in specific docs page 60
@@ -127,13 +130,86 @@ void ti_set_mode(int pin, int mode)
 
   int32_t* output_type_reg = port_registers[port] + MODER_OFFSET;
 
-  if(mode == 1){
-    // write 01 to output_type_reg[index] 
+  if(mode == 1){ // todo verify write_mask does what I think
+    ti_write_mask32(1, output_type_reg, index * 2, 2);
   }else if(mode == -1){
-    // write 00 to same spot
+    ti_write_mask32(0, output_type_reg, index * 2, 2);
   }
 }
 
+void ti_pull_pin(int pin, int pull)
+{
+  int v = port_index_from_pin[pin];
+  if(v == -1){ 
+    return; 
+  }
+  int port = v / 100;
+  int index = v - 100 * port;
+
+  int32_t* pull_register = port_registers[port] + PUPDR_OFFSET;
+
+  switch (pull)
+  {
+    case 1:{
+      ti_write_mask32(1, pull_register, index * 2, 2);
+      break;
+    }
+    case 0:{
+      ti_write_mask32(0, pull_register, index * 2, 2);
+      break;
+    }
+    case -1:{
+      ti_write_mask32(2, pull_register, index * 2, 2);
+      break;
+    }
+    
+    default:{
+      break;
+    }
+  }
+}
+
+void ti_set_pin(int pin, int value)
+{
+  int v = port_index_from_pin[pin];
+  if(v == -1){ 
+    return; 
+  }
+  int port = v / 100;
+  int index = v - 100 * port;
+
+  int32_t* set_register = port_registers[port] + ODR_OFFSET;
+
+  switch (value){
+    case 0:{
+      ti_write_mask32(0, set_register, index, 1);
+      break;
+    }
+    case 1:{
+      ti_write_mask32(1, set_register, index, 1);
+      break;
+    }
+
+    default:{
+      break;
+    }
+  }
+}
+
+bool ti_read_pin(int pin)
+{
+  int v = port_index_from_pin[pin];
+  if(v == -1){ 
+    return; 
+  }
+  int port = v / 100;
+  int index = v - 100 * port;
+
+  int32_t* input_register = port_registers[port] + IDR_OFFSET;
+  uint32_t read_val = ti_read_mask32(input_register, index, 1);
+  
+  return read_val == 1;
+}
 
 // add read and write buffer as well
 
