@@ -2,6 +2,8 @@
   "files.associations": {
     "*.h": "c",
     "compare": "c",
-    "type_traits": "c"
+    "type_traits": "c",
+    "random": "c",
+    "cstdint": "c"
   }
 }

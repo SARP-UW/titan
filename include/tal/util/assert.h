@@ -20,7 +20,6 @@
  */
 
 #pragma once
-#include <assert.h>
 #include <stdbool.h>
 #include <stdnoreturn.h>
 #include "include/tal/util/attributes.h"
@@ -59,7 +58,7 @@
    * @internal Implementation
    **************************************************************************************************/
 
-  tal_fn_attr_noreturn bool tal_assert__(const char* msg, const char* file, int line);
+  tal_fn_attr_noreturn bool tal_assert__(const char* msg, const char* file, int line); // todo
 
   /** @endinternal */
 

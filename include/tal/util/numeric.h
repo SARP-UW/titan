@@ -75,6 +75,26 @@
       default: (a == b)               \
     )
 
+  #define ti_cmpe2(a, b)               \
+    _Generic((a),                     \
+      int32_t: _Generic((b),          \
+        uint32_t: (a >= 0 && a == b), \
+        uint64_t: (a >= 0 && a == b), \
+      ),                              \
+      int64_t: _Generic((b),          \
+        uint32_t: (a >= 0 && a == b), \
+        uint64_t: (a >= 0 && a == b), \
+      ),                              \
+      uint32_t: _Generic((b),         \
+        int32_t: (b >= 0 && a == b),  \
+        int64_t: (b >= 0 && a == b),  \
+      ),                              \
+      uint64_t: _Generic((b),         \
+        int32_t: (b >= 0 && a == b),  \
+        int64_t: (b >= 0 && a == b),  \
+      )                              \
+    )
+
   /**
    * @brief Safely compares two integers of any size/signedness
    *       to determine if one is less than the other.
