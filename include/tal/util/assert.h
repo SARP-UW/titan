@@ -32,9 +32,8 @@
    * @section Standard Assert Macro
    **************************************************************************************************/
 
-  #if defined(TAL_DEBUG)
-
     /**
+     * @def tal_assert(cond, msg)
      * @brief Asserts that a given condition is true.
      * @param cond (bool) The condition to assert.
      * @param msg (const char*) The message to emit if the assertion fails.
@@ -43,12 +42,14 @@
      *         will emit the given error message and location of the assertion
      *         and then abort execution.
      */
+
+  #if defined(TAL_DEBUG)
+
     #define tal_assert(cond, msg) \
         ((bool)(cond) ? true : tal_assert__(msg, __FILE__, __LINE__))
 
   #else
 
-    /** @overload tal_assert(cond, msg) */
     #define tal_assert(cond, msg) \
         ((void)msg, (bool)(cond))
 

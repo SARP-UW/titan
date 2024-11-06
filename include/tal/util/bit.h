@@ -506,7 +506,7 @@
       int32_t count = 0;
       for (int i = 0; i < 8; ++i) {
         const uint8_t mask = (uint8_t)1 << (8 - 1 - i);
-        if ((value & mask) != 0) { break; }
+        if ((value & mask) != 0u) { break; }
         ++count;
       }
       return count;
@@ -521,7 +521,7 @@
       int32_t count = 0;
       for (int i = 0; i < 16; ++i) {
         const uint16_t mask = (uint16_t)1 << (16 - 1 - i);
-        if ((value & mask) != 0) { break; }
+        if ((value & mask) != 0u) { break; }
         ++count;
       }
       return count;
@@ -537,7 +537,7 @@
       int32_t count = 0;
       for (int i = 0; i < 32; ++i) {
         const uint32_t mask = (uint32_t)1 << (32 - 1 - i);
-        if ((value & mask) != 0) { break; }
+        if ((value & mask) != 0u) { break; }
         ++count;
       }
       return count;
@@ -557,7 +557,7 @@
       int32_t count = 0;
       for (int i = 0; i < 64; ++i) {
         const uint64_t mask = (uint64_t)1 << (64 - 1 - i);
-        if ((value & mask) != 0) { break; }
+        if ((value & mask) != 0u) { break; }
         ++count;
       }
       return count;
@@ -568,7 +568,7 @@
     int32_t count = 0;
     for (int i = 0; i < 8; ++i) {
       const uint8_t mask = (uint8_t)1 << (8 - 1 - i);
-      if ((value & mask) == 0) { break; }
+      if ((value & mask) == 0u) { break; }
       ++count;
     }
     return count;
@@ -578,7 +578,7 @@
     int32_t count = 0;
     for (int i = 0; i < 16; ++i) {
       const uint16_t mask = (uint16_t)1 << (16 - 1 - i);
-      if ((value & mask) == 0) { break; }
+      if ((value & mask) == 0u) { break; }
       ++count;
     }
     return count;
@@ -588,7 +588,7 @@
     int32_t count = 0;
     for (int i = 0; i < 32; ++i) {
       const uint32_t mask = (uint32_t)1 << (32 - 1 - i);
-      if ((value & mask) == 0) { break; }
+      if ((value & mask) == 0u) { break; }
       ++count;
     }
     return count;
@@ -598,7 +598,7 @@
     int32_t count = 0;
     for (int i = 0; i < 64; ++i) {
       const uint64_t mask = (uint64_t)1 << (64 - 1 - i);
-      if ((value & mask) == 0) { break; }
+      if ((value & mask) == 0u) { break; }
       ++count;
     }
     return count;
@@ -608,7 +608,7 @@
     int32_t count = 0;
     for (int i= 0; i < 8; ++i) {
       const uint8_t mask = (uint8_t)1 << i;
-      if ((value & mask) != 0) { break; }
+      if ((value & mask) != 0u) { break; }
       ++count;
     }
     return count;
@@ -618,7 +618,7 @@
     int32_t count = 0;
     for (int i= 0; i < 16; ++i) {
       const uint16_t mask = (uint16_t)1 << i;
-      if ((value & mask) != 0) { break; }
+      if ((value & mask) != 0u) { break; }
       ++count;
     }
     return count;
@@ -628,7 +628,7 @@
     int32_t count = 0;
     for (int i= 0; i < 32; ++i) {
       const uint32_t mask = (uint32_t)1 << i;
-      if ((value & mask) != 0) { break; }
+      if ((value & mask) != 0u) { break; }
       ++count;
     }
     return count;
@@ -638,7 +638,7 @@
     int32_t count = 0;
     for (int i= 0; i < 64; ++i) {
       const uint64_t mask = (uint64_t)1 << i;
-      if ((value & mask) != 0) { break; }
+      if ((value & mask) != 0u) { break; }
       ++count;
     }
     return count;
@@ -648,7 +648,7 @@
     int32_t count = 0;
     for (int i = 0; i < 8; ++i) {
       const uint8_t mask = (uint8_t)1 << i;
-      if ((value & mask) == 0) { break; }
+      if ((value & mask) == 0u) { break; }
       ++count;
     }
     return count;
@@ -658,7 +658,7 @@
     int32_t count = 0;
     for (int i = 0; i < 16; ++i) {
       const uint16_t mask = (uint16_t)1 << i;
-      if ((value & mask) == 0) { break; }
+      if ((value & mask) == 0u) { break; }
       ++count;
     }
     return count;
@@ -668,7 +668,7 @@
     int32_t count = 0;
     for (int i = 0; i < 32; ++i) {
       const uint32_t mask = (uint32_t)1 << i;
-      if ((value & mask) == 0) { break; }
+      if ((value & mask) == 0u) { break; }
       ++count;
     }
     return count;
@@ -678,7 +678,7 @@
     int32_t count = 0;
     for (int i = 0; i < 64; ++i) {
       const uint64_t mask = (uint64_t)1 << i;
-      if ((value & mask) == 0) { break; }
+      if ((value & mask) == 0u) { break; }
       ++count;
     }
     return count;
@@ -688,7 +688,7 @@
     int32_t count = 0;
     for (int i = 0; i < 8; ++i) {
       const uint8_t mask = (uint8_t)1 << i;
-      if ((value & mask) != 0) { ++count; }
+      if ((value & mask) != 0u) { ++count; }
     }
     return count;
   }
@@ -697,7 +697,7 @@
     int32_t count = 0;
     for (int i = 0; i < 16; ++i) {
       const uint16_t mask = (uint16_t)1 << i;
-      if ((value & mask) != 0) { ++count; }
+      if ((value & mask) != 0u) { ++count; }
     }
     return count;
   }
@@ -706,7 +706,7 @@
     int32_t count = 0;
     for (int i = 0; i < 32; ++i) {
       const uint32_t mask = (uint32_t)1 << i;
-      if ((value & mask) != 0) { ++count; }
+      if ((value & mask) != 0u) { ++count; }
     }
     return count;
   }
@@ -715,7 +715,7 @@
     int32_t count = 0;
     for (int i = 0; i < 64; ++i) {
       const uint64_t mask = (uint64_t)1 << i;
-      if ((value & mask) != 0) { ++count; }
+      if ((value & mask) != 0u) { ++count; }
     }
     return count;
   }

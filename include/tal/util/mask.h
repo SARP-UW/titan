@@ -34,24 +34,23 @@
    **************************************************************************************************/
 
   /**
+   * @defgroup tal_get_mask
    * @brief Generates a bitmask of a specific length with bits at a specific location.
    * @param type (typename) The unsigned integer typename of the mask to return.
    * @param pos (int32_t) The location of the first set bit in the mask (from lsb).
    * @param len (int32_t) The number of contiguous set bits in the mask.
    * @returns ('type') A bitmask with 'len' set bits, 'pos' bits from the lsb.
+   * @{
    */
-  #define tal_get_mask(type, pos, len) \
-    _Generic(((type){0}), \
-      uint8_t: (uint8_t)tal_get_mask_u32(pos, len), \
-      uint16_t: (uint16_t)tal_get_mask_u32(pos, len), \
-      uint32_t: tal_get_mask_u32(pos, len), \
-      uint64_t: tal_get_mask_u64(pos, len) \
-    )
-
+  tal_fn_attr_inline inline uint8_t tal_get_mask_u8(
+      const int32_t pos, const int32_t len);
+  tal_fn_attr_inline inline uint16_t tal_get_mask_u16(
+      const int32_t pos, const int32_t len);
   tal_fn_attr_inline inline uint32_t tal_get_mask_u32(
       const int32_t pos, const int32_t len);
   tal_fn_attr_inline inline uint64_t tal_get_mask_u64(
       const int32_t pos, const int32_t len);
+  /** @} */
 
   /**
    * @brief Determines if a mask is valid for a specific memory location type.
@@ -62,24 +61,17 @@
    * @param len (int32_t) The length of the mask (in bits).
    * @returns (bool) True if a mask of 'len' bits, 'pos' bits from the lsb of
    *          a pointer to 'type' is valid, or false otherwise.
+   * @{
    */
-  #define tal_valid_mask(type, pos, len) \
-    _Generic(((type){0}) \
-      uint8_t: tal_valid_mask8, \
-      uint16_t: tal_valid_mask16, \
-      uint32_t: tal_valid_mask32, \
-      uint64_t: tal_valid_mask64 \
-      default: false \
-    )
-
-  tal_fn_attr_inline inline bool tal_valid_mask8(
+  tal_fn_attr_inline inline bool tal_valid_mask_u8(
       const int32_t pos, const int32_t len);
-  tal_fn_attr_inline inline bool tal_valid_mask16(
+  tal_fn_attr_inline inline bool tal_valid_mask_u16(
       const int32_t pos, const int32_t len);
-  tal_fn_attr_inline inline bool tal_valid_mask32(
+  tal_fn_attr_inline inline bool tal_valid_mask_u32(
       const int32_t pos, const int32_t len);
-  tal_fn_attr_inline inline bool tal_valid_mask64(
+  tal_fn_attr_inline inline bool tal_valid_mask_u64(
       const int32_t pos, const int32_t len);
+  /** @} */
 
   /**
    * @brief Writes a value to a bit-specific location in memory.
@@ -90,36 +82,27 @@
    * @param len (int32_t) The length (in bits) of the location to write to.
    * @note - The size of 'loc' determines the alignment of this operation.
    * @note - The volatility of 'loc' determines if this operation is volatile.
+   * @{
    */
-  #define tal_write_mask(value, loc, pos, len) \
-    _Generic((loc), \
-      uint8_t*: tal_write_mask8, \
-      uint16_t*: tal_write_mask16, \
-      uint32_t*: tal_write_mask32, \
-      uint64_t*: tal_write_mask64, \
-      volatile uint8_t*: tal_write_mask8v, \
-      volatile uint16_t*: tal_write_mask16v, \
-      volatile uint32_t*: tal_write_mask32v, \
-      volatile uint64_t*: tal_write_mask64v \
-    )(value, loc, pos, len)
-
-  tal_fn_attr_inline inline void tal_write_mask8(const uint8_t value, 
+  tal_fn_attr_inline inline void tal_write_mask_u8(const uint8_t value, 
       uint8_t* loc, const int32_t pos, const int32_t len);
-  tal_fn_attr_inline inline void tal_write_mask16(const uint16_t value, 
+  tal_fn_attr_inline inline void tal_write_mask_u16(const uint16_t value, 
       uint16_t* loc, const int32_t pos, const int32_t len);
-  tal_fn_attr_inline inline void tal_write_mask32(const uint32_t value, 
+  tal_fn_attr_inline inline void tal_write_mask_u32(const uint32_t value, 
       uint32_t* loc, const int32_t pos, const int32_t len);
-  tal_fn_attr_inline inline void tal_write_mask64(const uint64_t value, 
+  tal_fn_attr_inline inline void tal_write_mask_u64(const uint64_t value, 
       uint64_t* loc, const int32_t pos, const int32_t len);
 
-  tal_fn_attr_inline inline void tal_write_mask8v(const uint8_t value, 
+  tal_fn_attr_inline inline void tal_write_mask_u8v(const uint8_t value, 
       volatile uint8_t* loc, const int32_t pos, const int32_t len);
-  tal_fn_attr_inline inline void tal_write_mask16v(const uint16_t value, 
+  tal_fn_attr_inline inline void tal_write_mask_u16v(const uint16_t value, 
       volatile uint16_t* loc, const int32_t pos, const int32_t len);
-  tal_fn_attr_inline inline void tal_write_mask32v(const uint32_t value, 
+  tal_fn_attr_inline inline void tal_write_mask_u32v(const uint32_t value, 
       volatile uint32_t* loc, const int32_t pos, const int32_t len);
-  tal_fn_attr_inline inline void tal_write_mask64v(const uint64_t value, 
+  tal_fn_attr_inline inline void tal_write_mask_u64v(const uint64_t value, 
       volatile uint64_t* loc, const int32_t pos, const int32_t len);
+  /** @} */
+  
 
   /**
    * @brief Reads the value at a bit-specific location in memory.
@@ -132,26 +115,6 @@
    * @note - The size of 'loc' determines the alignment of this read operation.
    * @note - The volatility of 'loc' determines if this operation is volatile.
    */
-  #define tal_read_mask(loc, pos, len) \
-    _Generic((loc), \
-      uint8_t*: tal_read_mask8, \
-      uint16_t*: tal_read_mask16, \
-      uint32_t*: tal_read_mask32, \
-      uint64_t*: tal_read_mask64, \
-      const uint8_t*: tal_read_mask8, \
-      const uint16_t*: tal_read_mask16, \
-      const uint32_t*: tal_read_mask32, \
-      const uint64_t*: tal_read_mask64, \
-      volatile uint8_t*: tal_read_mask8v, \
-      volatile uint16_t*: tal_read_mask16v, \
-      volatile uint32_t*: tal_read_mask32v, \
-      volatile uint64_t*: tal_read_mask64v, \
-      const volatile uint8_t*: tal_read_mask8v, \
-      const volatile uint16_t*: tal_read_mask16v, \
-      const volatile uint32_t*: tal_read_mask32v, \
-      const volatile uint64_t*: tal_read_mask64v \
-    )(loc, pos, len)
-
   tal_fn_attr_inline inline uint8_t tal_read_mask8(const uint8_t* loc, 
       const int32_t pos, const int32_t len);
   tal_fn_attr_inline inline uint16_t tal_read_mask16(const uint16_t* loc, 
@@ -180,18 +143,6 @@
    * @note - The size of 'loc' determines the alignment of this operation.
    * @note - The volatility of 'loc' determines if this operation is volatile.
    */
-  #define tal_set_mask(loc, pos, len) \
-    _Generic((loc), \
-      uint8_t*: tal_set_mask8, \
-      uint16_t*: tal_set_mask16, \
-      uint32_t*: tal_set_mask32, \
-      uint64_t*: tal_set_mask64, \
-      volatile uint8_t*: tal_set_mask8v, \
-      volatile uint16_t*: tal_set_mask16v, \
-      volatile uint32_t*: tal_set_mask32v, \
-      volatile uint64_t*: tal_set_mask64v \
-    )(loc, pos, len)
-
   tal_fn_attr_inline inline void tal_set_mask8(uint8_t* loc, 
       const int32_t pos, const int32_t len);
   tal_fn_attr_inline inline void tal_set_mask16(uint16_t* loc, 
@@ -220,18 +171,6 @@
    * @note - The size of 'loc' determines the alignment of this operation.
    * @note - The volatility of 'loc' determines if this operation is volatile.
    */
-  #define tal_clear_mask(loc, pos, len) \
-    _Generic((loc), \
-      uint8_t*: tal_clear_mask8, \
-      uint16_t*: tal_clear_mask16, \
-      uint32_t*: tal_clear_mask32, \
-      uint64_t*: tal_clear_mask64, \
-      volatile uint8_t*: tal_clear_mask8v, \
-      volatile uint16_t*: tal_clear_mask16v, \
-      volatile uint32_t*: tal_clear_mask32v, \
-      volatile uint64_t*: tal_clear_mask64v \
-    )(loc, pos, len)
-
   tal_fn_attr_inline inline void tal_clear_mask8(uint8_t* loc, 
       const int32_t pos, const int32_t len);
   tal_fn_attr_inline inline void tal_clear_mask16(uint16_t* loc, 
@@ -260,18 +199,6 @@
    * @note - The size of 'loc' determines the alignment of this operation.
    * @note - The volatility of 'loc' determines if this operation is volatile.
    */
-  #define tal_toggle_mask(loc, pos, len) \
-    _Generic((loc), \
-      uint8_t*: tal_toggle_mask8, \
-      uint16_t*: tal_toggle_mask16, \
-      uint32_t*: tal_toggle_mask32, \
-      uint64_t*: tal_toggle_mask64, \
-      volatile uint8_t*: tal_toggle_mask8v, \
-      volatile uint16_t*: tal_toggle_mask16v, \
-      volatile uint32_t*: tal_toggle_mask32v, \
-      volatile uint64_t*: tal_toggle_mask64v \
-    )(loc, pos, len)
-
   tal_fn_attr_inline inline void tal_toggle_mask8(uint8_t* loc, 
       const int32_t pos, const int32_t len);
   tal_fn_attr_inline inline void tal_toggle_mask16(uint16_t* loc, 
@@ -302,26 +229,6 @@
    * @note - The size of 'loc' determines the alignment of this operation.
    * @note - The volatility of 'loc' determines if this operation is volatile.
    */
-  #define tal_is_set(loc, pos, len) \
-    _Generic((loc), \
-      uint8_t*: tal_is_set8, \
-      uint16_t*: tal_is_set16, \
-      uint32_t*: tal_is_set32, \
-      uint64_t*: tal_is_set64, \
-      const uint8_t*: tal_is_set8, \
-      const uint16_t*: tal_is_set16, \
-      const uint32_t*: tal_is_set32, \
-      const uint64_t*: tal_is_set64, \
-      volatile uint8_t*: tal_is_set8v, \
-      volatile uint16_t*: tal_is_set16v, \
-      volatile uint32_t*: tal_is_set32v, \
-      volatile uint64_t*: tal_is_set64v, \
-      const volatile uint8_t*: tal_is_set8v, \
-      const volatile uint16_t*: tal_is_set16v, \
-      const volatile uint32_t*: tal_is_set32v, \
-      const volatile uint64_t*: tal_is_set64v \
-    )(loc, pos, len)
-
   tal_fn_attr_inline inline bool tal_is_set8(const uint8_t* loc, 
       const int32_t pos, const int32_t len);
   tal_fn_attr_inline inline bool tal_is_set16(const uint16_t* loc, 
@@ -352,26 +259,6 @@
    * @note - The size of 'loc' determines the alignment of this operation.
    * @note - The volatility of 'loc' determines if this operation is volatile.
    */
-  #define tal_is_clear(loc, pos, len) \
-    _Generic((loc), \
-      uint8_t*: tal_is_clear8, \
-      uint16_t*: tal_is_clear16, \
-      uint32_t*: tal_is_clear32, \
-      uint64_t*: tal_is_clear64, \
-      const uint8_t*: tal_is_clear8, \
-      const uint16_t*: tal_is_clear16, \
-      const uint32_t*: tal_is_clear32, \
-      const uint64_t*: tal_is_clear64, \
-      volatile uint8_t*: tal_is_clear8v, \
-      volatile uint16_t*: tal_is_clear16v, \
-      volatile uint32_t*: tal_is_clear32v, \
-      volatile uint64_t*: tal_is_clear64v, \
-      const volatile uint8_t*: tal_is_clear8v, \
-      const volatile uint16_t*: tal_is_clear16v, \
-      const volatile uint32_t*: tal_is_clear32v, \
-      const volatile uint64_t*: tal_is_clear64v \
-    )(loc, pos, len)
-
   tal_fn_attr_inline inline bool tal_is_clear8(const uint8_t* loc, 
       const int32_t pos, const int32_t len);
   tal_fn_attr_inline inline bool tal_is_clear16(const uint16_t* loc, 
