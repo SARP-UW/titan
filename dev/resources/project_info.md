@@ -1,7 +1,7 @@
 # Project Information
 
   ## General Information
-  - This project is currently targetting the STMH745ZI MCU (TFQP 144 package).
+  - This project is currently targetting the STMH755ZI MCU (TFQP 144 package).
     - This MCU uses the ARMv7M arch.
   - This project will be using c11 (possible cpp interface at a later time).
   - This project is currently being compiled with the GNU ARM Embedded toolchain
