@@ -1,20 +1,32 @@
-
 ###################################################################################################
 # NOTE -> THIS CMAKE LISTS FILE IS FOR PROJECT DEVELOPMENT ONLY
 #         AND SHOULD BE REPLACED AT SOME POINT WITH A PROPER BUILD SYSTEM.
 ###################################################################################################
 
+# Configure cmake compilers
+set(TC_BIN_PATH $ENV{ARM_GNU_TOOLCHAIN}/bin)
+set(CMAKE_C_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc.exe)
+set(CMAKE_ASM_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc.exe)
+set(CMAKE_CXX_COMPILER ${TC_BIN_PATH}/arm-none-eabi-g++.exe)
+set(CMAKE_OBJCOPY ${TC_BIN_PATH}/arm-none-eabi-objcopy.exe)
+set(CMAKE_OBJDUMP ${TC_BIN_PATH}/arm-none-eabi-objdump.exe)
+set(CMAKE_SIZE ${TC_BIN_PATH}/arm-none-eabi-size.exe)
+
+set(CMAKE_EXE_LINKER_FLAGS_INIT "-nostdlib")
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+set(CMAKE_FIND_ROOT_PATH ${TC_BIN_PATH})
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+# Set system info
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+
 # Init cmake project
 cmake_minimum_required(VERSION 3.15.3)
 project(TAL)
-
-# Get and set compilers
-set(TC_BIN_PATH $ENV{ARM_GNU_TOOLCHAIN}/bin)
-set(CMAKE_C_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc${CMAKE_EXECUTABLE_SUFFIX})
-set(CMAKE_ASM_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc${CMAKE_EXECUTABLE_SUFFIX})
-set(CMAKE_OBJCOPY ${TC_BIN_PATH}/arm-none-eabi-objcopy${CMAKE_EXECUTABLE_SUFFIX})
-set(CMAKE_OBJDUMP ${TC_BIN_PATH}/arm-none-eabi-objdump${CMAKE_EXECUTABLE_SUFFIX})
-set(CMAKE_SIZE ${TC_BIN_PATH}/arm-none-eabi-size${CMAKE_EXECUTABLE_SUFFIX})
 
 # Set language
 enable_language(C ASM)
@@ -30,13 +42,13 @@ add_executable(${EXECUTABLE}
 )
 
 # Set include directory
-target_include_directories(${EXECUTABLE}
+target_include_directories(${EXECUTABLE} PRIVATE
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/src
 )
 
 # Set compiler defines
-target_compile_definitions(${EXECUTABLE}
+target_compile_definitions(${EXECUTABLE} PRIVATE
   -D TAL_DEBUG
   -D TAL_ARCH_ARMV7M 
   -D TAL_ARCH_FPU 
@@ -45,7 +57,7 @@ target_compile_definitions(${EXECUTABLE}
 )
 
 # Set compiler config
-target_compile_options(${EXECUTABLE}
+target_compile_options(${EXECUTABLE} PRIVATE
   -mcpu=cortex-m7
   -mthumb
   -mfpu=fpv4-sp-d16
@@ -58,7 +70,7 @@ target_compile_options(${EXECUTABLE}
 )
 
 # Set linker config
-target_link_options(${EXECUTABLE}
+target_link_options(${EXECUTABLE} PRIVATE
   -nostdlib
   -T ${CMAKE_SOURCE_DIR}/dev/devboard/linker_file.ld
   -mcpu=cortex-m7
