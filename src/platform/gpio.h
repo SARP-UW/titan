@@ -25,7 +25,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "mask.h"
+#include "include/tal/util/mask.h"
 
 #if defined(__cplusplus)
   extern "C" {

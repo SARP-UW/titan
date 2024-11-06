@@ -5,12 +5,12 @@
 
 # Configure cmake compilers
 set(TC_BIN_PATH $ENV{ARM_GNU_TOOLCHAIN}/bin)
-set(CMAKE_C_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc.exe)
-set(CMAKE_ASM_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc.exe)
-set(CMAKE_CXX_COMPILER ${TC_BIN_PATH}/arm-none-eabi-g++.exe)
-set(CMAKE_OBJCOPY ${TC_BIN_PATH}/arm-none-eabi-objcopy.exe)
-set(CMAKE_OBJDUMP ${TC_BIN_PATH}/arm-none-eabi-objdump.exe)
-set(CMAKE_SIZE ${TC_BIN_PATH}/arm-none-eabi-size.exe)
+set(CMAKE_C_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc${CMAKE_EXECUTABLE_SUFFIX})
+set(CMAKE_ASM_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc${CMAKE_EXECUTABLE_SUFFIX})
+set(CMAKE_CXX_COMPILER ${TC_BIN_PATH}/arm-none-eabi-g++${CMAKE_EXECUTABLE_SUFFIX})
+set(CMAKE_OBJCOPY ${TC_BIN_PATH}/arm-none-eabi-objcopy${CMAKE_EXECUTABLE_SUFFIX})
+set(CMAKE_OBJDUMP ${TC_BIN_PATH}/arm-none-eabi-objdump${CMAKE_EXECUTABLE_SUFFIX})
+set(CMAKE_SIZE ${TC_BIN_PATH}/arm-none-eabi-size${CMAKE_EXECUTABLE_SUFFIX})
 
 set(CMAKE_EXE_LINKER_FLAGS_INIT "-nostdlib")
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
