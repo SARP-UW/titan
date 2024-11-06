@@ -59,6 +59,7 @@ target_compile_options(${EXECUTABLE}
 
 # Set linker config
 target_link_options(${EXECUTABLE}
+  -nostdlib
   -T ${CMAKE_SOURCE_DIR}/dev/devboard/linker_file.ld
   -mcpu=cortex-m7
   -mthumb

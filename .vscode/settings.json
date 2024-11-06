@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "*.h": "c",
+    "compare": "c",
+    "type_traits": "c"
+  }
+}
