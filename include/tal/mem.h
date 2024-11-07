@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file common/util/mem.h
- * @authors Aaron McBride, Joshua Beard
+ * @file include/tal/mem.h
+ * @authors Joshua Beard, Aaron McBride
  * @brief Memory manipulation and querying utilities.
  */
 
@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <string.h>
+#include "include/tal/attributes.h"
 
 #if defined(__cplusplus)
   extern "C" {

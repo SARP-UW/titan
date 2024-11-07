@@ -4,6 +4,11 @@
     "compare": "c",
     "type_traits": "c",
     "random": "c",
-    "cstdint": "c"
+    "cstdint": "c",
+    "array": "c",
+    "complex": "c",
+    "functional": "c",
+    "tuple": "c",
+    "utility": "c"
   }
 }

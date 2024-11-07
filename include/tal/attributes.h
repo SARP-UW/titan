@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file include/tal/util/attributes.h
+ * @file include/tal/attributes.h
  * @authors Aaron McBride
  * @brief Compiler-agnostic function, variable and type attributes.
  */
@@ -26,7 +26,7 @@
 #endif
 
   /**************************************************************************************************
-   * @section Non-Standard Function Attributes
+   * @section Function Attributes
    **************************************************************************************************/
 
   /** 
@@ -77,7 +77,6 @@
    */
 
   #if defined(__GNUC__)
-
     #define tal_fn_attr_weak __attribute__((weak))
     #define tal_fn_attr_alias(name) __attribute__((alias(name))) 
     #define tal_fn_attr_inline __attribute__((always_inline)) 
@@ -86,11 +85,20 @@
     #define tal_fn_attr_section(name) __attribute__((section(name)))
     #define tal_fn_attr_noreturn __attribute__((noreturn))
     #define tal_fn_attr_raw __attribute__((optimize("O0")))
- 
+
+  #elif defined(__clang__)
+    #define tal_fn_attr_weak __attribute__((weak))
+    #define tal_fn_attr_alias(name) __attribute__((alias(name)))
+    #define tal_fn_attr_inline __attribute__((always_inline))
+    #define tal_fn_attr_noinline __attribute__((noinline))
+    #define tal_fn_attr_warn(msg) __attribute__((deprecated(msg)))
+    #define tal_fn_attr_section(name) __attribute__((section(name)))
+    #define tal_fn_attr_noreturn __attribute__((noreturn))
+    #define tal_fn_attr_raw __attribute__((optnone))
   #endif
 
   /**************************************************************************************************
-   * @section Non-Standard Variable Attributes
+   * @section Variable Attributes
    **************************************************************************************************/
 
   /**
@@ -131,7 +139,6 @@
    */
 
   #if defined(__GNUC__)
-
     #define tal_var_attr_weak __attribute__((weak))
     #define tal_var_attr_alias(name) __attribute__((alias(name)))
     #define tal_var_attr_warn(msg) __attribute__((deprecated(msg)))
@@ -139,10 +146,17 @@
     #define tal_var_attr_section(name) __attribute__((section(name)))
     #define tal_var_attr_unused __attribute__((unused))
 
+  #elif defined(__clang__)
+    #define tal_var_attr_weak __attribute__((weak))
+    #define tal_var_attr_alias(name) __attribute__((alias(name)))
+    #define tal_var_attr_warn(msg) __attribute__((deprecated(msg)))
+    #define tal_var_attr_packed __attribute__((packed))
+    #define tal_var_attr_section(name) __attribute__((section(name)))
+    #define tal_var_attr_unused __attribute__((unused))
   #endif
 
   /**************************************************************************************************
-   * @section Non-Standard Type Attributes
+   * @section Type Attributes
    **************************************************************************************************/
 
   /**
@@ -172,12 +186,16 @@
    */
 
   #if defined(__GNUC__)
-
     #define tal_type_attr_warn(msg) __attribute__((deprecated(msg)))
     #define tal_type_attr_packed __attribute__((packed))
     #define tal_type_attr_aligned(n) __attribute__((aligned(n)))
     #define tal_type_attr_unused __attribute__((unused))
 
+  #elif defined(__clang__)
+    #define tal_type_attr_warn(msg) __attribute__((deprecated(msg)))
+    #define tal_type_attr_packed __attribute__((packed))
+    #define tal_type_attr_aligned(n) __attribute__((aligned(n)))
+    #define tal_type_attr_unused __attribute__((unused))
   #endif
 
 #if defined(__cplusplus)

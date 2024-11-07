@@ -29,7 +29,7 @@
 #if defined(__cplusplus)
   extern "C" {
 #endif
-  
+
   /**
    * @brief Determines the length of a string.
    * @param str (const char*) The null-terminated byte string to query.
@@ -90,7 +90,6 @@
    * @return 
    */
   ti_fn_attr_inline inline int32_t ti_strncmp(const char* str_l, const char* str_r, int32_t n);
-  
   
   /**
    * @brief TODO

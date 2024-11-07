@@ -14,28 +14,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file include/tal/util/stdlib.h
+ * @file include/tal/internal.h
  * @authors Aaron McBride
- * @brief Runtime execution control utilites.
+ * @brief Internal utilities.
+ * @note - This file is internal and should not be directly included by users.
  */
-
-#pragma once
-#include <stddef.h>
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
-  int abs(int x);
+  /**************************************************************************************************
+   * @internal ???
+   **************************************************************************************************/
 
+  // add internal things here...
 
-  int abs(const int x)
-  {
-      if(x < 0) {
-          return -x;
-      }
-      return x;
-  }
+  /** @endinternal */
 
 #if defined(__cplusplus)
   }

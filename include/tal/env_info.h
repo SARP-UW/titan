@@ -14,17 +14,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file include/tal/util/env.h
+ * @file include/tal/env.h
  * @authors Aaron McBride
  * @brief Environment-specific defines.
  */
+
+#pragma once
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
   /**************************************************************************************************
-   * @section Non-Standard Environment Defines
+   * @section General Environment Information Defines
+   **************************************************************************************************/
+
+  /**
+   * @def tal_env_sys_size
+   * @brief Macro which evaluates to the size of the current system architecture.
+   * @note - The size of the system denotes the number of bits in a address/register.
+   */
+  
+  #if defined(TAL_ARCH_ARMV7)
+    #if defined(__ARM_32BIT_STATE) 
+      #define tal_env_sys_size 32
+    #elif defined(__ARM_64BIT_STATE)
+      #define tal_env_sys_size 64
+    #else
+      #warning "TAL WARNING: Unknown system size. Defaulting to 32-bit."
+      #define tal_env_sys_size 32
+    #endif
+  #else
+    #warning "TAL WARNING: Unknown system size. Defaulting to 32-bit."
+    #define tal_env_sys_size 32
+  #endif
+
+  /**************************************************************************************************
+   * @section System Endianness Information
    **************************************************************************************************/
 
   /** 
@@ -62,6 +88,10 @@
     #warning "TAL WARNING: Unknown environment endianness. Defaulting to little endian."
     #define tal_env_endian (tal_little_endian_v)
   #endif
+
+  /**************************************************************************************************
+   * @section System Integer Representation Information
+   **************************************************************************************************/
 
   /**
    * @brief Value of tal_env_signrep if the current system uses two's complement.
