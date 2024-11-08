@@ -22,448 +22,264 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
-#include <stddef.h>
 #include <limits.h>
 #include "include/tal/attributes.h"
+#include "include/tal/env_info.h"
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
   /**************************************************************************************************
-   * @internal Forward Implementation
-   **************************************************************************************************/
-
-  /** Sets the given flag (pointer to bool) to true */
-  #define ti_sflag__(flag) \
-      (flag == NULL ? (void)(*flag = true) : (void)0)
-
-  /** @endinternal */
-
-  /**************************************************************************************************
-   * @section Numeric Comparison Utilities
-   **************************************************************************************************/
-
-  /**
-   * @brief Safely compares two integers of any size/signedness
-   *        to determine if they are equal.
-   * @param a (integer of any size/signedness) The first value.
-   * @param b (integer of any size/signedness) The second value.
-   * @returns True if the values are equal, false otherwise.
-   */
-  #define tal_cmpeq(a, b) \
-    _Generic((a), \
-      int32_t: _Generic((b), \
-        uint32_t: (a >= 0 && a == b), \
-        unsigned int: (a >= 0 && a == b), \
-        uint64_t: (a >= 0 && a == b), \
-        default: (a == b) \
-      ), \
-      int: _Generic((b), \
-        uint32_t: (a >= 0 && a == b), \
-        unsigned int: (a >= 0 && a == b), \
-        uint64_t: (a >= 0 && a == b), \
-        default: (a == b) \
-      ), \
-      int64_t: _Generic((b), \
-        uint32_t: (a >= 0 && a == b), \
-        unsigned int: (a >= 0 && a == b), \
-        uint64_t: (a >= 0 && a == b), \
-        default: (a == b) \
-      ), \
-      uint32_t: _Generic((b), \
-        int32_t: (b >= 0 && a == b), \
-        int: (b >= 0 && a == b), \
-        int64_t: (b >= 0 && a == b), \
-        default: (a == b) \
-      ), \
-      unsigned int: _Generic((b), \
-        int32_t: (b >= 0 && a == b), \
-        int: (b >= 0 && a == b), \
-        int64_t: (b >= 0 && a == b), \
-        default: (a == b) \
-      ), \
-      uint64_t: _Generic((b), \
-        int32_t: (b >= 0 && a == b), \
-        int: (b >= 0 && a == b), \
-        int64_t: (b >= 0 && a == b), \
-        default: (a == b) \
-      ), \
-      default: (a == b) \
-    )
-
-  /**
-   * @brief Safely compares two integers of any size/signedness
-   *       to determine if one is less than the other.
-   * @param a (integer of any size/signedness) The first value.
-   * @param b (integer of any size/signedness) The second value.
-   * @returns True if a is less than b, false otherwise.
-   */
-  #define ti_cmpl(a, b)             \
-    _Generic((a),                   \
-      int32_t: _Generic((b),        \
-        uint32_t: (a < 0 || a < b), \
-        uint64_t: (a < 0 || a < b), \
-        default: (a < b)            \
-      ),                            \
-      int64_t: _Generic((b),        \
-        uint32_t: (a < 0 || a < b), \
-        uint64_t: (a < 0 || a < b), \
-        default: (a < b)            \
-      ),                            \
-      uint32_t: _Generic((b),       \
-        int32_t: (b >= 0 && a < b), \
-        int64_t: (b >= 0 && a < b), \
-        default: (a < b)            \
-      ),                            \
-      uint64_t: _Generic((b),       \
-        int32_t: (b >= 0 && a < b), \
-        int64_t: (b >= 0 && a < b), \
-        default: (a < b)            \
-      ),                            \
-    )
-
-  /**
-   * @brief Safely compares two integers of any size/signedness
-   *        to determine if one is greater than the other.
-   * @param a (integer of any size/signedness) The first value.
-   * @param b (integer of any size/signedness) The second value.
-   * @returns True if a is greater than b, false otherwise.
-   */
-  #define ti_cmpg(a, b) ti_cmpl(b, a)
-
-  /**
-   * @brief Safely compares two integers of any size/signedness
-   *        to determine if one is less than or equal to the other.
-   * @param a (integer of any size/signedness) The first value.
-   * @param b (integer of any size/signedness) The second value.
-   * @returns True if a is less than or equal to b, false otherwise.
-   */
-  #define ti_cmple(a, b) !ti_cmpl(b, a)
-
-  /**
-   * @brief Safely compares two integers of any size/signedness
-   *        to determine if one is greater than or equal to the other.
-   * @param a (integer of any size/signedness) The first value.
-   * @param b (integer of any size/signedness) The second value.
-   * @returns True if a is greater than or equal to b, false otherwise.
-   */
-  #define ti_cmpge(a, b) !ti_cmpl(a, b)
-
-
-  /**************************************************************************************************
    * @section Core Numeric Utilities
    **************************************************************************************************/
 
+  /**
+   * @defgroup tal_abs
+   * @brief Gets the absolute value of an integer.
+   * @param value (signed integer denoted by suffix) The value to modify.
+   * @returns The absolute value of 'value'.
+   * @{
+   */
   tal_fn_attr_inline inline int8_t tal_abs_i8(const int8_t value);
   tal_fn_attr_inline inline int16_t tal_abs_i16(const int16_t value);
   tal_fn_attr_inline inline int32_t tal_abs_i32(const int32_t value);
   tal_fn_attr_inline inline int64_t tal_abs_i64(const int64_t value);
+  /** @} */
 
-  tal_fn_attr_inline inline int8_t tal_min_i8(const int8_t value_a, const int8_t value_b);
-  tal_fn_attr_inline inline int16_t tal_min_i16(const int16_t value_a, const int16_t value_b);
-  tal_fn_attr_inline inline int32_t tal_min_i32(const int32_t value_a, const int32_t value_b);
-  tal_fn_attr_inline inline int64_t tal_min_i64(const int64_t value_a, const int64_t value_b);
-  tal_fn_attr_inline inline uint8_t tal_min_u8(const uint8_t value_a, const uint8_t value_b);
-  tal_fn_attr_inline inline uint16_t tal_min_u16(const uint16_t value_a, const uint16_t value_b);
-  tal_fn_attr_inline inline uint32_t tal_min_u32(const uint32_t value_a, const uint32_t value_b);
-  tal_fn_attr_inline inline uint64_t tal_min_u64(const uint64_t value_a, const uint64_t value_b);
+  /**
+   * @defgroup tal_clamp
+   * @brief Clamps an integer value to a given range.
+   * @param value (integer type denoted by suffix) The value to clamp.
+   * @param min (integer type denoted by suffix) The minimum value of the range.
+   * @param max (integer type denoted by suffix) The maximum value of the range.
+   * @returns (integer type denoted by suffix) If 'value' is less than 'min', this
+   *          function returns 'min'. If 'value' is greater than 'max', this function
+   *          returns 'max'. Otherwise, this function returns 'value'.
+   * @{
+   */
+  tal_fn_attr_inline inline int8_t tal_clamp_i8(const int8_t value, const int8_t min, const int8_t max);
+  tal_fn_attr_inline inline int16_t tal_clamp_i16(const int16_t value, const int16_t min, const int16_t max);
+  tal_fn_attr_inline inline int32_t tal_clamp_i32(const int32_t value, const int32_t min, const int32_t max);
+  tal_fn_attr_inline inline int64_t tal_clamp_i64(const int64_t value, const int64_t min, const int64_t max);
 
-  tal_fn_attr_inline inline int8_t tal_max_i8(const int8_t value_a, const int8_t value_b);
-  tal_fn_attr_inline inline int16_t tal_max_i16(const int16_t value_a, const int16_t value_b);
-  tal_fn_attr_inline inline int32_t tal_max_i32(const int32_t value_a, const int32_t value_b);
-  tal_fn_attr_inline inline int64_t tal_max_i64(const int64_t value_a, const int64_t value_b);
-  tal_fn_attr_inline inline uint8_t tal_max_u8(const uint8_t value_a, const uint8_t value_b);
-  tal_fn_attr_inline inline uint16_t tal_max_u16(const uint16_t value_a, const uint16_t value_b);
-  tal_fn_attr_inline inline uint32_t tal_max_u32(const uint32_t value_a, const uint32_t value_b);
-  tal_fn_attr_inline inline uint64_t tal_max_u64(const uint64_t value_a, const uint64_t value_b);
+  tal_fn_attr_inline inline uint8_t tal_clamp_u8(const uint8_t value, const uint8_t min, const uint8_t max);
+  tal_fn_attr_inline inline uint16_t tal_clamp_u16(const uint16_t value, const uint16_t min, const uint16_t max);
+  tal_fn_attr_inline inline uint32_t tal_clamp_u32(const uint32_t value, const uint32_t min, const uint32_t max);
+  tal_fn_attr_inline inline uint64_t tal_clamp_u64(const uint64_t value, const uint64_t min, const uint64_t max);
+  /** @} */
 
-  tal_fn_attr_inline inline int8_t tal_to_range_i8(const int8_t value, const int8_t min, const int8_t max);
-  tal_fn_attr_inline inline int16_t tal_to_range_i16(const int16_t value, const int16_t min, const int16_t max);
-  tal_fn_attr_inline inline int32_t tal_to_range_i32(const int32_t value, const int32_t min, const int32_t max);
-  tal_fn_attr_inline inline int64_t tal_to_range_i64(const int64_t value, const int64_t min, const int64_t max);
-  tal_fn_attr_inline inline uint8_t tal_to_range_u8(const uint8_t value, const uint8_t min, const uint8_t max);
-  tal_fn_attr_inline inline uint16_t tal_to_range_u16(const uint16_t value, const uint16_t min, const uint16_t max);
-  tal_fn_attr_inline inline uint32_t tal_to_range_u32(const uint32_t value, const uint32_t min, const uint32_t max);
-  tal_fn_attr_inline inline uint64_t tal_to_range_u64(const uint64_t value, const uint64_t min, const uint64_t max);
+  /**
+   * @defgroup tal_in_range
+   * @brief Determines if an integer is within a given range.
+   * @param value (integer type denoted by suffix) The value to query.
+   * @param min (integer type denoted by suffix) The minimum value of the range.
+   * @param max (integer type denoted by suffix) The maximum value of the range.
+   * @returns (bool) True if 'value' is greater than or equal to 'min' and less than
+   *          or equal to 'max', or false otherwise.
+   * @{
+   */
+  tal_fn_attr_inline inline bool tal_in_range_i8(const int8_t value, const int8_t min, const int8_t max);
+  tal_fn_attr_inline inline bool tal_in_range_i16(const int16_t value, const int16_t min, const int16_t max);
+  tal_fn_attr_inline inline bool tal_in_range_i32(const int32_t value, const int32_t min, const int32_t max);
+  tal_fn_attr_inline inline bool tal_in_range_i64(const int64_t value, const int64_t min, const int64_t max);
 
-  tal_fn_attr_inline inline int8_t tal_in_range_i8(const int8_t value, const int8_t min, const int8_t max);
-  tal_fn_attr_inline inline int16_t tal_in_range_i16(const int16_t value, const int16_t min, const int16_t max);
-  tal_fn_attr_inline inline int32_t tal_in_range_i32(const int32_t value, const int32_t min, const int32_t max);
-  tal_fn_attr_inline inline int64_t tal_in_range_i64(const int64_t value, const int64_t min, const int64_t max);
-  tal_fn_attr_inline inline uint8_t tal_in_range_u8(const uint8_t value, const uint8_t min, const uint8_t max);
-  tal_fn_attr_inline inline uint16_t tal_in_range_u16(const uint16_t value, const uint16_t min, const uint16_t max);
-  tal_fn_attr_inline inline uint32_t tal_in_range_u32(const uint32_t value, const uint32_t min, const uint32_t max);
-  tal_fn_attr_inline inline uint64_t tal_in_range_u64(const uint64_t value, const uint64_t min, const uint64_t max);
+  tal_fn_attr_inline inline bool tal_in_range_u8(const uint8_t value, const uint8_t min, const uint8_t max);
+  tal_fn_attr_inline inline bool tal_in_range_u16(const uint16_t value, const uint16_t min, const uint16_t max);
+  tal_fn_attr_inline inline bool tal_in_range_u32(const uint32_t value, const uint32_t min, const uint32_t max);
+  tal_fn_attr_inline inline bool tal_in_range_u64(const uint64_t value, const uint64_t min, const uint64_t max);
+  /** @} */
 
-  #define tal_tmin(type)
+  /**
+   * @defgroup tal_satcast
+   * @brief Casts an integer to a given type, and clamps it's value to the new 
+   *        type's range.
+   * @param value (intmax_t/uintmax_t denoted by end of suffix) The value to cast.
+   * @param sat_flag (bool*) A flag that will be set true if the value was clamped.
+   * @returns (integer type denoted by suffix) INTX_MIN if 'value' is less than INTX_MIN,
+   *          INTX_MAX if 'value' is greater then INTX_MAX or 'value' otherwise.
+   * @note - 'sat_flag' is an optional - it may be NULL.
+   * @{
+   */
+  tal_fn_attr_inline inline int8_t tal_satcast_i8(const int64_t value, bool* sat_flag);
+  tal_fn_attr_inline inline int16_t tal_satcast_i16(const int64_t value, bool* sat_flag);
+  tal_fn_attr_inline inline int32_t tal_satcast_i32(const int64_t value, bool* sat_flag);
 
-  #define tal_tmax(type)
+  tal_fn_attr_inline inline int8_t tal_satcast_i8u(const uint64_t value, bool* sat_flag);
+  tal_fn_attr_inline inline int16_t tal_satcast_i16u(const uint64_t value, bool* sat_flag);
+  tal_fn_attr_inline inline int32_t tal_satcast_i32u(const uint64_t value, bool* sat_flag);
 
-  #define tal_to_type_range(type, value)
+  tal_fn_attr_inline inline uint8_t tal_satcast_u8(const int64_t value, bool* sat_flag);
+  tal_fn_attr_inline inline uint16_t tal_satcast_u16(const int64_t value, bool* sat_flag);
+  tal_fn_attr_inline inline uint32_t tal_satcast_u32(const int64_t value, bool* sat_flag);
 
-  #define tal_in_type_range(type, value)
+  tal_fn_attr_inline inline uint8_t tal_satcast_u8u(const uint64_t value, bool* sat_flag);
+  tal_fn_attr_inline inline uint16_t tal_satcast_u16u(const uint64_t value, bool* sat_flag);
+  tal_fn_attr_inline inline uint32_t tal_satcast_u32u(const uint64_t value, bool* sat_flag);
+  /** @} */
 
-  #define tal_sat_cast(type, value, sat_flag)
+  /**
+   * @brief Saturating negation operation.
+   * @param value (signed integer denoted by suffix) The value to negate.
+   * @param sat_flag (bool*) A flag to set if the operation saturates.
+   * @returns (signed integer denoted by suffix) The negated value, clamped
+   *          to the min/max range of its integer type.
+   * @note - 'sat_flag' is an optional - it may be NULL.
+   * @{
+   */
+  tal_fn_attr_inline inline int8_t tal_sneg_i8(const int8_t value, bool* sat_flag);
+  tal_fn_attr_inline inline int16_t tal_sneg_i16(const int16_t value, bool* sat_flag);
+  tal_fn_attr_inline inline int32_t tal_sneg_i32(const int32_t value, bool* sat_flag);
+  tal_fn_attr_inline inline int64_t tal_sneg_i64(const int64_t value, bool* sat_flag);
+  /** @} */
 
+  /**
+   * @defgroup tal_sadd
+   * @brief Saturating add operation.
+   * @param value_a (integer type denoted by suffix) The first value to add.
+   * @param value_b (integer type denoted by suffix) The second value to add.
+   * @param sat_flag (bool*) A flag to set if the operation saturates.
+   * @returns (integer type denoted by suffix) The sum of 'value_a' and 'value_b',
+   *          clamped to the min/max range of their integer type.
+   * @note - 'sat_flag' is an optional - it may be NULL.
+   * @{
+   */
   tal_fn_attr_inline inline int8_t tal_sadd_i8(const int8_t value_a, const int8_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline int16_t tal_sadd_i16(const int16_t value_a, const int16_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline int32_t tal_sadd_i32(const int32_t value_a, const int32_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline int64_t tal_sadd_i64(const int64_t value_a, const int64_t value_b, bool* sat_flag);
+  
   tal_fn_attr_inline inline uint8_t tal_sadd_u8(const uint8_t value_a, const uint8_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint16_t tal_sadd_u16(const uint16_t value_a, const uint16_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint32_t tal_sadd_u32(const uint32_t value_a, const uint32_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint64_t tal_sadd_u64(const uint64_t value_a, const uint64_t value_b, bool* sat_flag);
+  /** @} */
 
+  /**
+   * @defgroup tal_ssub
+   * @brief Saturating subtraction operation.
+   * @param value_a (integer type denoted by suffix) The value to subtract from.
+   * @param value_b (integer type denoted by suffix) The value to subtract.
+   * @param sat_flag (bool*) A flag to set if the operation saturates.
+   * @returns (integer type denoted by suffix) The difference of 'value_a' and 'value_b',
+   *          clamped to the min/max range of their integer type.
+   * @note - 'sat_flag' is an optional - it may be NULL.
+   * @{
+   */
   tal_fn_attr_inline inline int8_t tal_ssub_i8(const int8_t value_a, const int8_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline int16_t tal_ssub_i16(const int16_t value_a, const int16_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline int32_t tal_ssub_i32(const int32_t value_a, const int32_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline int64_t tal_ssub_i64(const int64_t value_a, const int64_t value_b, bool* sat_flag);
+
   tal_fn_attr_inline inline uint8_t tal_ssub_u8(const uint8_t value_a, const uint8_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint16_t tal_ssub_u16(const uint16_t value_a, const uint16_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint32_t tal_ssub_u32(const uint32_t value_a, const uint32_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint64_t tal_ssub_u64(const uint64_t value_a, const uint64_t value_b, bool* sat_flag);
+  /** @} */
 
+  /**
+   * @defgroup tal_smul
+   * @brief Saturating multiplication operation.
+   * @param value_a (integer type denoted by suffix) The first value to multiply.
+   * @param value_b (integer type denoted by suffix) The second value to multiply.
+   * @param sat_flag (bool*) A flag to set if the operation saturates.
+   * @returns (integer type denoted by suffix) The product of 'value_a' and 'value_b',
+   *          clamped to the min/max range of their integer type.
+   * @note - 'sat_flag' is an optional - it may be NULL.
+   * @{
+   */
   tal_fn_attr_inline inline int8_t tal_smul_i8(const int8_t value_a, const int8_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline int16_t tal_smul_i16(const int16_t value_a, const int16_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline int32_t tal_smul_i32(const int32_t value_a, const int32_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline int64_t tal_smul_i64(const int64_t value_a, const int64_t value_b, bool* sat_flag);
+
   tal_fn_attr_inline inline uint8_t tal_smul_u8(const uint8_t value_a, const uint8_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint16_t tal_smul_u16(const uint16_t value_a, const uint16_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint32_t tal_smul_u32(const uint32_t value_a, const uint32_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint64_t tal_smul_u64(const uint64_t value_a, const uint64_t value_b, bool* sat_flag);
+  /** @} */
 
+  /**
+   * @defgroup tal_slshift
+   * @brief Saturating left bit-shift operation.
+   * @param value (integer type denoted by suffix) The value to shift.
+   * @param shift (int32_t) The number of bits to shift by.
+   * @param sat_flag (bool*) A flag to set if the operation saturates.
+   * @returns (integer type denoted by suffix) The result of shifting 'value' 
+   *          left by the max number of bits less then or equal to 'shift' such 
+   *          that no bit is shifted beyond the integer's range.
+   * @note - If 'shift' is negative, this function returns 'value' and sets 
+   *         'sat_flag' to true (if not NULL).
+   * @note - 'sat_flag' is an optional - it may be NULL.
+   * @{
+   */
   tal_fn_attr_inline inline int8_t tal_slshift_i8(const int8_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline int16_t tal_slshift_i16(const int16_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline int32_t tal_slshift_i32(const int32_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline int64_t tal_slshift_i64(const int64_t value, const int32_t shift, bool* sat_flag);
+
   tal_fn_attr_inline inline uint8_t tal_slshift_u8(const uint8_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline uint16_t tal_slshift_u16(const uint16_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline uint32_t tal_slshift_u32(const uint32_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline uint64_t tal_slshift_u64(const uint64_t value, const int32_t shift, bool* sat_flag);
+  /** @} */
 
+  /**
+   * @brief Saturating right bit-shift operation.
+   * @param value (integer type denoted by suffix) The value to shift.
+   * @param shift (int32_t) The number of bits to shift by.
+   * @param sat_flag (bool*) A flag to set if the operation saturates.
+   * @returns (integer type denoted by suffix) The result of shifting 'value'
+   *          right by the max number of bits less then or equal to 'shift' such 
+   *          that no bit is shifted beyond the integer's range.
+   * @note - If 'shift' is negative, this function returns 'value' and sets
+   *         'sat_flag' to true (if not NULL).
+   * @note - 'sat_flag' is an optional - it may be NULL.
+   * @{
+   */
   tal_fn_attr_inline inline int8_t tal_sarshift_i8(const int8_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline int16_t tal_sarshift_i16(const int16_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline int32_t tal_sarshift_i32(const int32_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline int64_t tal_sarshift_i64(const int64_t value, const int32_t shift, bool* sat_flag);
+
   tal_fn_attr_inline inline uint8_t tal_sarshift_u8(const uint8_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline uint16_t tal_sarshift_u16(const uint16_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline uint32_t tal_sarshift_u32(const uint32_t value, const int32_t shift, bool* sat_flag);
   tal_fn_attr_inline inline uint64_t tal_sarshift_u64(const uint64_t value, const int32_t shift, bool* sat_flag);
-
-
-  /**
-   * @brief Safely determines if a value is within a numeric range.
-   * @param value (integer of any size/signedness) The value to query.
-   * @param min (integer of any size/signedness) The minimum value of the range (inclusive).
-   * @param max (integer of any size/signedness) The maximum value of the range (inclusive).
-   * @returns True if 'value' is greater than or equal to 'min' and less than
-   *          or equal to 'max', false otherwise.
-   */
-  #define ti_in_range(value, min, max) \
-      (ti_cmpge(value, min) && ti_cmple(value, max))
-
-  /**
-   * @brief Clamps an integer value to a numeric range.
-   * @param value (integer of any size/signedness) The value to to_range.
-   * @param min (integer of any size/signedness) The minimum value of the range (inclusive).
-   * @param max (integer of any size/signedness) The maximum value of the range (inclusive).
-   * @returns 'min' if 'value' is less than 'min', 'max' if 'value' is greater 
-   *          than 'max', or 'value' otherwise.
-   */
-  #define ti_to_range(value, min, max) \
-      (ti_cmpl(value, min) ? min :     \
-      (ti_cmpg(value, max) ? max : value))
-
-  /**************************************************************************************************
-   * @section Numeric Type Utilities
-   **************************************************************************************************/
-
-  /**
-   * @brief Determines if a value is within the range of a type.
-   * @param type (typename) The type that defines the range.
-   * @param value (integer of any size/signedness) The value to query.
-   * @returns True if 'value' can be represented as a value of type 'type',
-   *          or false otherwise.
-   */
-  #define ti_in_type_range(type, value)                  \
-    (_Generic(((type){0}),                               \
-      int8_t: ti_in_range(value, INT8_MIN, INT8_MAX),    \
-      int16_t: ti_in_range(value, INT16_MIN, INT16_MAX), \
-      int32_t: ti_in_range(value, INT32_MIN, INT32_MAX), \
-      int64_t: ti_in_range(value, INT64_MIN, INT64_MAX), \
-      uint8_t: ti_in_range(value, 0, UINT8_MAX),         \
-      uint16_t: ti_in_range(value, 0, UINT16_MAX),       \
-      uint32_t: ti_in_range(value, 0, UINT32_MAX),       \
-      uint64_t: ti_in_range(value, 0, UINT64_MAX)        \
-    ))
-
-  /**
-   * @brief Clamps an integer value to the range of a type.
-   * @param type (typename) The type that defines the range.
-   * @param value (integer of any size/signedness) The value to clamp.
-   * @returns The nearest value to 'value' that can be represented within the
-   *          range of type 'type'.
-   */
-  #define ti_to_type_range(type, value)                  \
-    (_Generic(((type){0})                                \
-      int8_t: ti_to_range(value, INT8_MIN, INT8_MAX),    \
-      int16_t: ti_to_range(value, INT16_MIN, INT16_MAX), \
-      int32_t: ti_to_range(value, INT32_MIN, INT32_MAX), \
-      int64_t: ti_to_range(value, INT64_MIN, INT64_MAX), \
-      uint8_t: ti_to_range(value, 0, UINT8_MAX),         \
-      uint16_t: ti_to_range(value, 0, UINT16_MAX),       \
-      uint32_t: ti_to_range(value, 0, UINT32_MAX),       \
-      uint64_t: ti_to_range(value, 0, UINT64_MAX)        \
-    ))
-
-  /**
-   * @brief Gets the maximum value of a type.
-   * @param type (typename) The type to query.
-   * @returns The maximum value of 'type'.
-   */
-  #define ti_tmax(type)       \
-    (_Generic(((type){0}),    \
-      int8_t: (INT8_MAX),     \
-      int16_t: (INT16_MAX),   \
-      int32_t: (INT32_MAX),   \
-      int64_t: (INT64_MAX),   \
-      uint8_t: (UINT8_MAX),   \
-      uint16_t: (UINT16_MAX), \
-      uint32_t: (UINT32_MAX), \
-      uint64_t: (UINT64_MAX)  \
-    ))
-
-  /**
-   * @brief Gets the minimum value of a type.
-   * @param type (typename) The type to query.
-   * @returns The minimum value of 'type'.
-   */
-  #define ti_tmin(type)     \
-    (_Generic(((type){0}),  \
-      int8_t: (INT8_MIN),   \
-      int16_t: (INT16_MIN), \
-      int32_t: (INT32_MIN), \
-      int64_t: (INT64_MIN), \
-      uint8_t: (0),         \
-      uint16_t: (0),        \
-      uint32_t: (0),        \
-      uint64_t: (0)         \
-    ))
-
-  /**************************************************************************************************
-   * @section Numeric Overflow Utilities
-   **************************************************************************************************/
-
-  /**
-   * @brief Determines if two integers can be added together and assigned to
-   *        a specific type without overflow.
-   * @param type (typename) The type to assign the sum to.
-   * @param a (integer of any size/signedness) The first value to add.
-   * @param b (integer of any size/signedness) The second value to add.
-   * @returns True if the sum of 'a' and 'b' can be assigned to 'type' without
-   *          overflow occurring, or false otherwise.
-   */
-  #define ti_can_add(type, a, b) ((b > 0) ? \
-      (a <= ti_tmax(type) - b) : (a >= ti_tmin(type) - b))
-
-  /**
-   * @brief Determines if two integers can be subtracted from each other and
-   *        assigned to a specific type without overflow.
-   * @param type (typename) The type to assign the difference to.
-   * @param a (integer of any size/signedness) The first value to subtract from.
-   * @param b (integer of any size/signedness) The second value to subtract.
-   * @returns True if the difference of 'a' and 'b' can be assigned to 'type'
-   *          without overflow occurring, or false otherwise.
-   */
-  #define ti_can_sub(type, a, b) ((b < 0) ? \
-      (a <= ti_tmax(type) + b) : (a >= ti_tmin(type) + b))
-
-  /**
-   * @brief Determines if two integers can be multiplied together and assigned
-   *        to a specific type without overflow.
-   * @param type (typename) The type to assign the product to.
-   * @param a (integer of any size/signedness) The first value to multiply.
-   * @param b (integer of any size/signedness) The second value to multiply.
-   * @returns True if the product of 'a' and 'b' can be assigned to 'type'
-   *          without overflow occurring, or false otherwise.
-   */
-  #define ti_can_mul(type, a, b) (b == 0 ||                 \
-      (a > ti_tmax(type) / b) || (a < ti_tmin(type) / b) || \
-      (a == -1 && b == ti_tmin(type)) || (b == -1 && a == ti_tmin(type)))
-
-  /**
-   * @brief Adds two integers, and saturates the result if an overflow occurs.
-   * @param type (typename) The type to assign the sum to.
-   * @param a (integer of any size/signedness) The first value to add.
-   * @param b (integer of any size/signedness) The second value to add.
-   * @param sat_flag (bool*) A pointer to a flag to set if saturation occurs.
-   * @returns The sum of 'a' and 'b' in the type 'type', or the maximum value
-   *          of 'type' if an overflow occurs, or the minimum value of 'type' if
-   *          an underflow occurs.
-   * @note - If an overflow or underflow occurs, 'sat_flag' will be set to true.
-   */
-  #define ti_sadd(type, a, b, sat_flag) ((b > 0) ?                                      \
-      ((a > ti_tmax(type) - b) ? ti_sflag__(sat_flag), ti_tmax(type) : (type)(a + b)) : \
-      ((a < ti_tmin(type) - b) ? ti_sflag__(sat_flag), ti_tmin(type) : (type)(a + b)))
-
-  /**
-   * @brief Subtracts two integers, and saturates the result if an overflow occurs.
-   * @param type (typename) The type to assign the difference to.
-   * @param a (integer of any size/signedness) The first value to subtract from.
-   * @param b (integer of any size/signedness) The second value to subtract.
-   * @param sat_flag (bool*) A pointer to a flag to set if saturation occurs.
-   * @returns The difference of 'a' and 'b' in the type 'type', or the maximum value
-   *          of 'type' if an overflow occurs, or the minimum value of 'type' if
-   *          an underflow occurs.
-   * @note - If an overflow or underflow occurs, 'sat_flag' will be set to true.
-   */
-  #define ti_ssub(a, b, sat_flag) ((b < 0) ?                                      \
-      ((a > ti_tmax(type) + b) ? ti_sflag__(sat_flag), ti_tmax(type) : (a - b)) : \
-      ((a < ti_tmin(type) + b) ? ti_sflag__(sat_flag), ti_tmin(type) : (a - b)))
-
-  /**
-   * @brief Multiplies two integers, and saturates the result if an overflow occurs.
-   * @param type (typename) The type to assign the product to.
-   * @param a (integer of any size/signedness) The first value to multiply.
-   * @param b (integer of any size/signedness) The second value to multiply.
-   * @param sat_flag (bool*) A pointer to a flag to set if saturation occurs.
-   * @returns The product of 'a' and 'b' in the type 'type', or the maximum value
-   *          of 'type' if an overflow occurs, or the minimum value of 'type' if
-   *          an underflow occurs.
-   * @note - If an overflow or underflow occurs, 'sat_flag' will be set to true.
-   */
-  #define ti_smul(a, b, sat_flag) ((b == 0) ? 0 :                                  \
-      ((a == -1 && b == ti_tmin(type)) ? (ti_sflag__(sat_flag), ti_tmax(type)) :   \
-      ((b == -1 && a == ti_tmin(type)) ? (ti_sflag__(sat_flag), ti_tmax(type)) :   \
-      ((b != 0 && a > ti_tmax(type) / b) ? (ti_sflag__(sat_flag), ti_tmax(type)) : \
-      ((b != 0 && a < ti_tmin(type) / b) ? (ti_sflag__(sat_flag), ti_tmin(type)) : \
-      (a * b))))))
-
-#if defined(__cplusplus)
-  }
-#endif
-
-
+  /** @} */
 
   /**************************************************************************************************
    * @internal Implementation
    **************************************************************************************************/
 
-  int8_t tal_abs_i8(const int8_t value) { return value < 0 ? -value : value; }
-  int16_t tal_abs_i16(const int16_t value) { return value < 0 ? -value : value; }
-  int32_t tal_abs_i32(const int32_t value) { return value < 0 ? -value : value; }
-  int64_t tal_abs_i64(const int64_t value) { return value < 0 ? -value : value; }
+  int8_t tal_abs_i8(const int8_t value) {    
+    return value < 0 ? -value : value; 
+  }
+
+  int16_t tal_abs_i16(const int16_t value) { 
+    return value < 0 ? -value : value; 
+  }
+
+  int32_t tal_abs_i32(const int32_t value) { 
+    return value < 0 ? -value : value; 
+  }
+
+  int64_t tal_abs_i64(const int64_t value) { 
+    return value < 0 ? -value : value; 
+  }
 
   int8_t tal_min_i8(const int8_t value_a, const int8_t value_b) {
     return value_a < value_b ? value_a : value_b;
   }
+
   int16_t tal_min_i16(const int16_t value_a, const int16_t value_b) {
     return value_a < value_b ? value_a : value_b;
   }
+
   int32_t tal_min_i32(const int32_t value_a, const int32_t value_b) {
     return value_a < value_b ? value_a : value_b;
   }
+
   int64_t tal_min_i64(const int64_t value_a, const int64_t value_b) {
     return value_a < value_b ? value_a : value_b;
   }
@@ -471,12 +287,15 @@
   uint8_t tal_min_u8(const uint8_t value_a, const uint8_t value_b) {
     return value_a < value_b ? value_a : value_b;
   }
+
   uint16_t tal_min_u16(const uint16_t value_a, const uint16_t value_b) {
     return value_a < value_b ? value_a : value_b;
   }
+
   uint32_t tal_min_u32(const uint32_t value_a, const uint32_t value_b) {
     return value_a < value_b ? value_a : value_b;
   }
+
   uint64_t tal_min_u64(const uint64_t value_a, const uint64_t value_b) {
     return value_a < value_b ? value_a : value_b;
   }
@@ -484,12 +303,15 @@
   int8_t tal_max_i8(const int8_t value_a, const int8_t value_b) {
     return value_a > value_b ? value_a : value_b;
   }
+
   int16_t tal_max_i16(const int16_t value_a, const int16_t value_b) {
     return value_a > value_b ? value_a : value_b;
   }
+
   int32_t tal_max_i32(const int32_t value_a, const int32_t value_b) {
     return value_a > value_b ? value_a : value_b;
   }
+
   int64_t tal_max_i64(const int64_t value_a, const int64_t value_b) {
     return value_a > value_b ? value_a : value_b;
   }
@@ -497,14 +319,874 @@
   uint8_t tal_max_u8(const uint8_t value_a, const uint8_t value_b) {
     return value_a > value_b ? value_a : value_b;
   }
+
   uint16_t tal_max_u16(const uint16_t value_a, const uint16_t value_b) {
     return value_a > value_b ? value_a : value_b;
   }
+  
   uint32_t tal_max_u32(const uint32_t value_a, const uint32_t value_b) {
     return value_a > value_b ? value_a : value_b;
   }
+
   uint64_t tal_max_u64(const uint64_t value_a, const uint64_t value_b) {
     return value_a > value_b ? value_a : value_b;
+  }
+
+  int8_t tal_clamp_i8(const int8_t value, 
+      const int8_t min, const int8_t max) {
+    if (value < min) {
+      return min;
+    } else if (value > max) {
+      return max;
+    }
+    return value;
+  }
+
+  int16_t tal_clamp_i16(const int16_t value, 
+      const int16_t min, const int16_t max) {
+    if (value < min) {
+      return min;
+    } else if (value > max) {
+      return max;
+    }
+    return value;
+  }
+
+  int32_t tal_clamp_i32(const int32_t value, 
+      const int32_t min, const int32_t max) {
+    if (value < min) {
+      return min;
+    } else if (value > max) {
+      return max;
+    }
+    return value;
+  }
+
+  int64_t tal_clamp_i64(const int64_t value, 
+      const int64_t min, const int64_t max) {
+    if (value < min) {
+      return min;
+    } else if (value > max) {
+      return max;
+    }
+    return value;
+  }
+
+  uint8_t tal_clamp_u8(const uint8_t value, 
+      const uint8_t min, const uint8_t max) {
+    if (value < min) {
+      return min;
+    } else if (value > max) {
+      return max;
+    }
+    return value;
+  }
+
+  uint16_t tal_clamp_u16(const uint16_t value, 
+      const uint16_t min, const uint16_t max) {
+    if (value < min) {
+      return min;
+    } else if (value > max) {
+      return max;
+    }
+    return value;
+  }
+
+  uint32_t tal_clamp_u32(const uint32_t value, 
+      const uint32_t min, const uint32_t max) {
+    if (value < min) {
+      return min;
+    } else if (value > max) {
+      return max;
+    }
+    return value;
+  }
+
+  uint64_t tal_clamp_u64(const uint64_t value, 
+      const uint64_t min, const uint64_t max) {
+    if (value < min) {
+      return min;
+    } else if (value > max) {
+      return max;
+    }
+    return value;
+  }
+
+  bool tal_in_range_i8(const int8_t value, 
+      const int8_t min, const int8_t max) {
+    return value >= min && value <= max;
+  }
+
+  bool tal_in_range_i16(const int16_t value, 
+      const int16_t min, const int16_t max) {
+    return value >= min && value <= max;
+  }
+
+  bool tal_in_range_i32(const int32_t value, 
+      const int32_t min, const int32_t max) {
+    return value >= min && value <= max;
+  }
+
+  bool tal_in_range_i64(const int64_t value, 
+      const int64_t min, const int64_t max) {
+    return value >= min && value <= max;
+  }
+
+  bool tal_in_range_u8(const uint8_t value, 
+      const uint8_t min, const uint8_t max) {
+    return value >= min && value <= max;
+  }
+
+  bool tal_in_range_u16(const uint16_t value, 
+      const uint16_t min, const uint16_t max) {
+    return value >= min && value <= max;
+  }
+
+  bool tal_in_range_u32(const uint32_t value, 
+      const uint32_t min, const uint32_t max) {
+    return value >= min && value <= max;
+  }
+
+  bool tal_in_range_u64(const uint64_t value, 
+      const uint64_t min, const uint64_t max) {
+    return value >= min && value <= max;
+  }
+
+  int8_t tal_satcast_i8(const int64_t value, bool* sat_flag) {
+    if (value < INT8_MIN) {
+      if (sat_flag) { *sat_flag = true; }
+      return INT8_MIN;
+    }
+    if (value > INT8_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return INT8_MAX;
+    }
+    return (int8_t)value;
+  }
+
+  int16_t tal_satcast_i16(const int64_t value, bool* sat_flag) {
+    if (value < INT16_MIN) {
+      if (sat_flag) { *sat_flag = true; }
+      return INT16_MIN;
+    }
+    if (value > INT16_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return INT16_MAX;
+    }
+    return (int16_t)value;
+  }
+
+  int32_t tal_satcast_i32(const int64_t value, bool* sat_flag) {
+    if (value < INT32_MIN) {
+      if (sat_flag) { *sat_flag = true; }
+      return INT32_MIN;
+    }
+    if (value > INT32_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return INT32_MAX;
+    }
+    return (int32_t)value;
+  }
+
+  int8_t tal_satcast_i8u(const uint64_t value, bool* sat_flag) {
+    if (value > INT8_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return INT8_MAX;
+    }
+    return (int8_t)value;
+  }
+
+  int16_t tal_satcast_i16u(const uint64_t value, bool* sat_flag) {
+    if (value > INT16_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return INT16_MAX;
+    }
+    return (int16_t)value;
+  }
+
+  int32_t tal_satcast_i32u(const uint64_t value, bool* sat_flag) {
+    if (value > INT32_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return INT32_MAX;
+    }
+    return (int32_t)value;
+  }
+
+  uint8_t tal_satcast_u8(const int64_t value, bool* sat_flag) {
+    if (value < 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    if (value > UINT8_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT8_MAX;
+    }
+    return (uint8_t)value;
+  }
+
+  uint16_t tal_satcast_u16(const int64_t value, bool* sat_flag) {
+    if (value < 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    if (value > UINT16_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT16_MAX;
+    }
+    return (uint16_t)value;
+  }
+
+  uint32_t tal_satcast_u32(const int64_t value, bool* sat_flag) {
+    if (value < 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    if (value > UINT32_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT32_MAX;
+    }
+    return (uint32_t)value;
+  }
+
+  uint8_t tal_satcast_u8u(const uint64_t value, bool* sat_flag) {
+    if (value > UINT8_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT8_MAX;
+    }
+    return (uint8_t)value;
+  }
+
+  uint16_t tal_satcast_u16u(const uint64_t value, bool* sat_flag) {
+    if (value > UINT16_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT16_MAX;
+    }
+    return (uint16_t)value;
+  }
+
+  uint32_t tal_satcast_u32u(const uint64_t value, bool* sat_flag) {
+    if (value > UINT32_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT32_MAX;
+    }
+    return (uint32_t)value;
+  }
+
+  int8_t tal_sneg_i8(const int8_t value, bool* sat_flag) {
+    #if (tal_sys_signrep == tal_signrep_two_compl_v)
+      if (value == INT8_MIN) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT8_MIN;
+      }
+    #elif (tal_sys_signrep == tal_signrep_one_compl_v)
+      if (value == INT8_MAX) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT8_MAX;
+      }
+    #endif
+    return -value;
+  }
+
+  int16_t tal_sneg_i16(const int16_t value, bool* sat_flag) {
+    #if (tal_sys_signrep == tal_signrep_two_compl_v)
+      if (value == INT16_MIN) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT16_MIN;
+      }
+    #elif (tal_sys_signrep == tal_signrep_one_compl_v)
+      if (value == INT16_MAX) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT16_MAX;
+      }
+    #endif
+    return -value;
+  }
+
+  int32_t tal_sneg_i32(const int32_t value, bool* sat_flag) {
+    #if (tal_sys_signrep == tal_signrep_two_compl_v)
+      if (value == INT32_MIN) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT32_MIN;
+      }
+    #elif (tal_sys_signrep == tal_signrep_one_compl_v)
+      if (value == INT32_MAX) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT32_MAX;
+      }
+    #endif
+    return -value;
+  }
+
+  int64_t tal_sneg_i64(const int64_t value, bool* sat_flag) {
+    #if (tal_sys_signrep == tal_signrep_two_compl_v)
+      if (value == INT64_MIN) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT64_MIN;
+      }
+    #elif (tal_sys_signrep == tal_signrep_one_compl_v)
+      if (value == INT64_MAX) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT64_MAX;
+      }
+    #endif
+    return -value;
+  }
+
+  int8_t tal_sadd_i8(const int8_t value_a, 
+      const int8_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b > 0) {
+      if (value_a > (INT8_MAX - value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT8_MAX;
+      }
+    } else if (value_a < 0 && value_b < 0) {
+      if (value_a < (INT8_MIN + value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT8_MIN;
+      }
+    }
+    return value_a + value_b;
+  }
+
+  int16_t tal_sadd_i16(const int16_t value_a, 
+      const int16_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b > 0) {
+      if (value_a > (INT16_MAX - value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT16_MAX;
+      }
+    } else if (value_a < 0 && value_b < 0) {
+      if (value_a < (INT16_MIN + value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT16_MIN;
+      }
+    }
+    return value_a + value_b;
+  }
+
+  int32_t tal_sadd_i32(const int32_t value_a, 
+      const int32_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b > 0) {
+      if (value_a > (INT32_MAX - value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT32_MAX;
+      }
+    } else if (value_a < 0 && value_b < 0) {
+      if (value_a < (INT32_MIN + value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT32_MIN;
+      }
+    }
+    return value_a + value_b;
+  }
+
+  int64_t tal_sadd_i64(const int64_t value_a, 
+      const int64_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b > 0) {
+      if (value_a > (INT64_MAX - value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT64_MAX;
+      }
+    } else if (value_a < 0 && value_b < 0) {
+      if (value_a < (INT64_MIN + value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT64_MIN;
+      }
+    }
+    return value_a + value_b;
+  }
+  
+  uint8_t tal_sadd_u8(const uint8_t value_a, 
+      const uint8_t value_b, bool* sat_flag) {
+    if (value_a > (UINT8_MAX - value_b)) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT8_MAX;
+    }
+    return value_a + value_b;
+  }
+
+  uint16_t tal_sadd_u16(const uint16_t value_a, 
+      const uint16_t value_b, bool* sat_flag) {
+    if (value_a > (UINT16_MAX - value_b)) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT16_MAX;
+    }
+    return value_a + value_b;
+  }
+
+  uint32_t tal_sadd_u32(const uint32_t value_a, 
+      const uint32_t value_b, bool* sat_flag) {
+    if (value_a > (UINT32_MAX - value_b)) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT32_MAX;
+    }
+    return value_a + value_b;
+  }
+
+  uint64_t tal_sadd_u64(const uint64_t value_a, 
+      const uint64_t value_b, bool* sat_flag) {
+    if (value_a > (UINT64_MAX - value_b)) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT64_MAX;
+    }
+    return value_a + value_b;
+  }
+
+  int8_t tal_ssub_i8(const int8_t value_a, 
+      const int8_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b < 0) {
+      if (value_a > (INT8_MAX + value_b)) { 
+        if (sat_flag) { *sat_flag = true; }
+        return INT8_MAX;
+      }
+    } else if (value_a < 0 && value_b > 0) {
+      if (value_a < (INT8_MIN + value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT8_MIN;
+      }
+    }
+    return value_a - value_b;
+  }
+
+  int16_t tal_ssub_i16(const int16_t value_a, 
+      const int16_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b < 0) {
+      if (value_a > (INT16_MAX + value_b)) { 
+        if (sat_flag) { *sat_flag = true; }
+        return INT16_MAX;
+      }
+    } else if (value_a < 0 && value_b > 0) {
+      if (value_a < (INT16_MIN + value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT16_MIN;
+      }
+    }
+    return value_a - value_b;
+  }
+
+  int32_t tal_ssub_i32(const int32_t value_a, 
+      const int32_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b < 0) {
+      if (value_a > (INT32_MAX + value_b)) { 
+        if (sat_flag) { *sat_flag = true; }
+        return INT32_MAX;
+      }
+    } else if (value_a < 0 && value_b > 0) {
+      if (value_a < (INT32_MIN + value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT32_MIN;
+      }
+    }
+    return value_a - value_b;
+  }
+
+  int64_t tal_ssub_i64(const int64_t value_a, 
+      const int64_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b < 0) {
+      if (value_a > (INT64_MAX + value_b)) { 
+        if (sat_flag) { *sat_flag = true; }
+        return INT64_MAX;
+      }
+    } else if (value_a < 0 && value_b > 0) {
+      if (value_a < (INT64_MIN + value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT64_MIN;
+      }
+    }
+    return value_a - value_b;
+  }
+
+  uint8_t tal_ssub_u8(const uint8_t value_a, 
+      const uint8_t value_b, bool* sat_flag) {
+    if (value_a < value_b) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return value_a - value_b;
+  }
+
+  uint16_t tal_ssub_u16(const uint16_t value_a, 
+      const uint16_t value_b, bool* sat_flag) {
+    if (value_a < value_b) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return value_a - value_b;
+  }
+
+  uint32_t tal_ssub_u32(const uint32_t value_a, 
+      const uint32_t value_b, bool* sat_flag) {
+    if (value_a < value_b) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return value_a - value_b;
+  }
+
+  uint64_t tal_ssub_u64(const uint64_t value_a, 
+      const uint64_t value_b, bool* sat_flag) {
+    if (value_a < value_b) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return value_a - value_b;
+  }
+
+  int8_t tal_smul_i8(const int8_t value_a, 
+      const int8_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b > 0) {
+      if (value_a > (INT8_MAX / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT8_MAX;
+      }
+    } else if (value_a > 0 && value_b < 0) {
+      if (value_b < (INT8_MIN / value_a)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT8_MIN;
+      }
+    } else if (value_a < 0 && value_b > 0) {
+      if (value_a < (INT8_MIN / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT8_MIN;
+      }
+    } else if (value_a < 0 && value_b < 0) {
+      #if (tal_sys_signrep == tal_signrep_one_compl_v)
+        if (value_b == -1 && value_a == INT8_MIN) {
+          if (sat_flag) { *sat_flag = true; }
+          return INT8_MAX;
+        }
+      #endif
+      if (value_a < (INT8_MAX / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT8_MAX;
+      }
+    }
+    return value_a * value_b;
+  }
+
+  int16_t tal_smul_i16(const int16_t value_a, 
+      const int16_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b > 0) {
+      if (value_a > (INT16_MAX / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT16_MAX;
+      }
+    } else if (value_a > 0 && value_b < 0) {
+      if (value_b < (INT16_MIN / value_a)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT16_MIN;
+      }
+    } else if (value_a < 0 && value_b > 0) {
+      if (value_a < (INT16_MIN / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT16_MIN;
+      }
+    } else if (value_a < 0 && value_b < 0) {
+      #if (tal_sys_signrep == tal_signrep_one_compl_v)
+        if (value_b == -1 && value_a == INT16_MIN) {
+          if (sat_flag) { *sat_flag = true; }
+          return INT16_MAX;
+        }
+      #endif
+      if (value_a < (INT16_MAX / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT16_MAX;
+      }
+    }
+    return value_a * value_b;
+  }
+
+  int32_t tal_smul_i32(const int32_t value_a, 
+      const int32_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b > 0) {
+      if (value_a > (INT32_MAX / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT32_MAX;
+      }
+    } else if (value_a > 0 && value_b < 0) {
+      if (value_b < (INT32_MIN / value_a)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT32_MIN;
+      }
+    } else if (value_a < 0 && value_b > 0) {
+      if (value_a < (INT32_MIN / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT32_MIN;
+      }
+    } else if (value_a < 0 && value_b < 0) {
+      #if (tal_sys_signrep == tal_signrep_one_compl_v)
+        if (value_b == -1 && value_a == INT32_MIN) {
+          if (sat_flag) { *sat_flag = true; }
+          return INT32_MAX;
+        }
+      #endif
+      if (value_a < (INT32_MAX / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT32_MAX;
+      }
+    }
+    return value_a * value_b;
+  }
+
+  int64_t tal_smul_i64(const int64_t value_a, 
+      const int64_t value_b, bool* sat_flag) {
+    if (value_a > 0 && value_b > 0) {
+      if (value_a > (INT64_MAX / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT64_MAX;
+      }
+    } else if (value_a > 0 && value_b < 0) {
+      if (value_b < (INT64_MIN / value_a)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT64_MIN;
+      }
+    } else if (value_a < 0 && value_b > 0) {
+      if (value_a < (INT64_MIN / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT64_MIN;
+      }
+    } else if (value_a < 0 && value_b < 0) {
+      #if (tal_sys_signrep == tal_signrep_one_compl_v)
+        if (value_b == -1 && value_a == INT64_MIN) {
+          if (sat_flag) { *sat_flag = true; }
+          return INT64_MAX;
+        }
+      #endif
+      if (value_a < (INT64_MAX / value_b)) {
+        if (sat_flag) { *sat_flag = true; }
+        return INT64_MAX;
+      }
+    }
+    return value_a * value_b;
+  }
+
+  uint8_t tal_smul_u8(const uint8_t value_a, 
+      const uint8_t value_b, bool* sat_flag) {
+    if (value_a > (UINT8_MAX / value_b)) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT8_MAX;
+    }
+    return value_a * value_b;
+  }
+  
+  uint16_t tal_smul_u16(const uint16_t value_a, 
+      const uint16_t value_b, bool* sat_flag) {
+    if (value_a > (UINT16_MAX / value_b)) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT16_MAX;
+    }
+    return value_a * value_b;
+  }
+
+  uint32_t tal_smul_u32(const uint32_t value_a, 
+      const uint32_t value_b, bool* sat_flag) {
+    if (value_a > (UINT32_MAX / value_b)) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT32_MAX;
+    }
+    return value_a * value_b;
+  }
+
+  uint64_t tal_smul_u64(const uint64_t value_a, 
+      const uint64_t value_b, bool* sat_flag) {
+    if (value_a > (UINT64_MAX / value_b)) {
+      if (sat_flag) { *sat_flag = true; }
+      return UINT64_MAX;
+    }
+    return value_a * value_b;
+  }
+
+  int8_t tal_slshift_i8(const int8_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int32_t i = 0; i < shift; ++i) {
+      const int8_t mask = (int8_t)1 << (8 - 1 - i);
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value << (i - 1);
+      }
+    }
+    return value << shift;
+  }
+
+  int16_t tal_slshift_i16(const int16_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int32_t i = 0; i < shift; ++i) {
+      const int16_t mask = (int16_t)1 << (16 - 1 - i);
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value << (i - 1);
+      }
+    }
+    return value << shift;
+  }
+
+  int32_t tal_slshift_i32(const int32_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int32_t i = 0; i < shift; ++i) {
+      const int32_t mask = (int32_t)1 << (32 - 1 - i);
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value << (i - 1);
+      }
+    }
+    return value << shift;
+  }
+
+  int64_t tal_slshift_i64(const int64_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int32_t i = 0; i < shift; ++i) {
+      const int64_t mask = (int64_t)1 << (64 - 1 - i);
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value << (i - 1);
+      }
+    }
+    return value << shift;
+  }
+
+  uint8_t tal_slshift_u8(const uint8_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int32_t i = 0; i < shift; ++i) {
+      const uint8_t mask = (uint8_t)1 << (8 - 1 - i);
+      if ((value & mask) != 0u) {
+        if (sat_flag) { *sat_flag = true; }
+        return value << (i - 1);
+      }
+    }
+    return value << shift;
+  }
+
+  uint16_t tal_slshift_u16(const uint16_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int32_t i = 0; i < shift; ++i) {
+      const uint16_t mask = (uint16_t)1 << (16 - 1 - i);
+      if ((value & mask) != 0u) {
+        if (sat_flag) { *sat_flag = true; }
+        return value << (i - 1);
+      }
+    }
+    return value << shift;
+  }
+  
+  uint32_t tal_slshift_u32(const uint32_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int32_t i = 0; i < shift; ++i) {
+      const uint32_t mask = (uint32_t)1 << (32 - 1 - i);
+      if ((value & mask) != 0u) {
+        if (sat_flag) { *sat_flag = true; }
+        return value << (i - 1);
+      }
+    }
+    return value << shift;
+  }
+
+  uint64_t tal_slshift_u64(const uint64_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int32_t i = 0; i < shift; ++i) {
+      const uint64_t mask = (uint64_t)1 << (64 - 1 - i);
+      if ((value & mask) != 0u) {
+        if (sat_flag) { *sat_flag = true; }
+        return value << (i - 1);
+      }
+    }
+    return value << shift;
+  }
+
+
+  int8_t tal_sarshift_i8(const int8_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int i = 0; i < shift; ++i) {
+      const int8_t mask = (int8_t)1 << i;
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value >> (i - 1);
+      }
+    }
+    return value >> shift;
+  }
+
+  int16_t tal_sarshift_i16(const int16_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int i = 0; i < shift; ++i) {
+      const int16_t mask = (int16_t)1 << i;
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value >> (i - 1);
+      }
+    }
+    return value >> shift;
+  }
+
+  int32_t tal_sarshift_i32(const int32_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int i = 0; i < shift; ++i) {
+      const int32_t mask = (int32_t)1 << i;
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value >> (i - 1);
+      }
+    }
+    return value >> shift;
+  }
+
+  int64_t tal_sarshift_i64(const int64_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int i = 0; i < shift; ++i) {
+      const int64_t mask = (int64_t)1 << i;
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value >> (i - 1);
+      }
+    }
+    return value >> shift;
+  }
+
+  uint8_t tal_sarshift_u8(const uint8_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int i = 0; i < shift; ++i) {
+      const uint8_t mask = (uint8_t)1 << i;
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value >> (i - 1);
+      }
+    }
+    return value >> shift;
+  }
+
+  uint16_t tal_sarshift_u16(const uint16_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int i = 0; i < shift; ++i) {
+      const uint16_t mask = (uint16_t)1 << i;
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value >> (i - 1);
+      }
+    }
+    return value >> shift;
+  }
+
+  uint32_t tal_sarshift_u32(const uint32_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int i = 0; i < shift; ++i) {
+      const uint32_t mask = (uint32_t)1 << i;
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value >> (i - 1);
+      }
+    }
+    return value >> shift;
+  }
+
+  uint64_t tal_sarshift_u64(const uint64_t value, 
+      const int32_t shift, bool* sat_flag) {
+    for (int i = 0; i < shift; ++i) {
+      const uint64_t mask = (uint64_t)1 << i;
+      if ((value & mask) != 0) {
+        if (sat_flag) { *sat_flag = true; }
+        return value >> (i - 1);
+      }
+    }
+    return value >> shift;
   }
 
   /** @endinternal */

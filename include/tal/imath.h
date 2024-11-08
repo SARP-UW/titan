@@ -54,29 +54,6 @@
   /** @} */
 
   /**
-   * @brief Gets the nth power of an integer.
-   * @param value (integer of any size/signedness) The base value.
-   * @param n (int32_t) The positive exponent value.
-   * @returns (same type as 'value') The result of raising 'base' to the 
-   *          power of 'n'.
-   * @note - If 'n' is negative, this function returns 0.
-   * @note - This is a type-generic macro wrapper for the 'tal_pow' functions.
-   */
-  #define tal_pow(value, n) \
-    _Generic((value), \
-      int8_t: tal_pow_i8, \
-      int16_t: tal_pow_i16, \
-      int32_t: tal_pow_i32, \
-      int64_t: tal_pow_i64, \
-      uint8_t: tal_pow_u8, \
-      uint16_t: tal_pow_u16, \
-      uint32_t: tal_pow_u32, \
-      uint64_t: tal_pow_u64, \
-      int: tal_pow_i32, \
-      unsigned int: tal_pow_u32 \
-    )(value, n)
-
-  /**
    * @defgroup tal_root
    * @brief Gets the nth root of an integer.
    * @param value (integer type denoted by suffix) The base value.
@@ -94,28 +71,6 @@
   tal_fn_attr_inline inline uint32_t tal_root_u32(const uint32_t value, const int32_t n);
   tal_fn_attr_inline inline uint64_t tal_root_u64(const uint64_t value, const int32_t n);
   /** @} */
-
-  /**
-   * @brief Gets the nth root of an integer.
-   * @param value (integer of any size/signedness) The base value.
-   * @param n (int32_t) The index of the root (e.g. 2 for square root).
-   * @returns (same type as 'value') The nth root of the given value.
-   * @note - If 'value' or 'n' is negative, this function returns 0.
-   * @note - This is a type-generic macro wrapper for the 'tal_root' functions.
-   */
-  #define tal_root(value, n) \
-    _Generic((value), \
-      int8_t: tal_root_i8, \
-      int16_t: tal_root_i16, \
-      int32_t: tal_root_i32, \
-      int64_t: tal_root_i64, \
-      uint8_t: tal_root_u8, \
-      uint16_t: tal_root_u16, \
-      uint32_t: tal_root_u32, \
-      uint64_t: tal_root_u64, \
-      int: tal_root_i32, \
-      unsigned int: tal_root_u32 \
-    )(value, n)
 
   /**
    * @defgroup tal_log
@@ -137,28 +92,6 @@
   /** @} */
 
   /**
-   * @brief Gets the base n logarithm of an integer.
-   * @param value (integer of any size/signedness) The value to take the log of.
-   * @param base (int32_t) The base of the logarithm.
-   * @returns (same type as 'value') The base 'base' logarithm of 'value'.
-   * @note - If 'value' or 'base' is less then 1, this function returns 0.
-   * @note - This is a type-generic macro wrapper for the 'tal_log' functions.
-   */
-  #define tal_log(value, base) \
-    _Generic((value), \
-      int8_t: tal_log_i8, \
-      int16_t: tal_log_i16, \
-      int32_t: tal_log_i32, \
-      int64_t: tal_log_i64, \
-      uint8_t: tal_log_u8, \
-      uint16_t: tal_log_u16, \
-      uint32_t: tal_log_u32, \
-      uint64_t: tal_log_u64, \
-      int: tal_log_i32, \
-      unsigned int: tal_log_u32 \
-    )(value, base)
-
-  /**
    * @defgroup tal_floor
    * @brief Rounds an integer value down to a given multiple.
    * @param value (integer type denoted by suffix) The value to round.
@@ -176,28 +109,6 @@
   tal_fn_attr_inline inline uint32_t tal_floor_u32(const uint32_t value, const uint32_t multiple);
   tal_fn_attr_inline inline uint64_t tal_floor_u64(const uint64_t value, const uint64_t multiple);
   /** @} */
-
-  /**
-   * @brief Rounds an integer value down to a given multiple.
-   * @param value (integer of any size/signedness) The value to round.
-   * @param multiple (same type as 'value') The multiple to round down to.
-   * @returns (same type as 'value') The given value rounded down to 
-   *          the nearest multiple of 'multiple'.
-   * @note - This is a type-generic macro wrapper for the 'tal_floor' functions.
-   */
-  #define tal_floor(value, multiple) \
-    _Generic((value), \
-      int8_t: tal_floor_i8, \
-      int16_t: tal_floor_i16, \
-      int32_t: tal_floor_i32, \
-      int64_t: tal_floor_i64, \
-      uint8_t: tal_floor_u8, \
-      uint16_t: tal_floor_u16, \
-      uint32_t: tal_floor_u32, \
-      uint64_t: tal_floor_u64, \
-      int: tal_floor_i32, \
-      unsigned int: tal_floor_u32 \
-    )(value, multiple)
 
   /**
    * @defgroup tal_ceil
@@ -219,28 +130,6 @@
   /** @} */
 
   /**
-   * @brief Rounds an integer value up to a given multiple.
-   * @param value (integer of any size/signedness) The value to round.
-   * @param multiple (same type as 'value') The multiple to round up to.
-   * @returns (same type as 'value') The given value rounded up to
-   *          the nearest multiple of 'multiple'.
-   * @note - This is a type-generic macro wrapper for the 'tal_ceil' functions.
-   */
-  #define tal_ceil(value, multiple) \
-    _Generic((value), \
-      int8_t: tal_ceil_i8, \
-      int16_t: tal_ceil_i16, \
-      int32_t: tal_ceil_i32, \
-      int64_t: tal_ceil_i64, \
-      uint8_t: tal_ceil_u8, \
-      uint16_t: tal_ceil_u16, \
-      uint32_t: tal_ceil_u32, \
-      uint64_t: tal_ceil_u64, \
-      int: tal_ceil_i32, \
-      unsigned int: tal_ceil_u32 \
-    )(value, multiple)
-
-  /**
    * @brief Rounds an integer value to a given multiple.
    * @param value (integer type denoted by suffix) The value to round.
    * @param multiple (integer type denoted by suffix) The multiple to round to.
@@ -257,28 +146,6 @@
   tal_fn_attr_inline inline uint32_t tal_round_u32(const uint32_t value, const uint32_t multiple);
   tal_fn_attr_inline inline uint64_t tal_round_u64(const uint64_t value, const uint64_t multiple);
   /** @} */
-
-  /**
-   * @brief Rounds an integer value to a given multiple.
-   * @param value (integer of any size/signedness) The value to round.
-   * @param multiple (same type as 'value') The multiple to round to.
-   * @returns (same type as 'value') The given value rounded to the
-   *          nearest multiple of 'multiple'.
-   * @note - This is a type-generic macro wrapper for the 'tal_round' functions.
-   */
-  #define tal_round(value, multiple) \
-    _Generic((value), \
-      int8_t: tal_round_i8, \
-      int16_t: tal_round_i16, \
-      int32_t: tal_round_i32, \
-      int64_t: tal_round_i64, \
-      uint8_t: tal_round_u8, \
-      uint16_t: tal_round_u16, \
-      uint32_t: tal_round_u32, \
-      uint64_t: tal_round_u64, \
-      int: tal_round_i32, \
-      unsigned int: tal_round_u32 \
-    )(value, multiple)
 
   /**
    * @brief Gets the greatest common divisor of two integers.
@@ -299,28 +166,6 @@
   /** @} */
 
   /**
-   * @brief Gets the greatest common divisor of two integers.
-   * @param value_a (integer of any size/signedness - same as b) The first value.
-   * @param value_b (integer of any size/signedness - same as a) The second value.
-   * @returns (same type as 'value_a' and 'value_b') The greatest common 
-   *          divisor of 'value_a' and 'value_b'.
-   * @note - This is a type-generic macro wrapper for the 'tal_gcd' functions.
-   */
-  #define tal_gcd(value_a, value_b) \
-    _Generic((value_a), \
-      int8_t: tal_gcd_i8, \
-      int16_t: tal_gcd_i16, \
-      int32_t: tal_gcd_i32, \
-      int64_t: tal_gcd_i64, \
-      uint8_t: tal_gcd_u8, \
-      uint16_t: tal_gcd_u16, \
-      uint32_t: tal_gcd_u32, \
-      uint64_t: tal_gcd_u64, \
-      int: tal_gcd_i32, \
-      unsigned int: tal_gcd_u32 \
-    )(value_a, value_b)
-
-  /**
    * @brief Gets the least common multiple of two integers.
    * @param value_a (integer type denoted by suffix) The first value.
    * @param value_b (integer type denoted by suffix) The second value.
@@ -337,28 +182,6 @@
   tal_fn_attr_inline inline uint32_t tal_lcm_u32(const uint32_t value_a, const uint32_t value_b); 
   tal_fn_attr_inline inline uint64_t tal_lcm_u64(const uint64_t value_a, const uint64_t value_b);
   /** @} */
-
-  /**
-   * @brief Gets the least common multiple of two integers.
-   * @param value_a (integer of any size/signedness - same as b) The first value.
-   * @param value_b (integer of any size/signedness - same as a) The second value.
-   * @returns (same type as 'value_a' and 'value_b') The least common multiple 
-   *          of 'value_a' and 'value_b'.
-   * @note - This is a type-generic macro wrapper for the 'tal_lcm' functions.
-   */
-  #define tal_lcm(value_a, value_b) \
-    _Generic((value_a), \
-      int8_t: tal_lcm_i8, \
-      int16_t: tal_lcm_i16, \
-      int32_t: tal_lcm_i32, \
-      int64_t: tal_lcm_i64, \
-      uint8_t: tal_lcm_u8, \
-      uint16_t: tal_lcm_u16, \
-      uint32_t: tal_lcm_u32, \
-      uint64_t: tal_lcm_u64, \
-      int: tal_lcm_i32, \
-      unsigned int: tal_lcm_u32 \
-    )(value_a, value_b)
 
   /**************************************************************************************************
    * @internal Implementation

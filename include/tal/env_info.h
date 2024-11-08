@@ -26,111 +26,48 @@
 #endif
 
   /**************************************************************************************************
-   * @section General Environment Information Defines
+   * @section System Information Defines
    **************************************************************************************************/
 
-  /**
-   * @def tal_env_sys_size
-   * @brief Macro which evaluates to the size of the current system architecture.
-   * @note - The size of the system denotes the number of bits in a address/register.
-   */
-  
-  #if defined(TAL_ARCH_ARMV7)
-    #if defined(__ARM_32BIT_STATE) 
-      #define tal_env_sys_size 32
-    #elif defined(__ARM_64BIT_STATE)
-      #define tal_env_sys_size 64
-    #else
-      #warning "TAL WARNING: Unknown system size. Defaulting to 32-bit."
-      #define tal_env_sys_size 32
-    #endif
-  #else
-    #warning "TAL WARNING: Unknown system size. Defaulting to 32-bit."
-    #define tal_env_sys_size 32
+  #define tal_sys_size_16_v 16
+  #define tal_sys_size_32_v 32
+  #define tal_sys_size_64_v 64
+
+
+  #if defined(TAL_ARCH_ARMV7M)
+    #define tal_sys_size tal_sys_size_32_v
   #endif
 
-  /**************************************************************************************************
-   * @section System Endianness Information
-   **************************************************************************************************/
 
-  /** 
-   * @brief Value of tal_sys_endian if current system is little endian.
-   * @see tal_sys_endian
-   */
-  #define tal_little_endian_v -1 
+  #define tal_sys_endian_little_v 0
+  #define tal_sys_endian_big_v 1
 
-  /** 
-   * @brief Value of tal_sys_endian if current system is big endian. 
-   * @see tal_sys_endian
-   */
-  #define tal_big_endian_v 1
-
-  /**
-   * @def tal_env_endian
-   * @brief Macro which evaluates to a specific value depending on the endianess
-   *        of the current environment.
-   * @note - Equals 'tal_little_endian_v' if the current environment is little endian.
-   * @note - Equals 'tal_big_endian_v' if the current environment is big endian. 
-   * @see tal_little_endian_v
-   * @see tal_big_endian_v
-   */
-
-  #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && \
-      defined(__ORDER_BIG_ENDIAN__)
-    #if (__BYTE_ORDER__) == (__ORDER_LITTLE_ENDIAN__)
-      #define tal_env_endian (tal_little_endian_v)
-    #elif (__BYTE_ORDER__) == (__ORDER_BIG_ENDIAN__)
-      #define tal_env_endian (tal_big_endian_v)
+  #if defined(__GNUC__)
+    #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+      #define tal_sys_endian tal_sys_endian_little_v
+    #elif (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+      #define tal_sys_endian tal_sys_endian_big_v
     #else
-      #error "TAL ERROR: Unknown environment endianness.
+      #warning "Unknown system endianness, defaulting to little endian."
+      #define tal_sys_endian tal_sys_endian_little_v
     #endif
-  #else 
-    #warning "TAL WARNING: Unknown environment endianness. Defaulting to little endian."
-    #define tal_env_endian (tal_little_endian_v)
   #endif
 
-  /**************************************************************************************************
-   * @section System Integer Representation Information
-   **************************************************************************************************/
 
-  /**
-   * @brief Value of tal_env_signrep if the current system uses two's complement.
-   * @see tal_env_signrep
-   */
-  #define tal_two_compl_v -1
 
-  /**
-   * @brief Value of tal_env_signrep if the current system uses one's complement.
-   * @see tal_env_signrep
-   */
-  #define tal_one_compl_v 1
-
-  /**
-   * @brief Value of tal_env_signrep if the current system uses sign-magnitude.
-   * @see tal_env_signrep
-   */
-  #define tal_sign_mag_v 0
-
-  /**
-   * @def tal_env_signrep
-   * @brief Macro which evaluates to a specific value depending on the signed
-   *        integer representation used by the current environment.
-   * @note - Equals 'tal_two_compl_v' if the current environment uses two's complement.
-   * @note - Equals 'tal_one_compl_v' if the current environment uses one's complement.
-   * @note - Equals 'tal_sign_mag_v' if the current environment uses sign-magnitude.
-   * @see tal_two_compl_v
-   * @see tal_one_compl_v
-   * @see tal_sign_mag_v
-   */
+  #define tal_signrep_two_compl_v 0
+  #define tal_signrep_one_compl_v 1
+  #define tal_signrep_sign_mag_v 2
 
   #if ((-1 & 3) == 1)
-    #define tal_env_signrep (tal_sign_mag_v)
+    #define tal_sys_signrep tal_signrep_sign_mag_v
   #elif ((-1 & 3) == 2)
-    #define tal_env_signrep (tal_one_compl_v)
+    #define tal_sys_signrep tal_signrep_one_compl_v
   #elif ((-1 & 3) == 3)
-    #define tal_env_signrep (tal_two_compl_v)
+    #define tal_sys_signrep tal_signrep_two_compl_v
   #else
-    #error "TAL ERROR: Environment uses unknown signed integer representation."
+    #warning "Unknown system sign representation, defaulting to two's complement."
+    #define tal_sys_signrep tal_signrep_two_compl_v
   #endif
 
 #if defined(__cplusplus)
