@@ -29,33 +29,32 @@
   extern "C" {
 #endif
 
+  void* ti_memcpy(void* dst, void* src, const int32_t size);
 
-void* ti_memcpy(void* dst, void* src, size_t size);
+  void* ti_memset(void* mem, char value, const int32_t size);
 
-void* ti_memset(void* mem, char value, size_t size);
+  // todo impl (ask abt though)
+  void* ti_memmove(void* dst, void* src, const int32_t size);
 
-// todo impl (ask abt though)
-void* ti_memmove(void* dst, void* src, size_t size);
+  void* ti_memexch(void* dst, void* src, char value, const int32_t size);
 
-void* ti_memexch(void* dst, void* src, char value, size_t size);
+  void ti_memswap(void* mem_a, void* mem_b, const int32_t size);
 
-void ti_memswap(void* mem_a, void* mem_b, size_t size);
+  int ti_memcmp(void* mem_a, void* mem_b, const int32_t size);
 
-int ti_memcmp(void* mem_a, void* mem_b, size_t size);
+  bool ti_memeq(void* mem, char value, const int32_t size);
 
-bool ti_memeq(void* mem, char value, size_t size);
+  void* ti_memchr(void* mem_a, char value, const int32_t size);
 
-void* ti_memchr(void* mem_a, char value, size_t size);
+  void* ti_memrchr(void* mem_a, char value, const int32_t size);
 
-void* ti_memrchr(void* mem_a, char value, size_t size);
+  /**
+   * Finds the n'th instance of value at the given location.  
+   * Eg: n = 1, returns first, NOT SECOND (indexing from 1)
+   */
+  void* ti_memchrn(void* mem, char value, const int32_t size, const int32_t n);
 
-/**
- * Finds the n'th instance of value at the given location.  
- * Eg: n = 1, returns first, NOT SECOND (indexing from 1)
- */
-void* ti_memchrn(void* mem, char value, size_t size, size_t n);
-
-void* ti_memsort(void* mem, size_t size, int (*cmp_fn)(const char*, const char*));
+  void* ti_memsort(void* mem, size_t size, int (*cmp_fn)(const char*, const char*));
 
 #if defined(__cplusplus)
   }

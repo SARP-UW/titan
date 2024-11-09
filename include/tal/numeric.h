@@ -179,7 +179,8 @@
 
   /**
    * @defgroup tal_smul
-   * @brief Saturating multiplication operation.
+   * @b
+   * rief Saturating multiplication operation.
    * @param value_a (integer type denoted by suffix) The first value to multiply.
    * @param value_b (integer type denoted by suffix) The second value to multiply.
    * @param sat_flag (bool*) A flag to set if the operation saturates.
@@ -197,6 +198,26 @@
   tal_fn_attr_inline inline uint16_t tal_smul_u16(const uint16_t value_a, const uint16_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint32_t tal_smul_u32(const uint32_t value_a, const uint32_t value_b, bool* sat_flag);
   tal_fn_attr_inline inline uint64_t tal_smul_u64(const uint64_t value_a, const uint64_t value_b, bool* sat_flag);
+  /** @} */
+
+  /**
+   * @defgroup tal_sdiv
+   * @brief
+   * @param num
+   * @param div
+   * @param sat_flag
+   * @returns
+   * @{
+   */
+  tal_fn_attr_inline inline int8_t tal_sdiv_i8(const int8_t num, const int8_t div, bool* sat_flag);
+  tal_fn_attr_inline inline int16_t tal_sdiv_i16(const int16_t num, const int16_t div, bool* sat_flag);
+  tal_fn_attr_inline inline int32_t tal_sdiv_i32(const int32_t num, const int32_t div, bool* sat_flag);
+  tal_fn_attr_inline inline int64_t tal_sdiv_i64(const int64_t num, const int64_t div, bool* sat_flag);
+
+  tal_fn_attr_inline inline uint8_t tal_sdiv_u8(const uint8_t num, const uint8_t div, bool* sat_flag);
+  tal_fn_attr_inline inline uint16_t tal_sdiv_u16(const uint16_t num, const uint16_t div, bool* sat_flag);
+  tal_fn_attr_inline inline uint32_t tal_sdiv_u32(const uint32_t num, const uint32_t div, bool* sat_flag);
+  tal_fn_attr_inline inline uint64_t tal_sdiv_u64(const uint64_t num, const uint64_t div, bool* sat_flag);
   /** @} */
 
   /**
@@ -994,6 +1015,75 @@
       return UINT64_MAX;
     }
     return value_a * value_b;
+  }
+
+  int8_t tal_sdiv_i8(const int8_t num, 
+      const int8_t div, bool* sat_flag) {
+    if (div == 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return num / div;
+  }
+  
+  int16_t tal_sdiv_i16(const int16_t num, 
+      const int16_t div, bool* sat_flag) {
+    if (div == 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return num / div;
+  }
+  
+  int32_t tal_sdiv_i32(const int32_t num, 
+      const int32_t div, bool* sat_flag) {
+    if (div == 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return num / div;
+  }
+  
+  int64_t tal_sdiv_i64(const int64_t num, 
+      const int64_t div, bool* sat_flag) {
+    if (div == 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return num / div;
+  }
+  
+  uint8_t tal_sdiv_u8(const uint8_t num, const uint8_t div, bool* sat_flag) {
+    if (div == 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return num / div;
+  }
+
+  uint16_t tal_sdiv_u16(
+    const uint16_t num, const uint16_t div, bool* sat_flag) {
+    if (div == 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return num / div;
+  }
+
+  uint32_t tal_sdiv_u32(const uint32_t num, const uint32_t div, bool* sat_flag) {
+    if (div == 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return num / div;
+  }
+
+  uint64_t tal_sdiv_u64(const uint64_t num, const uint64_t div, bool* sat_flag) {
+    if (div == 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return num / div;
   }
 
   int8_t tal_slshift_i8(const int8_t value, 
