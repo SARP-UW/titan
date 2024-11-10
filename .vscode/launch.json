@@ -30,7 +30,7 @@
       },
       "armToolchainPath": "${env:ARM_GNU_TOOLCHAIN}/bin",
       "gdbPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gdb",
-      "executable": "${workspaceFolder}/build/titan.elf",
+      "executable": "${workspaceFolder}/build/TAL.elf",
       "numberOfProcessors": 2,
       "targetProcessor": 0
     }
