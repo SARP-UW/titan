@@ -29,18 +29,28 @@
    * @section System Information Defines
    **************************************************************************************************/
 
-  #define tal_sys_size_16_v 16
-  #define tal_sys_size_32_v 32
-  #define tal_sys_size_64_v 64
+  /**
+   * @def tal_sys_size
+   * @brief Macro which evaluates to a value which corresponds to the size of 
+   *        the system architecture in bits (size of addresses/registers).
+   */
 
+  #define tal_sys_size_16_v 16 /** @brief Value of tal_sys_size if system is 16 bits. */
+  #define tal_sys_size_32_v 32 /** @brief Value of tal_sys_size if system is 32 bits. */
+  #define tal_sys_size_64_v 64 /** @brief Value of tal_sys_size if system is 64 bits. */
 
   #if defined(TAL_ARCH_ARMV7M)
     #define tal_sys_size tal_sys_size_32_v
   #endif
 
+  /**
+   * @def tal_sys_endian
+   * @brief Macro which evaluates to a value which corresponds to the 
+   *        endianness of the system architecture.
+   */
 
-  #define tal_sys_endian_little_v 0
-  #define tal_sys_endian_big_v 1
+  #define tal_sys_endian_little_v 0 /** @brief Value of tal_sys_endian if the system is little endian. */
+  #define tal_sys_endian_big_v 1 /** @brief Value of tal_sys_endian if the system is big endian. */
 
   #if defined(__GNUC__)
     #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
@@ -53,11 +63,15 @@
     #endif
   #endif
 
+  /**
+   * @def tal_sys_signrep
+   * @brief Macro which evaluates to a value which corresponds to the signed
+   *        integer representation type of the current system.
+   */
 
-
-  #define tal_signrep_two_compl_v 0
-  #define tal_signrep_one_compl_v 1
-  #define tal_signrep_sign_mag_v 2
+  #define tal_signrep_two_compl_v 0 /** @brief Value of tal_sys_signrep if system uses two's complement. */
+  #define tal_signrep_one_compl_v 1 /** @brief Value of tal_sys_signrep if system uses one's complement  */
+  #define tal_signrep_sign_mag_v 2 /** @brief Value of tal_sys_signrep if system uses sign magnitude. */
 
   #if ((-1 & 3) == 1)
     #define tal_sys_signrep tal_signrep_sign_mag_v

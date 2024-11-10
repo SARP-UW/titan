@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file common/util/str.h
+ * @file include/tal/str.h
  * @authors Aaron McBride
  * @brief String manipulation and querying utilities.
  */
@@ -23,12 +23,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "common/util/attribute.h"
-#include "common/util/misc.h"
+#include "include/tal/attributes.h"
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
+
+  /**************************************************************************************************
+   * @section String Utilities
+   **************************************************************************************************/
 
   /**
    * @brief Determines the length of a string.
@@ -36,279 +39,442 @@
    * @returns (int32_t) The length of 'str' in bytes, not including the null 
    *          terminator.
    */
-  ti_fn_attr_inline inline int32_t ti_strlen(const char* str);
+  tal_fn_attr_inline inline int32_t tal_strlen(const char* str);
 
   /**
    * @brief Copies a string from one location to annother.
-   * @param dest (char* restrict) The destination.
-   * @param src (const char* restrict) The source (null-terminated byte string).
-   * @returns A pointer to the destination string.
-   * @note - All characters up to and including the null-terminator of 'src' are copied.
-   * @warning - The destination string must be large enough to hold the source string.
-   * @warning - The source and destination strings/locations must not overlap.
+   * @param dest (char*) The destination to copy to.
+   * @param src (const char*) The source null-terminated byte string.
+   * @returns (char*) A pointer to the destination.
+   * @note - This function copies all characters from 'src' to 'dest', including
+   *         the null terminator.
+   * @warning - The source and destination locations must NOT overlap.
    */
-  ti_fn_attr_inline inline char* ti_strcpy(char* restrict dest, const char* restrict src);
+  tal_fn_attr_inline inline char* tal_strcpy(char* restrict dest, 
+      const char* restrict src);
+
+  /**
+   * @brief Copies n characters of a string from one location to annother.
+   * @param dest (char*) The destination to copy to.
+   * @param src (const char*) The source null-terminated byte string.
+   * @param n (int32_t) The number of characters to copy.
+   * @returns (char*) A pointer to the destination.
+   */
+  tal_fn_attr_inline inline char* tal_strncpy(char* restrict dest, 
+      const char* restrict src, const int32_t n);
 
   /**
    * @brief Swaps the contents of two strings.
-   * @param str_l (char* restrict) The "left-hand" string.
-   * @param str_r (char* restrict) The "right-hand" string.
-   * @warning - The left and right-hand strings must not overlap.
+   * @param str_a (char* restrict) The first null-terminated byte string to swap.
+   * @param str_b (char* restrict) The second null-terminated byte string to swap.
+   * @note - This function swaps the contents of 'str_a' and 'str_b', including their
+   *         null terminators.
+   * @warning - The source and destination locations must NOT overlap.
    */
-  ti_fn_attr_inline inline void ti_strswap(char* restrict str_l, char* restrict str_r);
+  tal_fn_attr_inline inline void tal_strswap(char* restrict str_a, 
+      char* restrict str_b);
 
   /**
-   * @brief TODO
-   * @param dest
-   * @param src
-   * @returns
+   * @brief Concatenates one string to annother.
+   * @param dest (char*) The null-terminated byte string to concatenate to.
+   * @param src (const char*) The null-terminated byte string to concatenate.
+   * @returns (char*) A pointer to the destination.
+   * @note - This function removes the null-terminator from 'dest' and appends
+   *         every character (including the null-terminator) from 'src' to 
+   *         'dest', starting at it's location.
+   * @warning - The source and destination locations must NOT overlap.
    */
-  ti_fn_attr_inline inline char* ti_strcat(char* dest, const char* src);
+  tal_fn_attr_inline inline char* tal_strcat(char* restrict dest, 
+      const char* restrict src);
 
   /**
-   * @brief TODO
-   * @param dest 
-   * @param src 
-   * @param n 
-   * @return 
+   * @brief Concatenates n characters from one string to annother.
+   * @param dest (char*) The null-terminated byte string to concatenate to.
+   * @param src (const char*) The null-terminated byte string to concatenate.
+   * @param n (int32_t) The number of characters from 'src' to concatenate.
+   * @returns (char*) A pointer to the destination.
+   * @note - This function removes the null-terminator from 'dest' and appends
+   *         'n' characters (and a null-terminator) from 'src' to 'dest', 
+   *         starting at it's location.
+   * @note - 'n' may be greater than the length of 'src'.
+   * @warning - The source and destination locations must NOT overlap.
    */
-  ti_fn_attr_inline inline char* ti_strncat(char* dest, const char* src, int32_t n);
+  tal_fn_attr_inline inline char* tal_strncat(char* restrict dest, 
+      const char* restrict src, const int32_t n);
 
   /**
-   * @brief TODO
-   * @param str_l 
-   * @param str_r 
-   * @return 
+   * @brief Compares two strings for equality.
+   * @param str_a (const char*) The first null-terminated byte string to compare.
+   * @param str_b (const char*) The second null-terminated byte string to compare.
+   * @returns (int32_t) Negative value if str_a appears before str_b in lexicographical
+   *          order, positive value if str_a appears after str_b in lexicographical
+   *          order, or 0 if the two strings are equal.
+   * @note - This function returns false if the two strings are of different lengths.
+   * @note - 'str_a' and 'str_b' may overlap.
    */
-  ti_fn_attr_inline inline int32_t ti_strcmp(const char* str_l, const char* str_r);
+  tal_fn_attr_inline inline int32_t tal_strcmp(const char* str_a, const char* str_b);
 
   /**
-   * @brief TODO
-   * @param str_l 
-   * @param str_r 
-   * @param n 
-   * @return 
+   * @brief Compares n characters of two strings for equality.
+   * @param str_a (const char*) The first null-terminated byte string to compare.
+   * @param str_b (const char*) The second null-terminated byte string to compare.
+   * @param n (int32_t) The number of characters to compare.
+   * @returns (int32_t) Negative value if str_a appears before str_b in lexicographical
+   *          order, positive value if str_a appears after str_b in lexicographical
+   *          order, or 0 if the two strings are equal.
+   * @note - This function returns false if 'n' is greater then the length of 'str_a'
+   *         or 'str_b'.
+   * @note - 'str_a' and 'str_b' may overlap.
    */
-  ti_fn_attr_inline inline int32_t ti_strncmp(const char* str_l, const char* str_r, int32_t n);
+  tal_fn_attr_inline inline int32_t tal_strncmp(const char* str_a, 
+      const char* str_b, const int32_t n);
   
   /**
-   * @brief TODO
-   * @param str
-   * @param qchar
-   * @returns
+   * @brief Gets a pointer to the first occurance of a specific character in a string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qchar (char) The character to search for.
+   * @returns (char*) A pointer to the first occurance of 'qchar' in 'str', or NULL
+   *          if 'qchar' is not found, or the given arguments are invalid.
+   * @note 'qchar' may be the null-terminator.
    */
-  ti_fn_attr_inline inline char* ti_strchr(const char* str, char qchar);
+  tal_fn_attr_inline inline char* tal_strchr(const char* str, char qchar);
 
   /**
-   * @brief TODO
-   * @param str 
-   * @param qchar 
-   * @return 
+   * @brief Gets a pointer to the last occurance of a specific character in a string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qchar (char) The character to search for.
+   * @returns (char*) A pointer to the last occurance of 'qchar' in 'str', or NULL
+   *          if 'qchar' is not found, or the given arguments are invalid.
+   * @note 'qchar' may be the null-terminator.
    */
-  ti_fn_attr_inline inline char* ti_strrchr(const char* str, char qchar);
+  tal_fn_attr_inline inline char* tal_strrchr(const char* str, char qchar);
 
   /**
-   * @brief TODO
-   * @param str
-   * @param qchar
-   * @param n
+   * @brief Gets a pointer to the nth occurance of a specific character in a string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qchar (char) The character to search for.
+   * @param n (int32_t) The index of the matching location to get.
+   * @returns (char*) A pointer to the nth occurance of 'qchar' in 'str', or NULL
+   *          if 'qchar' is not found, or the given arguments are invalid.
+   * @note 'qchar' may be the null-terminator.
    */
-  ti_fn_attr_inline inline char* ti_strnchr(const char* str, char qchar, int32_t n);
+  tal_fn_attr_inline inline char* tal_strnchr(const char* str, 
+      char qchar, const int32_t n);
 
   /**
-   * @brief TODO
-   * @param str
-   * @param qstr
-   * @returns
+   * @brief Gets the index of the first occurance of a specific character in a string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qstr (char) The character to search for.
+   * @returns (int32_t) The index of the first occurance of 'qchar' in 'str', or -1
+   *          if 'qchar' is not found, or the given arguments are invalid.
+   * @note 'qchar' may be the null-terminator.
    */
-  ti_fn_attr_inline inline int32_t ti_strchr_i(const char* str, char qchar);
+  tal_fn_attr_inline inline int32_t tal_strchr_i(const char* str, char qchar);
 
   /**
-   * @brief TODO
-   * @param str
-   * @param qchar
-   * @returns
+   * @brief Gets the index of the last occurance of a specific character in a string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qchar (char) The character to search for.
+   * @returns (int32_t) The index of the last occurance of 'qchar' in 'str', or -1
+   *          if 'qchar' is not found, or the given arguments are invalid.
+   * @note 'qchar' may be the null-terminator.
    */
-  ti_fn_attr_inline inline int32_t ti_strrchr_i(const char* str, char qchar);
+  tal_fn_attr_inline inline int32_t tal_strrchr_i(const char* str, char qchar);
 
   /**
-   * @brief TODO
-   * @param str 
-   * @param qchar 
-   * @param n 
-   * @return 
+   * @brief Gets the index of the nth occurance of a specific character in a string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qchar (char) The character to search for.
+   * @param n (int32_t) The index of the matching location to get.
+   * @returns (int32_t) The index of the nth occurance of 'qchar' in 'str', or -1
+   *          if 'qchar' is not found, or the given arguments are invalid.
+   * @note 'qchar' may be the null-terminator.
    */
-  ti_fn_attr_inline inline int32_t ti_strnchr_i(const char* str, char qchar, int32_t n);
+  tal_fn_attr_inline inline int32_t tal_strnchr_i(const char* str, 
+      char qchar, const int32_t n);
 
   /**
-   * @brief TODO
-   * @param str
-   * @param qstr
-   * @returns
+   * @brief Gets the length of the maximum initial segment of a string that contains
+   *        only characters present in annother string.
+   * @param str (const char*) The null-terminated byte string to query.
+   * @param qstr (const char*) The null-terminated byte string which contains
+   *             the characters to search for.
+   * @returns (int32_t) The length of the maximum initial segment of 'str' that
+   *          contains only characters present in 'qstr'.
+   * @note - The null-terminator is not included in the length of any span/segment.
+   * @note - 'str' and 'qstr' may overlap.
    */
-  ti_fn_attr_inline inline int32_t ti_strspn(const char* str, const char* qstr);
+  tal_fn_attr_inline inline int32_t tal_strspn(const char* str, 
+      const char* qstr);
 
   /**
-   * @brief TODO
-   * @param str 
-   * @param qstr 
-   * @return 
+   * @brief Gets the length of the maximum initial segment of a string that contains
+   *        only characters not present in annother string.
+   * @param str (const char*) The null-terminated byte string to query.
+   * @param qstr (const char*) The null-terminated byte string which contains
+   *            the characters characters to search for.
+   * @returns (int32_t) The length of the maximum initial segment of 'str' that
+   *          contains only characters not present in 'qstr'.
+   * @note - The null-terminator is not included in the length of any span/segment.
+   * @note - 'str' and 'qstr' may overlap.
    */
-  ti_fn_attr_inline inline int32_t ti_strcspn(const char* str, const char* qstr);
+  tal_fn_attr_inline inline int32_t tal_strcspn(const char* str, 
+      const char* qstr);
 
   /**
-   * @brief TODO
-   * @param str 
-   * @param qstr 
-   * @return 
+   * @brief Gets a pointer to the first occurance of a specific string within 
+   *        annother string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qstr (const char*) The null-terminated byte string to search for.
+   * @returns (char*) A pointer to the first occurance of 'qstr' in 'str', or NULL
+   *          if 'qstr' is not found, or the given arguments are invalid.
+   * @note - 'str' and 'qstr' may overlap.
    */
-  ti_fn_attr_inline inline char* ti_strstr(const char* str, const char* qstr);
+  tal_fn_attr_inline inline char* tal_strstr(const char* str, 
+      const char* qstr);
+
 
   /**
-   * @brief TODO
-   * @param str 
-   * @param qstr 
-   * @param n 
-   * @return 
+   * @brief Gets a pointer to the last occurance of a specific string within
+   *        annother string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qstr (const char*) The null-terminated byte string to search for.
+   * @returns (char*) A pointer to the last occurance of 'qstr' in 'str', or NULL
+   *          if 'qstr' is not found, or the given arguments are invalid.
+   * @note - 'str' and 'qstr' may overlap.
    */
-  ti_fn_attr_inline inline char* ti_strnstr(const char* str, const char* qstr, int32_t n);
+  tal_fn_attr_inline inline char* tal_strrstr(const char* str, 
+      const char* qstr);
+
 
   /**
-   * @brief TODO
-   * @param str
-   * @param qstr
-   * @returns
+   * @brief Gets a pointer to the nth occurance of a specific string within
+   *        annother string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qstr (const char*) The null-terminated byte string to search for.
+   * @param n (int32_t) The index of the matching string to get.
+   * @returns (char*) A pointer to the nth occurance of 'qstr' in 'str', or NULL
+   *          if 'qstr' is not found, or the given arguments are invalid.
+   * @note - 'str' and 'qstr' may overlap.
    */
-  ti_fn_attr_inline inline char* ti_strrstr(const char* str, const char* qstr);
+  tal_fn_attr_inline inline char* tal_strnstr(const char* str, 
+      const char* qstr, const int32_t n);
 
   /**
-   * @brief TODO
-   * @param str 
-   * @param qstr 
-   * @return 
+   * @brief Gets the index (char) of the first occurance of a specific string 
+   *        within annother string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qstr (const char*) The null-terminated byte string to search for.
+   * @returns (int32_t) The index of the first occurance of 'qstr' in 'str', or -1
+   *          if 'qstr' is not found, or the given arguments are invalid.
+   * @note - 'str' and 'qstr' may overlap.
    */
-  ti_fn_attr_inline inline int32_t ti_strstr_i(const char* str, const char* qstr);
+  tal_fn_attr_inline inline int32_t tal_strstr_i(const char* str, 
+      const char* qstr);
 
   /**
-   * @brief TODO
-   * @param str 
-   * @param qstr 
-   * @return 
+   * @brief Gets the index (char) of the last occurance of a specific string 
+   *        within annother string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qstr (const char*) The null-terminated byte string to search for.
+   * @return (int32_t) The index of the last occurance of 'qstr' in 'str', or -1
+   *         if 'qstr' is not found, or the given arguments are invalid.
+   * @note - 'str' and 'qstr' may overlap.
    */
-  ti_fn_attr_inline inline int32_t ti_strrstr_i(const char* str, const char* qstr);
+  tal_fn_attr_inline inline int32_t tal_strrstr_i(const char* str, 
+      const char* qstr);
 
   /**
-   * @brief TODO
-   * @param str 
-   * @param qstr 
-   * @param n 
-   * @return 
+   * @brief Gets the index (char) of the nth occurance of a specific string
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qstr (const char*) The null-terminated byte string to search for.
+   * @param n (int32_t) The index of the matching string to get.
+   * @returns (int32_t) The index of the nth occurance of 'qstr' in 'str', or -1
+   *          if 'qstr' is not found, or the given arguments are invalid.
+   * @note - 'str' and 'qstr' may overlap.
    */
-  ti_fn_attr_inline inline int32_t ti_strnstr_i(const char* str, const char* qstr, int32_t n);
+  tal_fn_attr_inline inline int32_t tal_strnstr_i(const char* str, 
+      const char* qstr, const int32_t n);
 
   /**
-   * @brief TODO
-   * @param str
-   * @param qstr
-   * @returns
+   * @brief Gets a pointer to the first character in a string that is 
+   *        contained in annother string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qstr (const char*) The null-terminated byte string which 
+   *             contains the characters to search for.
+   * @returns (char*) A pointer to the first character in 'str' that is 
+   *          contained in 'qstr', or NULL if no such character is found, 
+   *          or the given arguments are invalid.
+   * @note - 'str' and 'qstr' may overlap.
    */
-  ti_fn_attr_inline inline char* ti_strpbrk(const char* str, const char* qstr);
+  tal_fn_attr_inline inline char* tal_strpbrk(const char* str, 
+      const char* qstr);
 
   /**
-   * @brief TODO
-   * @param str
-   * @param qstr
-   * @returns
+   * @brief Gets the index (char) of the first character in a string that is 
+   *        contained in annother string.
+   * @param str (const char*) The null-terminated byte string to search.
+   * @param qstr (const char*) The null-terminated byte string which contains
+   * @returns (int32_t) The index (char) of the first character in 'str' that is 
+   *          contained in 'qstr', or -1 if no such character is found, or the 
+   *          given arguments are invalid.
+   * @note - 'str' and 'qstr' may overlap.
    */
-  ti_fn_attr_inline inline int32_t ti_strpbrk_i(const char* str, const char* qstr);
+  tal_fn_attr_inline inline int32_t tal_strpbrk_i(const char* str, 
+      const char* qstr);
 
   /**
-   * @brief TODO
-   * @param str
-   * @param delim
-   * @returns
+   * @brief Tokenizes a string.
+   * @param str (char*) The null-terminated byte string to tokenize.
+   * @param delim (const char*) The null-terminated byte string that represents
+   *              the delimiter (may be longer then one character).
+   * @returns (int32_t) The number of tokens in 'str'.
+   * @note - This function inserts null-terminators into 'str' at the locations
+   *         of every delimiter.
+   * @note - This function is thread-safe.
    */
-  ti_fn_attr_inline inline char* ti_strsplit(const char* str, char* tok, const char* delim);
+  tal_fn_attr_inline inline int32_t tal_strtokn(char* str, const char* delim);
+
+  /**
+   * @brief Un-tokenizes a string.
+   * @param str (char*) The null-terminated byte string to un-tokenize.
+   * @param delim (const char*) The null-terminated byte string that represents
+   *              the delimiter (may be longer then one character).
+   * @param len (int32_t) The length of 'str' before it was tokenized.
+   * @returns (char*) A pointer to 'str'.
+   * @note - This function reverses the changes made by 'tal_strtokn'.
+   * @note - This function is thread-safe.
+   */
+  tal_fn_attr_inline inline char* tal_strtokn_reset(char* str, 
+      const int32_t len, const char* delim);
+
+  /**
+   * @brief Gets token 'n' from a tokenized string.
+   * @param str (char*) The null-terminated byte string to query (must be 
+   *            tokenized using 'tal_strtokn').
+   * @param len (int32_t) The length of 'str'.
+   * @param n (int32_t) The index of the token to get.
+   * @returns (char*) A pointer to the start of the nth token in 'str' or NULL 
+   *          if no such token exists, or if the given arguments are invalid.
+   * @note - This function is thread-safe.
+   */
+  tal_fn_attr_inline inline char* tal_strtokn_get(char* str, 
+      const int32_t len, const int32_t n);
+
+  /**
+   * @brief Gets the next token in a tokenized string.
+   * @param str (const char*) The null-terminated byte string tokenized using
+   *            'tal_strtokn'.
+   * @param str_iter (char**) A pointer to the current token in 'str'.
+   * @param len (int32_t) The length of 'str'.
+   * @returns (char*) A pointer to the next token in 'str', or NULL if no such
+   *          token exists, or the given arguments are invalid (note that this
+   *          is equal to the value of 'str_iter' after the function call).
+   * @note - This function is thread-safe.
+   */
+  tal_fn_attr_inline inline char* tal_strtokn_next(const char* str, 
+      const int32_t len, char** str_iter);
 
   /**************************************************************************************************
    * @internal Implementation
    **************************************************************************************************/
-
-  char* ti_strcat (char* dest, const char* src) {
-    if (dest && src) {
-      char* tdest = dest;
-      while (*tdest) { ++tdest; }
-      while (*src) { 
-        *tdest = *src; 
-        ++tdest;
-        ++src;
-      }
+  
+  int32_t tal_strlen(const char* str) {
+    int32_t len = 0;
+    if (str) { 
+      while (str[len]) { ++len; } 
     }
-    return dest;
+    return len;
   }
 
-  char* ti_strncat(char* dest, const char* src, int32_t n) {
-    if (dest && src && n > 0) {
-      char* tdest = dest;
-      while (*tdest) { ++tdest; }
-      for (int32_t i = 0; i < n && *src; ++i) {
-        *tdest = *src;
-        ++tdest;
-        ++src;
-      }
-    }
-    return dest;
-  }
-
-  char* ti_strcpy(char* restrict dest, const char* restrict src) {
+  char* tal_strcpy(char* restrict dest, const char* restrict src) {
     if (dest && src) {
-      char* tdest = dest;
+      char* d = dest;
       while (*src) {
-        *tdest = *src;
-        ++tdest;
+        *d = *src;
+        ++d;
         ++src;
       }
     }
     return dest;
   }
 
-  void ti_strswap(char* restrict str_l, char* restrict str_r) {
-    if (str_l && str_r) {
-      while (*str_l && *str_r) {
-        char t_char = *str_l;
-        *str_l = *str_r;
-        *str_r = t_char;
-        ++str_l;
-        ++str_r;
+  char* tal_strncpy(char* restrict dest, const char* restrict src, 
+      const int32_t n) {
+    if (dest && src && n > 0) {
+      char* d = dest;
+      for (int32_t i = 0; i < n && *src; ++i) {
+        *d = *src;
+        ++d;
+        ++src;
       }
-      str_l = 0;
-      str_r = 0;
+    }
+    return dest;
+  }
+
+  char* tal_strcat (char* restrict dest, const char* restrict src) {
+    if (dest && src) {
+      char* d = dest;
+      while (*d) { ++d; }
+      while (*src) { 
+        *d = *src; 
+        ++d;
+        ++src;
+      }
+    }
+    return dest;
+  }
+
+  char* tal_strncat(char* restrict dest, const char* restrict src, const int32_t n) {
+    if (dest && src && n > 0) {
+      char* d = dest;
+      while (*d) { ++d; }
+      for (int32_t i = 0; i < n && *src; ++i) {
+        *d = *src;
+        ++d;
+        ++src;
+      }
+    }
+    return dest;
+  }
+
+  void tal_strswap(char* restrict str_a, char* restrict str_b) {
+    if (str_a && str_b) {
+      while (*str_a && *str_b) {
+        char tmp = *str_a;
+        *str_a = *str_b;
+        *str_b = tmp;
+        ++str_a;
+        ++str_b;
+      }
+      str_a = 0;
+      str_b = 0;
     }
   }
 
-  int32_t ti_strcmp(const char* str_l, const char* str_r) {
-    if (!str_l || !str_r) { return 0; }
-    while (*str_l == *str_r && *str_l && *str_r) {
-      str_l++;
-      str_r++;
+  int32_t tal_strcmp(const char* str_a, const char* str_b) {
+    if (!str_a || !str_b) { return 0; }
+    while (*str_a == *str_b && *str_a && *str_b) {
+      str_a++;
+      str_b++;
     }
-    return (int32_t)*str_l - (int32_t)*str_r;
+    return (int32_t)*str_a - (int32_t)*str_b;
   }
 
-  int32_t ti_strncmp(const char* str_l, const char* str_r, int32_t n) {
-    if (str_l && str_r && n > 0) {
+  int32_t tal_strncmp(const char* str_a, const char* str_b, const int32_t n) {
+    if (str_a && str_b && n > 0) {
       for (int32_t i = 0; i < n; ++i) {
-        if (*str_l != *str_r || !*str_l || !*str_r) { 
-          return (int32_t)*str_l - (int32_t)*str_r; 
+        if (*str_a != *str_b || !*str_a || !*str_b) { 
+          return (int32_t)*str_a - (int32_t)*str_b; 
         }
-        ++str_l;
-        ++str_r;
+        ++str_a;
+        ++str_b;
       }
     }
     return 0;
   }
 
-  char* ti_strchr(const char* str, char qchar) {
+  char* tal_strchr(const char* str, char qchar) {
     if (str) {
       while (*str != qchar) {
         if (!*str) { return NULL; }
@@ -318,7 +484,7 @@
     return (char*)str;
   }
 
-  char* ti_strrchr(const char* str, char qchar) {
+  char* tal_strrchr(const char* str, char qchar) {
     if (str) {
       const char* t_str = str;
       while (*t_str) {
@@ -330,7 +496,7 @@
     return (char*)str;
   }
 
-  char* ti_strnchr(const char* str, char qchar, int32_t n) {
+  char* tal_strnchr(const char* str, char qchar, const int32_t n) {
     if (str && n > 0)  {
       int32_t count = 0;
       while (*str) {
@@ -345,19 +511,19 @@
     return NULL;
   }
 
-  int32_t ti_strchr_i(const char* str, char qchar) {
-    if (!str) { return ti_err_idx; }
+  int32_t tal_strchr_i(const char* str, char qchar) {
+    if (!str) { return -1; }
     int32_t i = 0;
     while (*str != qchar) {
-      if (!*str) { return ti_err_idx; }
+      if (!*str) { return -1; }
       ++str;
       ++i;
     }
     return i;
   }
 
-  int32_t ti_strrchr_i(const char* str, char qchar) {
-    int32_t ret = ti_err_idx;
+  int32_t tal_strrchr_i(const char* str, char qchar) {
+    int32_t ret = -1;
     if (str) {
       int32_t i = 0;
       while (*str) {
@@ -370,7 +536,7 @@
     return ret;
   }
 
-  int32_t ti_strnchr_i(const char* str, char qchar, int32_t n) {
+  int32_t tal_strnchr_i(const char* str, char qchar, const int32_t n) {
     if (str) {
       int32_t count = 0;
       int32_t i = 0;
@@ -384,11 +550,11 @@
       }
       if (!qchar && n == 1) { return i; }
     }
-    return ti_err_idx;
+    return -1;
   }
 
-  int32_t ti_strspn(const char* str, const char* qstr) {
-    if (!str || !qstr) { return ti_err_idx; }
+  int32_t tal_strspn(const char* str, const char* qstr) {
+    if (!str || !qstr) { return -1; }
     int32_t count = 0;
     while (*str) {
       const char* t_qstr = qstr;
@@ -402,8 +568,8 @@
     return count;
   }
 
-  int32_t ti_strcspn(const char* str, const char* qstr) {
-    if (!str || !qstr) { return ti_err_idx; }
+  int32_t tal_strcspn(const char* str, const char* qstr) {
+    if (!str || !qstr) { return -1; }
     int32_t count = 0;
     while (*str) {
       const char* t_qstr = qstr;
@@ -417,7 +583,7 @@
     return count;
   }
 
-  char* ti_strstr(const char* str, const char* qstr) {
+  char* tal_strstr(const char* str, const char* qstr) {
     if (str && qstr) {
       const char* t_str = str;
       const char* t_qstr = qstr;
@@ -435,7 +601,7 @@
     return NULL;
   }
 
-  char* ti_strnstr(const char* str, const char* qstr, int32_t n) {
+  char* tal_strnstr(const char* str, const char* qstr, const int32_t n) {
     if (str && qstr) {
       int32_t count = 0;
       const char* t_qstr = qstr;
@@ -455,7 +621,7 @@
     return NULL;
   }
 
-  char* ti_strrstr(const char* str, const char* qstr) {
+  char* tal_strrstr(const char* str, const char* qstr) {
     const char* lstr = NULL;
     if (str && qstr) {
       const char* t_str = str;
@@ -474,7 +640,7 @@
     return (char*)lstr;
   }
 
-  int32_t ti_strstr_i(const char* str, const char* qstr) {
+  int32_t tal_strstr_i(const char* str, const char* qstr) {
     if (str && qstr) {
       int32_t i = 0;
       const char* t_qstr = qstr;
@@ -489,11 +655,11 @@
         ++i;
       }
     }
-    return ti_err_idx;
+    return -1;
   }
 
-  int32_t ti_strrstr_i(const char* str, const char* qstr) {
-    int32_t ret = ti_err_idx;
+  int32_t tal_strrstr_i(const char* str, const char* qstr) {
+    int32_t ret = -1;
     if (str && qstr) {
       int32_t i = 0;
       const char* t_qstr = qstr;
@@ -511,7 +677,7 @@
     return ret;
   }
 
-  int32_t ti_strnstr_i(const char* str, const char* qstr, int32_t n) {
+  int32_t tal_strnstr_i(const char* str, const char* qstr, const int32_t n) {
     if (str && qstr && n > 0) {
       int32_t i = 0;
       int32_t count = 0;
@@ -530,10 +696,10 @@
         ++i;
       }
     }
-    return ti_err_idx;
+    return -1;
   }
 
-  char* ti_strpbrk(const char* str, const char* qstr) {
+  char* tal_strpbrk(const char* str, const char* qstr) {
     if (str && qstr) {
       while (*str) {
         const char* t_qstr = qstr;
@@ -546,7 +712,7 @@
     return NULL;
   }
 
-  int32_t ti_strpbrk_i(const char* str, const char* qstr) {
+  int32_t tal_strpbrk_i(const char* str, const char* qstr) {
     if (str && qstr) {
       int32_t i = 0;
       while (*str) {
@@ -558,39 +724,76 @@
         ++i;
       }
     }
-    return ti_err_idx;
+    return -1;
   }
 
-  int32_t ti_strlen(const char* str) {
-    int32_t len = 0;
-    while (str[len]) { ++len; }
-    return len;
-  }
-
-  char* ti_strsplit(const char* str, char* tok, const char* delim) {
-    if (str && tok && delim) {
-      const char* t_str = str;
-      const char* t_delim = delim;
+  int32_t tal_strtokn(char* str, const char* delim) {
+    int32_t tok_cnt = 0;
+    if (str && delim) {
+      const int32_t dlen = strlen(delim);
+      char* t_delim = delim;
       while (*str) {
         if (*str == *t_delim) {
           ++t_delim;
           if (!*t_delim) {
-            ++str;
-            while (t_str != str) {
-              *tok = *t_str;
-              ++t_str;
-              ++tok;
-              return (char*)str;
+            for (int32_t i = 0; i < dlen; ++i) {
+              str[-i] = '\0';
             }
+            t_delim = delim;
+            ++tok_cnt;
           }
         } else {
           t_delim = delim;
-          t_str = str;
         }
         ++str;
       }
     }
+    return tok_cnt;
+  }
+
+  char* tal_strtokn_reset(char* str, const int32_t len, const char* delim) {
+    if (str && delim && len > 0) {
+      char* t_delim = delim;
+      for (int32_t i = 0; i < len; ++i) {
+        if (str[i] == '\0') {
+          str[i] = t_delim;
+          ++t_delim;
+        } else {
+          t_delim = delim;
+        }
+      }
+    }
+    return str;
+  }
+
+  char* tal_strtokn_get(char* str, const int32_t len, const int32_t n) {
+    if (str && len > 0 && n >= 0) {
+      int32_t tok_cnt = 0;
+      for (int32_t i = 0; i < len; ++i) {
+        if (str[i] == '\0') {
+          if (str[i - 1] != '\0') { ++tok_cnt; }
+        } else if (tok_cnt == n) {
+          return str[i];
+        }
+      }
+    }
     return NULL;
+  }
+
+  char* tal_strtokn_next(const char* str, const int32_t len, char** iter_str) {
+    if (str && iter_str && *iter_str && len > 0) {
+      while (**iter_str) {
+        const uint32_t addr_diff = (uint32_t)iter_str - (uint32_t)str;
+        if (addr_diff >= (uint32_t)len) { return NULL; }
+        ++(*iter_str);
+      }
+      while (!**iter_str) {
+        const uint32_t addr_diff = (uint32_t)iter_str - (uint32_t)str;
+        if (addr_diff >= (uint32_t)len) { return NULL; }
+        ++(*iter_str);
+      }
+    }
+    return *iter_str;
   }
 
 #if defined(__cplusplus)

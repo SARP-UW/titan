@@ -202,11 +202,13 @@
 
   /**
    * @defgroup tal_sdiv
-   * @brief
-   * @param num
-   * @param div
-   * @param sat_flag
-   * @returns
+   * @brief Saturating division operation.
+   * @param num (integer type denoted by suffix) The numerator.
+   * @param div (integer type denoted by suffix) The denominator.
+   * @param sat_flag (bool*) A flag to set if the operation saturates.
+   * @returns (integer type denoted by suffix) The result of dividing 'num' by 'div',
+   *          or 0 if 'div' is equal to zero.
+   * @note - 'sat_flag' is an optional - it may be NULL.
    * @{
    */
   tal_fn_attr_inline inline int8_t tal_sdiv_i8(const int8_t num, const int8_t div, bool* sat_flag);

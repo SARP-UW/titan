@@ -65,7 +65,7 @@
    * @internal Implementation
    **************************************************************************************************/
 
-  // todo -> update implementation
+  // @todo add real implementation
   tal_fn_attr_noreturn bool tal_assert_fail__(const char* msg, 
       const char* file, const int32_t line) {
     #if defined(TAL_ARCH_ARMV7M)
@@ -75,7 +75,7 @@
     #endif
   }
 
-  // todo -> update implementation
+  // @todo add real implementation
   tal_fn_attr_noreturn bool tal_require_fail__(const char* msg, 
       const char* file, const int32_t line) {
     #if defined(TAL_ARCH_ARMV7M)
