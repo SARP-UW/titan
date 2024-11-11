@@ -1,5 +1,5 @@
 /**
- * This file is part of the Titan Avionics Library
+ * This file is part of the Titan Flight Computer Project
  * Copyright (c) 2024 UW SARP
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -14,29 +14,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file include/tal/util/stdlib.h
+ * @file arch/armv7m/internal/interrupt.h
  * @authors Aaron McBride
- * @brief Runtime execution control utilites.
+ * @brief IRQ interrupt management facilities.
  */
 
 #pragma once
+#include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include "include/tal/attributes.h"
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
-  int abs(int x);
-
-
-  int abs(const int x)
-  {
-      if(x < 0) {
-          return -x;
-      }
-      return x;
-  }
-
-#if defined(__cplusplus)
-  }
-#endif
+  /**************************************************************************************************
+   * @section String Utilities
+   **************************************************************************************************/

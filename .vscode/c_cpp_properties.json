@@ -3,13 +3,22 @@
     {
       "name": "tal_dev",
       "intelliSenseMode": "gcc-arm",
+      "cStandard": "c11",
+      "compilerArgs": [
+        "-mcpu=cortex-m7",
+        "-ffreestanding",
+        "-nostdlib",
+        "-Wpedantic",
+        "-Wall",
+        "-Wextra"
+      ],
       "includePath": [
         "${workspaceFolder}"
       ],
       "compilerPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gcc",
       "defines": [
         "TAL_DEBUG",
-        "TAL_ARCH_ARMV7",
+        "TAL_ARCH_ARMV7M",
         "TAL_ARCH_FPU",
         "TAL_PLATFORM_STMH7X5",
         "TAL_PACK_144"

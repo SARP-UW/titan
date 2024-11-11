@@ -1,43 +1,3 @@
-/**
- * This file is part of the Titan Flight Computer Project
- * Copyright (c) 2024 UW SARP
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 3.
- * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- * 
- * @file common/util/numeric.h
- * @authors Aaron McBride
- * @brief Numeric utilities.
- */
-
-#pragma once
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <limits.h>
-
-#if defined(__cplusplus)
-  extern "C" {
-#endif
-
-  /**************************************************************************************************
-   * @internal Forward Implementation
-   **************************************************************************************************/
-
-  /** Sets the given flag (pointer to bool) to true */
-  #define ti_sflag__(flag) \
-      (flag == NULL ? (void)(*flag = true) : (void)0)
-
-  /** @endinternal */
 
   /**************************************************************************************************
    * @section Numeric Comparison Utilities
@@ -49,30 +9,49 @@
    * @param a (integer of any size/signedness) The first value.
    * @param b (integer of any size/signedness) The second value.
    * @returns True if the values are equal, false otherwise.
+   * @note - This macro is useful specifically for comparison of signed
+   *         and unsigned integers which can result in invalid results
+   *         due to implicit type conversion (arithmetic promotion).
    */
-  #define ti_cmpe(a, b)               \
-    _Generic((a),                     \
-      int32_t: _Generic((b),          \
-        uint32_t: (a >= 0 && a == b), \
-        uint64_t: (a >= 0 && a == b), \
-        default: (a == b)             \
-      ),                              \
-      int64_t: _Generic((b),          \
-        uint32_t: (a >= 0 && a == b), \
-        uint64_t: (a >= 0 && a == b), \
-        default: (a == b)             \
-      ),                              \
-      uint32_t: _Generic((b),         \
-        int32_t: (b >= 0 && a == b),  \
-        int64_t: (b >= 0 && a == b),  \
-        default: (a == b)             \
-      ),                              \
-      uint64_t: _Generic((b),         \
-        int32_t: (b >= 0 && a == b),  \
-        int64_t: (b >= 0 && a == b),  \
-        default: (a == b)             \
-      ),                              \
-      default: (a == b)               \
+  #define tal_cmp_eq(a, b) \
+    _Generic((a), \
+      int32_t: _Generic((b), \
+        uint32_t: ((a) >= 0 && (a) == (b)), \
+        unsigned int: ((a) >= 0 && (a) == (b)), \
+        uint64_t: ((a) >= 0 && (a) == (b)), \
+        default: ((a) == (b)) \
+      ), \
+      int: _Generic((b), \
+        uint32_t: ((a) >= 0 && (a) == (b)), \
+        unsigned int: ((a) >= 0 && (a) == (b)), \
+        uint64_t: ((a) >= 0 && (a) == (b)), \
+        default: ((a) == (b)) \
+      ), \
+      int64_t: _Generic((b), \
+        uint32_t: ((a) >= 0 && (a) == (b)), \
+        unsigned int: ((a) >= 0 && (a) == (b)), \
+        uint64_t: ((a) >= 0 && (a) == (b)), \
+        default: ((a) == (b)) \
+      ), \
+      uint32_t: _Generic((b), \
+        int32_t: ((b) >= 0 && (a) == (b)), \
+        int: ((b) >= 0 && (a) == (b)), \
+        int64_t: ((b) >= 0 && (a) == (b)), \
+        default: ((a) == (b)) \
+      ), \
+      unsigned int: _Generic((b), \
+        int32_t: ((b) >= 0 && (a) == (b)), \
+        int: ((b) >= 0 && (a) == (b)), \
+        int64_t: ((b) >= 0 && (a) == (b)), \
+        default: ((a) == (b)) \
+      ), \
+      uint64_t: _Generic((b), \
+        int32_t: ((b) >= 0 && (a) == (b)), \
+        int: ((b) >= 0 && (a) == (b)), \
+        int64_t: ((b) >= 0 && (a) == (b)), \
+        default: ((a) == (b)) \
+      ), \
+      default: ((a) == (b)) \
     )
 
   /**
@@ -81,29 +60,48 @@
    * @param a (integer of any size/signedness) The first value.
    * @param b (integer of any size/signedness) The second value.
    * @returns True if a is less than b, false otherwise.
+   * @note - This macro is useful specifically for comparison of signed
+   *         and unsigned integers which can result in invalid results
+   *         due to implicit type conversion (arithmetic promotion).
    */
-  #define ti_cmpl(a, b)             \
-    _Generic((a),                   \
-      int32_t: _Generic((b),        \
-        uint32_t: (a < 0 || a < b), \
-        uint64_t: (a < 0 || a < b), \
-        default: (a < b)            \
-      ),                            \
-      int64_t: _Generic((b),        \
-        uint32_t: (a < 0 || a < b), \
-        uint64_t: (a < 0 || a < b), \
-        default: (a < b)            \
-      ),                            \
-      uint32_t: _Generic((b),       \
-        int32_t: (b >= 0 && a < b), \
-        int64_t: (b >= 0 && a < b), \
-        default: (a < b)            \
-      ),                            \
-      uint64_t: _Generic((b),       \
-        int32_t: (b >= 0 && a < b), \
-        int64_t: (b >= 0 && a < b), \
-        default: (a < b)            \
-      ),                            \
+  #define tal_cmp_l(a, b) \
+    _Generic((a), \
+      int32_t: _Generic((b), \
+        uint32_t: ((a) < 0 || (a) < (b)), \
+        unsigned int: ((a) < 0 || (a) < (b)), \
+        uint64_t: ((a) < 0 || (a) < (b)), \
+        default: ((a) < (b)) \
+      ), \
+      int: _Generic((b), \
+        uint32_t: ((a) < 0 || (a) < (b)), \
+        unsigned int: ((a) < 0 || (a) < (b)), \
+        uint64_t: ((a) < 0 || (a) < (b)), \
+        default: ((a) < (b)) \
+      ), \
+      int64_t: _Generic((b), \
+        uint32_t: ((a) < 0 || (a) < (b)), \
+        unsigned int: ((a) < 0 || (a) < (b)), \
+        uint64_t: ((a) < 0 || (a) < (b)), \
+        default: ((a) < (b)) \
+      ), \
+      uint32_t: _Generic((b), \
+        int32_t: ((b) >= 0 && (a) < (b)), \
+        int: ((b) >= 0 && (a) < (b)), \
+        int64_t: ((b) >= 0 && (a) < (b)), \
+        default: ((a) < (b)) \
+      ), \
+      unsigned int: _Generic((b), \
+        int32_t: ((b) >= 0 && (a) < (b)), \
+        int: ((b) >= 0 && (a) < (b)), \
+        int64_t: ((b) >= 0 && (a) < (b)), \
+        default: ((a) < (b)) \
+      ), \
+      uint64_t: _Generic((b), \
+        int32_t: ((b) >= 0 && (a) < (b)), \
+        int: ((b) >= 0 && (a) < (b)), \
+        int64_t: ((b) >= 0 && (a) < (b)), \
+        default: ((a) < (b)) \
+      ) \
     )
 
   /**
@@ -112,8 +110,11 @@
    * @param a (integer of any size/signedness) The first value.
    * @param b (integer of any size/signedness) The second value.
    * @returns True if a is greater than b, false otherwise.
+   * @note - This macro is useful specifically for comparison of signed
+   *         and unsigned integers which can result in invalid results
+   *         due to implicit type conversion (arithmetic promotion).
    */
-  #define ti_cmpg(a, b) ti_cmpl(b, a)
+  #define tal_cmp_g(a, b) tal_cmp_l(b, a)
 
   /**
    * @brief Safely compares two integers of any size/signedness
@@ -121,8 +122,11 @@
    * @param a (integer of any size/signedness) The first value.
    * @param b (integer of any size/signedness) The second value.
    * @returns True if a is less than or equal to b, false otherwise.
+   * @note - This macro is useful specifically for comparison of signed
+   *         and unsigned integers which can result in invalid results
+   *         due to implicit type conversion (arithmetic promotion).
    */
-  #define ti_cmple(a, b) !ti_cmpl(b, a)
+  #define tal_cmp_le(a, b) !tal_cmp_l(b, a)
 
   /**
    * @brief Safely compares two integers of any size/signedness
@@ -130,8 +134,15 @@
    * @param a (integer of any size/signedness) The first value.
    * @param b (integer of any size/signedness) The second value.
    * @returns True if a is greater than or equal to b, false otherwise.
+   * @note - This macro is useful specifically for comparison of signed
+   *         and unsigned integers which can result in invalid results
+   *         due to implicit type conversion (arithmetic promotion).
    */
-  #define ti_cmpge(a, b) !ti_cmpl(a, b)
+  #define tal_cmp_ge(a, b) !tal_cmp_l(a, b)
+
+  /**************************************************************************************************
+   * @section Numeric Type Utilities
+   **************************************************************************************************/
 
   /**
    * @brief Safely determines if a value is within a numeric range.
@@ -146,7 +157,7 @@
 
   /**
    * @brief Clamps an integer value to a numeric range.
-   * @param value (integer of any size/signedness) The value to clamp.
+   * @param value (integer of any size/signedness) The value to to_range.
    * @param min (integer of any size/signedness) The minimum value of the range (inclusive).
    * @param max (integer of any size/signedness) The maximum value of the range (inclusive).
    * @returns 'min' if 'value' is less than 'min', 'max' if 'value' is greater 
@@ -155,10 +166,6 @@
   #define ti_to_range(value, min, max) \
       (ti_cmpl(value, min) ? min :     \
       (ti_cmpg(value, max) ? max : value))
-
-  /**************************************************************************************************
-   * @section Numeric Type Utilities
-   **************************************************************************************************/
 
   /**
    * @brief Determines if a value is within the range of a type.
