@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <limits.h>
-#include "include/tal/util/attributes.h"
+#include "tal/util/attributes.h"
 
 #if defined(__cplusplus)
   extern "C" {

@@ -25,7 +25,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "include/tal/util/mask.h"
+#include "tal/util/mask.h"
 
 #if defined(__cplusplus)
   extern "C" {
@@ -96,19 +96,19 @@ int32_t ODR_OFFSET   = 20;
  * @param pin: The single integer value of the pin, found in specific docs page 60
  * @param mode: -1 for in, 1 for out
 */
-void ti_set_mode(int pin, int mode);
+void tal_set_mode(int pin, int mode);
 
 /**
  * @param pin: The single integer value of the pin, found in specific docs page 60
  * @param pull: -1 for low, 0 for floating, 1 for high
 */
-void ti_pull_pin(int pin, int pull);
+void tal_pull_pin(int pin, int pull);
 
 /**
  * @param pin: The single integer value of the pin, found in specific docs page 60
  * @param value: 0 for off, 1 for on
 */
-void ti_set_pin(int pin, int value);
+void tal_set_pin(int pin, int value);
 
 
 /**
@@ -116,10 +116,10 @@ void ti_set_pin(int pin, int value);
  * 
  * @return true if pin is high, false if pin is low
 */
-bool ti_read_pin(int pin);
+bool tal_read_pin(int pin);
 
 
-void ti_set_mode(int pin, int mode)
+void tal_set_mode(int pin, int mode)
 {
   int v = port_index_from_pin[pin];
   if(v == -1){ // This means this pin number isn't on the board
@@ -128,16 +128,16 @@ void ti_set_mode(int pin, int mode)
   int port = v / 100;
   int index = v - 100 * port;
 
-  int32_t* output_type_reg = port_registers[port] + MODER_OFFSET;
+  volatile int32_t* output_type_reg = port_registers[port] + MODER_OFFSET;
 
   if(mode == 1){ // todo verify write_mask does what I think
-    ti_write_mask32(1, output_type_reg, index * 2, 2);
+    tal_write_mask32(1, output_type_reg, index * 2, 2);
   }else if(mode == -1){
-    ti_write_mask32(0, output_type_reg, index * 2, 2);
+    tal_write_mask32(0, output_type_reg, index * 2, 2);
   }
 }
 
-void ti_pull_pin(int pin, int pull)
+void tal_pull_pin(int pin, int pull)
 {
   int v = port_index_from_pin[pin];
   if(v == -1){ 
@@ -151,15 +151,15 @@ void ti_pull_pin(int pin, int pull)
   switch (pull)
   {
     case 1:{
-      ti_write_mask32(1, pull_register, index * 2, 2);
+      tal_write_mask32(1, pull_register, index * 2, 2);
       break;
     }
     case 0:{
-      ti_write_mask32(0, pull_register, index * 2, 2);
+      tal_write_mask32(0, pull_register, index * 2, 2);
       break;
     }
     case -1:{
-      ti_write_mask32(2, pull_register, index * 2, 2);
+      tal_write_mask32(2, pull_register, index * 2, 2);
       break;
     }
     
@@ -169,7 +169,7 @@ void ti_pull_pin(int pin, int pull)
   }
 }
 
-void ti_set_pin(int pin, int value)
+void tal_set_pin(int pin, int value)
 {
   int v = port_index_from_pin[pin];
   if(v == -1){ 
@@ -182,11 +182,11 @@ void ti_set_pin(int pin, int value)
 
   switch (value){
     case 0:{
-      ti_write_mask32(0, set_register, index, 1);
+      tal_write_mask32(0, set_register, index, 1);
       break;
     }
     case 1:{
-      ti_write_mask32(1, set_register, index, 1);
+      tal_write_mask32(1, set_register, index, 1);
       break;
     }
 
@@ -196,7 +196,7 @@ void ti_set_pin(int pin, int value)
   }
 }
 
-bool ti_read_pin(int pin)
+bool tal_read_pin(int pin)
 {
   int v = port_index_from_pin[pin];
   if(v == -1){ 
@@ -206,7 +206,7 @@ bool ti_read_pin(int pin)
   int index = v - 100 * port;
 
   int32_t* input_register = port_registers[port] + IDR_OFFSET;
-  uint32_t read_val = ti_read_mask32(input_register, index, 1);
+  uint32_t read_val = tal_read_mask32(input_register, index, 1);
   
   return read_val == 1;
 }
