@@ -26,18 +26,31 @@
 #endif
 
   /**************************************************************************************************
+   * @internal Implementation Utilities
+   **************************************************************************************************/
+
+  #define tal_str__(x) #x
+
+  /** @endinternal */
+
+  /**************************************************************************************************
    * @section Function Attributes
    **************************************************************************************************/
 
   /** 
    * @def tal_fn_attr_weak
+   * @param name The name of the function to make weak (no quotes).
    * @brief Enables a function to be defined in a different TU.
    */
 
   /** 
    * @def tal_fn_attr_alias(name)
+   * @param name The original name of the function (no quotes).
+   * @param alias_name The alias name for the function (no quotes).
    * @brief Makes a function an alias (different name for) annother function. 
    * @note - The aliased function may be defined in a different, non-visible TU.
+   * @note - The alias name is weak, and therefore may be overriden by a non-weak
+   *         function with the same name.
    */
 
   /** 
@@ -54,13 +67,14 @@
   /**
    * @def tal_fn_attr_warn(msg)
    * @brief Emits a warning (durring compilation) if a function is called.
-   * @param msg The warning message to emit.
+   * @param msg The warning message to emit (include quotes).
    */
 
   /**
    * @def tal_fn_attr_section(name)
    * @brief Places a function in a specific section of memory.
-   * @param name The name of the section, as defined in the linker script.
+   * @param name The name of the section, as defined in the linker script 
+   *             (include quotes).
    */
 
   /**
@@ -77,8 +91,8 @@
    */
 
   #if defined(__GNUC__)
-    #define tal_fn_attr_weak __attribute__((weak))
-    #define tal_fn_attr_alias(name) __attribute__((alias(name))) 
+    #define tal_fn_attr_weak(name) __attribute__((weak))
+    #define tal_fn_attr_alias(name, ailias_name) __attribute__((alias(ailias_name))) 
     #define tal_fn_attr_inline __attribute__((always_inline)) 
     #define tal_fn_attr_noinline __attribute__((noinline)) 
     #define tal_fn_attr_warn(msg) __attribute__((deprecated(msg)))
@@ -87,14 +101,25 @@
     #define tal_fn_attr_raw __attribute__((optimize("O0")))
 
   #elif defined(__clang__)
-    #define tal_fn_attr_weak __attribute__((weak))
-    #define tal_fn_attr_alias(name) __attribute__((alias(name)))
+    #define tal_fn_attr_weak(name) __attribute__((weak))
+    #define tal_fn_attr_alias(name, ailias_name) __attribute__((alias(ailias_name)))
     #define tal_fn_attr_inline __attribute__((always_inline))
     #define tal_fn_attr_noinline __attribute__((noinline))
     #define tal_fn_attr_warn(msg) __attribute__((deprecated(msg)))
     #define tal_fn_attr_section(name) __attribute__((section(name)))
     #define tal_fn_attr_noreturn __attribute__((noreturn))
     #define tal_fn_attr_raw __attribute__((optnone))
+    
+  #elif defined(__IAR_SYSTEMS_ICC__)
+    #define tal_fn_attr_weak(name) _Pragma(tal_str__(weak(##name##)))
+    #define tal_fn_attr_alias(name, ailias_name) _Pragma(tal_str__(weak(##name##=##ailias_name##)))
+    #define tal_fn_attr_inline _Pragma("inline=forced")
+    #define tal_fn_attr_noinline _Pragma("inline=never")
+    #define tal_fn_attr_warn(msg)
+    #define tal_fn_attr_section(name) _Pragma(tal_str__(location=##name##))
+    #define tal_fn_attr_noreturn __noreturn
+    #define tal_fn_attr_raw _Pragma("optimize=none")
+
   #endif
 
   /**************************************************************************************************
@@ -104,18 +129,23 @@
   /**
    * @def tal_var_attr_weak
    * @brief Enables a variable to be defined in a different TU.
+   * @param name The name of the variable to make weak (no quotes).
    */
 
   /**
    * @def tal_var_attr_alias(name)
    * @brief Makes a variable an alias (different name for) annother variable.
+   * @param name The original name of the variable (no quotes).
+   * @param ailias_name The alias name for the variable (no quotes).
    * @note - The aliased variable may be defined in a different, non-visible TU.
+   * @note - The alias name is weak, and therefore may be overriden by a non-weak
+   *         variable with the same name.
    */
 
   /**
    * @def tal_var_attr_warn(msg)
    * @brief Emits a warning (durring compilation) if a variable is accessed.
-   * @param msg The warning message to emit.
+   * @param msg The warning message to emit (include quotes).
    */
 
   /**
@@ -128,7 +158,8 @@
   /**
    * @def tal_var_attr_section(name)
    * @brief Places a variable in a specific section of memory.
-   * @param name The name of the section, as defined in the linker script.
+   * @param name The name of the section, as defined in the linker script
+   *             (include quotes).
    */
 
   /**
@@ -139,20 +170,29 @@
    */
 
   #if defined(__GNUC__)
-    #define tal_var_attr_weak __attribute__((weak))
-    #define tal_var_attr_alias(name) __attribute__((alias(name)))
+    #define tal_var_attr_weak(name) __attribute__((weak))
+    #define tal_var_attr_alias(name, ailias_name) __attribute__((alias(ailias_name)))
     #define tal_var_attr_warn(msg) __attribute__((deprecated(msg)))
     #define tal_var_attr_packed __attribute__((packed))
     #define tal_var_attr_section(name) __attribute__((section(name)))
     #define tal_var_attr_unused __attribute__((unused))
 
   #elif defined(__clang__)
-    #define tal_var_attr_weak __attribute__((weak))
-    #define tal_var_attr_alias(name) __attribute__((alias(name)))
+    #define tal_var_attr_weak(name) __attribute__((weak))
+    #define tal_var_attr_alias(name, ailias_name) __attribute__((alias(ailias_name)))
     #define tal_var_attr_warn(msg) __attribute__((deprecated(msg)))
     #define tal_var_attr_packed __attribute__((packed))
     #define tal_var_attr_section(name) __attribute__((section(name)))
     #define tal_var_attr_unused __attribute__((unused))
+    
+  #elif defined(__IAR_SYSTEMS_ICC__)
+    #define tal_var_attr_weak(name) _Pragma(tal_str__(weak(##name##)))
+    #define tal_var_attr_alias(name, alias_name) _Pragma(tal_str__(weak(##name##=##ailias_name##)))
+    #define tal_var_attr_warn(msg)
+    #define tal_var_attr_packed _Pragma("data_alignment=1")
+    #define tal_var_attr_section(name) _Pragma(tal_str__(location=##name##))
+    #define tal_var_attr_unused __root
+
   #endif
 
   /**************************************************************************************************
@@ -162,7 +202,7 @@
   /**
    * @def tal_type_attr_warn(msg)
    * @brief Emits a warning (durring compilation) if a type is used.
-   * @param msg The warning message to emit.
+   * @param msg The warning message to emit (include quotes).
    */
 
   /**
@@ -175,7 +215,7 @@
   /**
    * @def tal_type_attr_aligned(n)
    * @brief Aligns all instances of a type to a specific byte boundary.
-   * @param n The byte boundary to align the type to.
+   * @param n The byte boundary to align the type to (no quotes).
    */
 
   /**
@@ -196,6 +236,13 @@
     #define tal_type_attr_packed __attribute__((packed))
     #define tal_type_attr_aligned(n) __attribute__((aligned(n)))
     #define tal_type_attr_unused __attribute__((unused))
+
+  #elif defined(__IAR_SYSTEMS_ICC__)
+    #define tal_type_attr_warn(msg)
+    #define tal_type_attr_packed _Pragma("data_alignment=1")
+    #define tal_type_attr_aligned(n) _Pragma(tal_str__(data_alignment=##n##))
+    #define tal_type_attr_unused __root
+
   #endif
 
 #if defined(__cplusplus)

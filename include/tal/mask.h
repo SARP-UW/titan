@@ -29,10 +29,6 @@
   extern "C" {
 #endif
 
-  /**************************************************************************************************
-   * @section Bitmask Utilities
-   **************************************************************************************************/
-
   /**
    * @defgroup tal_get_mask
    * @brief Generates a bitmask of a specific length with bits at a specific location.
@@ -286,19 +282,19 @@
    **************************************************************************************************/
 
   uint8_t tal_get_mask_u8(const int32_t pos, const int32_t len) {
-    return (((uint8_t)1 << pos) - 1u) << len;
+    return (((uint8_t)1 << pos) - (uint8_t)1) << len;
   }
 
   uint16_t tal_get_mask_u16(const int32_t pos, const int32_t len) {
-    return (((uint16_t)1 << pos) - 1u) << len;
+    return (((uint16_t)1 << pos) - (uint16_t)1) << len;
   }
 
   uint32_t tal_get_mask_u32(const int32_t pos, const int32_t len) {
-    return (((uint32_t)1 << pos) - 1u) << len;
+    return (((uint32_t)1 << pos) - (uint32_t)1) << len;
   }
 
   uint64_t tal_get_mask_u64(const int32_t pos, const int32_t len) {
-    return (((uint64_t)1 << pos) - 1u) << len;
+    return (((uint64_t)1 << pos) - (uint64_t)1) << len;
   }
 
   bool tal_valid_mask_u8(const int32_t pos, const int32_t len) {
@@ -317,7 +313,7 @@
     return (pos >= 0) && (len >= 1) && ((pos + len) <= 64);
   }
 
-  void tal_write_mask8(const uint8_t value, uint8_t* loc, 
+  void tal_write_mask_u8(const uint8_t value, uint8_t* loc, 
       const int32_t pos, const int32_t len) {
     const uint8_t mask = tal_get_mask_u8(pos, len);
     *loc = (*loc & ~mask) | ((value << pos) & mask);

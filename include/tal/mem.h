@@ -29,10 +29,6 @@
   extern "C" {
 #endif
 
-  /**************************************************************************************************
-   * @section Memory Utilities
-   **************************************************************************************************/
-
   /**
    * @brief Copies a block of memory from one location to annother.
    * @param dst (void*) The destination location

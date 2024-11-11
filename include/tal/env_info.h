@@ -25,10 +25,6 @@
   extern "C" {
 #endif
 
-  /**************************************************************************************************
-   * @section System Information Defines
-   **************************************************************************************************/
-
   /**
    * @def tal_sys_size
    * @brief Macro which evaluates to a value which corresponds to the size of 

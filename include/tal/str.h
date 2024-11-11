@@ -29,10 +29,6 @@
   extern "C" {
 #endif
 
-  /**************************************************************************************************
-   * @section String Utilities
-   **************************************************************************************************/
-
   /**
    * @brief Determines the length of a string.
    * @param str (const char*) The null-terminated byte string to query.
@@ -324,56 +320,25 @@
       const char* qstr);
 
   /**
-   * @brief Tokenizes a string.
-   * @param str (char*) The null-terminated byte string to tokenize.
-   * @param delim (const char*) The null-terminated byte string that represents
-   *              the delimiter (may be longer then one character).
-   * @returns (int32_t) The number of tokens in 'str'.
-   * @note - This function inserts null-terminators into 'str' at the locations
-   *         of every delimiter.
-   * @note - This function is thread-safe.
+   * @brief Type which contains information about a token.
    */
-  tal_fn_attr_inline inline int32_t tal_strtokn(char* str, const char* delim);
+  typedef struct {
+    char* ptr; /** @brief Pointer to the token. */
+    int32_t len; /** @brief Length of the token. */
+  }tok_t;
 
   /**
-   * @brief Un-tokenizes a string.
-   * @param str (char*) The null-terminated byte string to un-tokenize.
+   * @brief Gets a token from a string.
+   * @param str (char*) The null-terminated byte string to get the token from.
    * @param delim (const char*) The null-terminated byte string that represents
    *              the delimiter (may be longer then one character).
-   * @param len (int32_t) The length of 'str' before it was tokenized.
-   * @returns (char*) A pointer to 'str'.
-   * @note - This function reverses the changes made by 'tal_strtokn'.
-   * @note - This function is thread-safe.
-   */
-  tal_fn_attr_inline inline char* tal_strtokn_reset(char* str, 
-      const int32_t len, const char* delim);
-
-  /**
-   * @brief Gets token 'n' from a tokenized string.
-   * @param str (char*) The null-terminated byte string to query (must be 
-   *            tokenized using 'tal_strtokn').
-   * @param len (int32_t) The length of 'str'.
    * @param n (int32_t) The index of the token to get.
-   * @returns (char*) A pointer to the start of the nth token in 'str' or NULL 
-   *          if no such token exists, or if the given arguments are invalid.
-   * @note - This function is thread-safe.
+   * @returns (tok_t) A struct containing a pointer to the start of the token (ptr),
+   *          and an int32_t representing the length of the token (len), or NULL,
+   *          and -1 if no such token exists, or the given arguments are invalid.
+   * @note - This function is thread-safe unlike the standard strtok function.
    */
-  tal_fn_attr_inline inline char* tal_strtokn_get(char* str, 
-      const int32_t len, const int32_t n);
-
-  /**
-   * @brief Gets the next token in a tokenized string.
-   * @param str (const char*) The null-terminated byte string tokenized using
-   *            'tal_strtokn'.
-   * @param str_iter (char**) A pointer to the current token in 'str'.
-   * @param len (int32_t) The length of 'str'.
-   * @returns (char*) A pointer to the next token in 'str', or NULL if no such
-   *          token exists, or the given arguments are invalid (note that this
-   *          is equal to the value of 'str_iter' after the function call).
-   * @note - This function is thread-safe.
-   */
-  tal_fn_attr_inline inline char* tal_strtokn_next(const char* str, 
-      const int32_t len, char** str_iter);
+  tal_fn_attr_inline inline tok_t tal_strtok(char* str, const char* delim, const int32_t n);
 
   /**************************************************************************************************
    * @internal Implementation
@@ -727,20 +692,27 @@
     return -1;
   }
 
-  int32_t tal_strtokn(char* str, const char* delim) {
+  tok_t tal_strtok(char* str, const char* delim, const int32_t n) {
     int32_t tok_cnt = 0;
     if (str && delim) {
-      const int32_t dlen = strlen(delim);
       char* t_delim = delim;
       while (*str) {
         if (*str == *t_delim) {
           ++t_delim;
           if (!*t_delim) {
-            for (int32_t i = 0; i < dlen; ++i) {
-              str[-i] = '\0';
-            }
             t_delim = delim;
             ++tok_cnt;
+            if (tok_cnt == n) {
+              ++str;
+              if (*str) {
+                tok_t result = {str, 1};
+                while (*str) { 
+                  ++str; 
+                  ++result.len;
+                }
+                return result;
+              }
+            }
           }
         } else {
           t_delim = delim;
@@ -748,52 +720,7 @@
         ++str;
       }
     }
-    return tok_cnt;
-  }
-
-  char* tal_strtokn_reset(char* str, const int32_t len, const char* delim) {
-    if (str && delim && len > 0) {
-      char* t_delim = delim;
-      for (int32_t i = 0; i < len; ++i) {
-        if (str[i] == '\0') {
-          str[i] = t_delim;
-          ++t_delim;
-        } else {
-          t_delim = delim;
-        }
-      }
-    }
-    return str;
-  }
-
-  char* tal_strtokn_get(char* str, const int32_t len, const int32_t n) {
-    if (str && len > 0 && n >= 0) {
-      int32_t tok_cnt = 0;
-      for (int32_t i = 0; i < len; ++i) {
-        if (str[i] == '\0') {
-          if (str[i - 1] != '\0') { ++tok_cnt; }
-        } else if (tok_cnt == n) {
-          return str[i];
-        }
-      }
-    }
-    return NULL;
-  }
-
-  char* tal_strtokn_next(const char* str, const int32_t len, char** iter_str) {
-    if (str && iter_str && *iter_str && len > 0) {
-      while (**iter_str) {
-        const uint32_t addr_diff = (uint32_t)iter_str - (uint32_t)str;
-        if (addr_diff >= (uint32_t)len) { return NULL; }
-        ++(*iter_str);
-      }
-      while (!**iter_str) {
-        const uint32_t addr_diff = (uint32_t)iter_str - (uint32_t)str;
-        if (addr_diff >= (uint32_t)len) { return NULL; }
-        ++(*iter_str);
-      }
-    }
-    return *iter_str;
+    return (tok_t){NULL, -1};
   }
 
 #if defined(__cplusplus)

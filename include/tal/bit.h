@@ -24,14 +24,11 @@
 #include <stdbool.h>
 #include <limits.h>
 #include "include/tal/attributes.h"
+#include "include/tal/assert.h"
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
-
-  /**************************************************************************************************
-   * @section Bit Manipulation Utilities
-   **************************************************************************************************/
 
   /**
    * @brief Evaluates to the number of bits in @p 'type'.
@@ -239,7 +236,7 @@
   /** @} */
 
   /**************************************************************************************************
-   * @internal Implementation
+   * @internal Constants
    **************************************************************************************************/
 
   // Denotes the number of binary digits in a numeric type.
@@ -253,6 +250,10 @@
 
   // The number of digits in the smallest promoted type (int32_t).
   #define tal_min_prom_dig__ tal_uint32_dig__
+
+  /**************************************************************************************************
+   * @internal Implementation
+   **************************************************************************************************/
 
   uint8_t tal_rbit_u8(const uint8_t value) {
     uint8_t result = 0;
@@ -348,14 +349,12 @@
 
   uint8_t tal_bit_ceil_u8(const uint8_t value) {
     if (value <= 1u) { return 1; }
-    const int32_t ovf_offset = (tal_min_prom_dig__) - (tal_uint8_dig__);
-    return ((uint8_t)1 << (tal_bit_width_u8(value - 1u) + ovf_offset)) >> ovf_offset;
+    return (uint8_t)1 << tal_bit_width_u8(value - 1u);
   }
 
   uint16_t tal_bit_ceil_u16(const uint16_t value) {
     if (value <= 1u) { return 1; }
-    const int32_t ovf_offset = (tal_min_prom_dig__) - (tal_uint16_dig__);
-    return ((uint16_t)1 << (tal_bit_width_u16(value - 1u) + ovf_offset)) >> ovf_offset;
+    return (uint16_t)1 << tal_bit_width_u16(value - 1u);
   }
 
   uint32_t tal_bit_ceil_u32(const uint32_t value) {
@@ -405,10 +404,11 @@
   }
 
   uint8_t tal_rotl_u8(const uint8_t value, const int32_t shift) {
+    tal_assert(shift >= 0, "Invalid argument.");
     const int32_t diff = shift % tal_uint8_dig__;
-    if (shift > 0) {
+    if (diff > 0) {
       return (value << diff) | (value >> (tal_uint8_dig__ - diff));
-    } else if (shift < 0) {
+    } else if (diff < 0) {
       return tal_rotr_u8(value, -shift);
     } else {
       return value;
@@ -416,10 +416,11 @@
   }
 
   uint16_t tal_rotl_u16(const uint16_t value, const int32_t shift) {
+    tal_assert(shift >= 0, "Invalid argument.");
     const int32_t diff = shift % tal_uint16_dig__;
-    if (shift > 0) {
+    if (diff > 0) {
       return (value << diff) | (value >> (tal_uint16_dig__ - diff));
-    } else if (shift < 0) {
+    } else if (diff < 0) {
       return tal_rotr_u16(value, -shift);
     } else {
       return value;
@@ -427,10 +428,11 @@
   }
 
   uint32_t tal_rotl_u32(const uint32_t value, const int32_t shift) {
+    tal_assert(shift >= 0, "Invalid argument.");
     const int32_t diff = shift % tal_uint32_dig__;
-    if (shift > 0) {
+    if (diff > 0) {
       return (value << diff) | (value >> (tal_uint32_dig__ - diff));
-    } else if (shift < 0) {
+    } else if (diff < 0) {
       return tal_rotr_u32(value, -shift);
     } else {
       return value;
@@ -438,10 +440,11 @@
   }
 
   uint64_t tal_rotl_u64(const uint64_t value, const int32_t shift) {
+    tal_assert(shift >= 0, "Invalid argument.");
     const int32_t diff = shift % tal_uint64_dig__;
-    if (shift > 0) {
+    if (diff > 0) {
       return (value << diff) | (value >> (tal_uint64_dig__ - diff));
-    } else if (shift < 0) {
+    } else if (diff < 0) {
       return tal_rotr_u64(value, -shift);
     } else {
       return value;
@@ -449,6 +452,7 @@
   }
 
   uint8_t tal_rotr_u8(const uint8_t value, const int32_t shift) {
+    tal_assert(shift >= 0, "Invalid argument.");
     const int32_t diff = shift % tal_uint8_dig__;
     if (diff > 0) {
       return (value >> diff) | (value << (tal_uint8_dig__ - diff));
@@ -460,6 +464,7 @@
   }
 
   uint16_t tal_rotr_u16(const uint16_t value, const int32_t shift) {
+    tal_assert(shift >= 0, "Invalid argument.");
     const int32_t diff = shift % tal_uint16_dig__;
     if (diff > 0) {
       return (value >> diff) | (value << (tal_uint16_dig__ - diff));
@@ -471,6 +476,7 @@
   }
 
   uint32_t tal_rotr_u32(const uint32_t value, const int32_t shift) {
+    tal_assert(shift >= 0, "Invalid argument.");
     #if defined(TAL_ARCH_ARMV7M)
       uint32_t result = 0;
       asm ("ror %0, %1, %2" : "=rm" (result) : "rm" (value), "rm" (shift));

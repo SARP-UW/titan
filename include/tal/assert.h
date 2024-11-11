@@ -28,10 +28,6 @@
   extern "C" {
 #endif
 
-  /**************************************************************************************************
-   * @section Assertion Utilities
-   **************************************************************************************************/
-
   /**
    * @def tal_assert(cond, msg)
    * @brief Asserts that a given condition is true.
@@ -50,33 +46,12 @@
     #define tal_assert(cond, msg) ((void)msg, (bool)(cond))
   #endif
 
-  /**
-   * @brief Requires that a given condition is true.
-   * @param cond (bool) The condition to require.
-   * @param msg (const char*) The message to emit if the condition is false.
-   * @returns (bool) The result of the given condition.
-   * @note - If the condition is false this function will abort execution even
-   *         if TAL_DEBUG is not defined.
-   */
-  #define tal_require(cond, msg) ((bool)(cond) ? \
-      true : tal_require_fail__(msg, __FILE__, __LINE__))
-
   /**************************************************************************************************
    * @internal Implementation
    **************************************************************************************************/
 
   // @todo add real implementation
   tal_fn_attr_noreturn bool tal_assert_fail__(const char* msg, 
-      const char* file, const int32_t line) {
-    #if defined(TAL_ARCH_ARMV7M)
-      asm volatile ("SVC #1");
-    #else
-      *(int32_t*)0 = 0;
-    #endif
-  }
-
-  // @todo add real implementation
-  tal_fn_attr_noreturn bool tal_require_fail__(const char* msg, 
       const char* file, const int32_t line) {
     #if defined(TAL_ARCH_ARMV7M)
       asm volatile ("SVC #1");
