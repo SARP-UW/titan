@@ -25,7 +25,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "tal/util/mask.h"
+#include "tal/mask.h"
 
 #if defined(__cplusplus)
   extern "C" {
@@ -131,9 +131,9 @@ void tal_set_mode(int pin, int mode)
   volatile int32_t* output_type_reg = port_registers[port] + MODER_OFFSET;
 
   if(mode == 1){ // todo verify write_mask does what I think
-    tal_write_mask32(1, output_type_reg, index * 2, 2);
+    tal_write_mask_u32(1, output_type_reg, index * 2, 2);
   }else if(mode == -1){
-    tal_write_mask32(0, output_type_reg, index * 2, 2);
+    tal_write_mask_u32(0, output_type_reg, index * 2, 2);
   }
 }
 
@@ -151,15 +151,15 @@ void tal_pull_pin(int pin, int pull)
   switch (pull)
   {
     case 1:{
-      tal_write_mask32(1, pull_register, index * 2, 2);
+      tal_write_mask_u32(1, pull_register, index * 2, 2);
       break;
     }
     case 0:{
-      tal_write_mask32(0, pull_register, index * 2, 2);
+      tal_write_mask_u32(0, pull_register, index * 2, 2);
       break;
     }
     case -1:{
-      tal_write_mask32(2, pull_register, index * 2, 2);
+      tal_write_mask_u32(2, pull_register, index * 2, 2);
       break;
     }
     
@@ -182,11 +182,11 @@ void tal_set_pin(int pin, int value)
 
   switch (value){
     case 0:{
-      tal_write_mask32(0, set_register, index, 1);
+      tal_write_mask_u32(0, set_register, index, 1);
       break;
     }
     case 1:{
-      tal_write_mask32(1, set_register, index, 1);
+      tal_write_mask_u32(1, set_register, index, 1);
       break;
     }
 
@@ -200,13 +200,13 @@ bool tal_read_pin(int pin)
 {
   int v = port_index_from_pin[pin];
   if(v == -1){ 
-    return; 
+    return;  // throw error
   }
   int port = v / 100;
   int index = v - 100 * port;
 
   int32_t* input_register = port_registers[port] + IDR_OFFSET;
-  uint32_t read_val = tal_read_mask32(input_register, index, 1);
+  uint32_t read_val = tal_read_mask_u32(input_register, index, 1);
   
   return read_val == 1;
 }
