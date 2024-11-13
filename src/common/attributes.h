@@ -26,14 +26,6 @@
 #endif
 
   /**************************************************************************************************
-   * @internal Implementation Utilities
-   **************************************************************************************************/
-
-  #define tal_str__(x) #x
-
-  /** @endinternal */
-
-  /**************************************************************************************************
    * @section Function Attributes
    **************************************************************************************************/
 
@@ -110,16 +102,6 @@
     #define tal_fn_attr_noreturn __attribute__((noreturn))
     #define tal_fn_attr_raw __attribute__((optnone))
     
-  #elif defined(__IAR_SYSTEMS_ICC__)
-    #define tal_fn_attr_weak(name) _Pragma(tal_str__(weak(##name##)))
-    #define tal_fn_attr_alias(name, ailias_name) _Pragma(tal_str__(weak(##name##=##ailias_name##)))
-    #define tal_fn_attr_inline _Pragma("inline=forced")
-    #define tal_fn_attr_noinline _Pragma("inline=never")
-    #define tal_fn_attr_warn(msg)
-    #define tal_fn_attr_section(name) _Pragma(tal_str__(location=##name##))
-    #define tal_fn_attr_noreturn __noreturn
-    #define tal_fn_attr_raw _Pragma("optimize=none")
-
   #endif
 
   /**************************************************************************************************
@@ -185,14 +167,6 @@
     #define tal_var_attr_section(name) __attribute__((section(name)))
     #define tal_var_attr_unused __attribute__((unused))
     
-  #elif defined(__IAR_SYSTEMS_ICC__)
-    #define tal_var_attr_weak(name) _Pragma(tal_str__(weak(##name##)))
-    #define tal_var_attr_alias(name, alias_name) _Pragma(tal_str__(weak(##name##=##ailias_name##)))
-    #define tal_var_attr_warn(msg)
-    #define tal_var_attr_packed _Pragma("data_alignment=1")
-    #define tal_var_attr_section(name) _Pragma(tal_str__(location=##name##))
-    #define tal_var_attr_unused __root
-
   #endif
 
   /**************************************************************************************************
@@ -236,12 +210,6 @@
     #define tal_type_attr_packed __attribute__((packed))
     #define tal_type_attr_aligned(n) __attribute__((aligned(n)))
     #define tal_type_attr_unused __attribute__((unused))
-
-  #elif defined(__IAR_SYSTEMS_ICC__)
-    #define tal_type_attr_warn(msg)
-    #define tal_type_attr_packed _Pragma("data_alignment=1")
-    #define tal_type_attr_aligned(n) _Pragma(tal_str__(data_alignment=##n##))
-    #define tal_type_attr_unused __root
 
   #endif
 

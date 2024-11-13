@@ -23,12 +23,62 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <limits.h>
-#include "include/tal/attributes.h"
-#include "include/tal/env_info.h"
+#include "src/common/attributes.h"
+#include "src/common/env_info.h"
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
+
+  /**
+   * @brief TODO
+   * @param a
+   * @param b
+   * @returns
+   */
+  #define tal_cmpeq(a, b) ( \
+      ((a) >= 0 && ~(a) >= 0) && !((b) >= 0 && ~(b) >= 0) ? \
+          (b) >= 0 && (uintmax_t)(a) == (uintmax_t)(b) : \
+      !((a) >= 0 && ~(a) >= 0) && ((b) >= 0 && ~(b) >= 0) ? \
+          (a) >= 0 && (uintmax_t)(a) == (uintmax_t)(b) : \
+      (a) == (b))
+
+  /**
+   * @brief TODO
+   * @param a
+   * @param b
+   * @returns
+   */
+  #define tal_cmpl(a, b) ( \
+      ((a) >= 0 && ~(a) >= 0) && !((b) >= 0 && ~(b) >= 0) ? \
+          (b) >= 0 && (uintmax_t)(a) < (uintmax_t)(b) : \
+      !((a) >= 0 && ~(a) >= 0) && ((b) >= 0 && ~(b) >= 0) ? \
+          (a) < 0 || (uintmax_t)(a) < (uintmax_t)(b) : \
+      (a) < (b))
+
+  /**
+   * @brief TODO
+   * @param a
+   * @param b
+   * @returns
+   */
+  #define tal_cmpg(a, b) tal_cmpl(b, a)
+
+  /**
+   * @brief TODO
+   * @param a
+   * @param b
+   * @returns
+   */
+  #define tal_cmple(a, b) !tal_cmpl(b, a)
+
+  /**
+   * @brief TODO
+   * @param a
+   * @param b
+   * @returns
+   */
+  #define tal_cmpge(a, b) !tal_cmpl(a, b)
 
   /**
    * @defgroup tal_abs
@@ -42,6 +92,46 @@
   tal_fn_attr_inline inline int32_t tal_abs_i32(const int32_t value);
   tal_fn_attr_inline inline int64_t tal_abs_i64(const int64_t value);
   /** @} */
+
+  tal_fn_attr_inline inline int8_t tal_min_i8(const int8_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int16_t tal_min_i16(const int16_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int32_t tal_min_i32(const int32_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int64_t tal_min_i64(const int64_t* values, const int32_t n, bool* err);
+
+  tal_fn_attr_inline inline uint8_t tal_min_u8(const uint8_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint16_t tal_min_u16(const uint16_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint32_t tal_min_u32(const uint32_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint64_t tal_min_u64(const uint64_t* values, const int32_t n, bool* err);
+
+  tal_fn_attr_inline inline int8_t tal_max_i8(const int8_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int16_t tal_max_i16(const int16_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int32_t tal_max_i32(const int32_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int64_t tal_max_i64(const int64_t* values, const int32_t n, bool* err);
+
+  tal_fn_attr_inline inline uint8_t tal_max_u8(const uint8_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint16_t tal_max_u16(const uint16_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint32_t tal_max_u32(const uint32_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint64_t tal_max_u64(const uint64_t* values, const int32_t n, bool* err);
+
+  tal_fn_attr_inline inline int8_t tal_accum_i8(const int8_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int16_t tal_accum_i16(const int16_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int32_t tal_accum_i32(const int32_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int64_t tal_accum_i64(const int64_t* values, const int32_t n, bool* err);
+
+  tal_fn_attr_inline inline uint8_t tal_accum_u8(const uint8_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint16_t tal_accum_u16(const uint16_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint32_t tal_accum_u32(const uint32_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint64_t tal_accum_u64(const uint64_t* values, const int32_t n, bool* err);
+
+  tal_fn_attr_inline inline int8_t tal_reduce_i8(const int8_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int16_t tal_reduce_i16(const int16_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int32_t tal_reduce_i32(const int32_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int64_t tal_reduce_i64(const int64_t* values, const int32_t n, bool* err);
+
+  tal_fn_attr_inline inline uint8_t tal_reduce_u8(const uint8_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint16_t tal_reduce_u16(const uint16_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint32_t tal_reduce_u32(const uint32_t* values, const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint64_t tal_reduce_u64(const uint64_t* values, const int32_t n, bool* err);
 
   /**
    * @defgroup tal_clamp
@@ -104,10 +194,12 @@
   tal_fn_attr_inline inline int8_t tal_satcast_i8u(const uint64_t value, bool* sat_flag);
   tal_fn_attr_inline inline int16_t tal_satcast_i16u(const uint64_t value, bool* sat_flag);
   tal_fn_attr_inline inline int32_t tal_satcast_i32u(const uint64_t value, bool* sat_flag);
+  tal_fn_attr_inline inline int64_t tal_satcast_i64u(const uint64_t value, bool* sat_flag);
 
   tal_fn_attr_inline inline uint8_t tal_satcast_u8(const int64_t value, bool* sat_flag);
   tal_fn_attr_inline inline uint16_t tal_satcast_u16(const int64_t value, bool* sat_flag);
   tal_fn_attr_inline inline uint32_t tal_satcast_u32(const int64_t value, bool* sat_flag);
+  tal_fn_attr_inline inline uint64_t tal_satcast_u64(const int64_t value, bool* sat_flag);
 
   tal_fn_attr_inline inline uint8_t tal_satcast_u8u(const uint64_t value, bool* sat_flag);
   tal_fn_attr_inline inline uint16_t tal_satcast_u16u(const uint64_t value, bool* sat_flag);
@@ -256,15 +348,15 @@
    * @note - 'sat_flag' is an optional - it may be NULL.
    * @{
    */
-  tal_fn_attr_inline inline int8_t tal_sarshift_i8(const int8_t value, const int32_t shift, bool* sat_flag);
-  tal_fn_attr_inline inline int16_t tal_sarshift_i16(const int16_t value, const int32_t shift, bool* sat_flag);
-  tal_fn_attr_inline inline int32_t tal_sarshift_i32(const int32_t value, const int32_t shift, bool* sat_flag);
-  tal_fn_attr_inline inline int64_t tal_sarshift_i64(const int64_t value, const int32_t shift, bool* sat_flag);
+  tal_fn_attr_inline inline int8_t tal_srshift_i8(const int8_t value, const int32_t shift, bool* sat_flag);
+  tal_fn_attr_inline inline int16_t tal_srshift_i16(const int16_t value, const int32_t shift, bool* sat_flag);
+  tal_fn_attr_inline inline int32_t tal_srshift_i32(const int32_t value, const int32_t shift, bool* sat_flag);
+  tal_fn_attr_inline inline int64_t tal_srshift_i64(const int64_t value, const int32_t shift, bool* sat_flag);
 
-  tal_fn_attr_inline inline uint8_t tal_sarshift_u8(const uint8_t value, const int32_t shift, bool* sat_flag);
-  tal_fn_attr_inline inline uint16_t tal_sarshift_u16(const uint16_t value, const int32_t shift, bool* sat_flag);
-  tal_fn_attr_inline inline uint32_t tal_sarshift_u32(const uint32_t value, const int32_t shift, bool* sat_flag);
-  tal_fn_attr_inline inline uint64_t tal_sarshift_u64(const uint64_t value, const int32_t shift, bool* sat_flag);
+  tal_fn_attr_inline inline uint8_t tal_srshift_u8(const uint8_t value, const int32_t shift, bool* sat_flag);
+  tal_fn_attr_inline inline uint16_t tal_srshift_u16(const uint16_t value, const int32_t shift, bool* sat_flag);
+  tal_fn_attr_inline inline uint32_t tal_srshift_u32(const uint32_t value, const int32_t shift, bool* sat_flag);
+  tal_fn_attr_inline inline uint64_t tal_srshift_u64(const uint64_t value, const int32_t shift, bool* sat_flag);
   /** @} */
 
   /**************************************************************************************************
@@ -285,70 +377,6 @@
 
   int64_t tal_abs_i64(const int64_t value) { 
     return value < 0 ? -value : value; 
-  }
-
-  int8_t tal_min_i8(const int8_t value_a, const int8_t value_b) {
-    return value_a < value_b ? value_a : value_b;
-  }
-
-  int16_t tal_min_i16(const int16_t value_a, const int16_t value_b) {
-    return value_a < value_b ? value_a : value_b;
-  }
-
-  int32_t tal_min_i32(const int32_t value_a, const int32_t value_b) {
-    return value_a < value_b ? value_a : value_b;
-  }
-
-  int64_t tal_min_i64(const int64_t value_a, const int64_t value_b) {
-    return value_a < value_b ? value_a : value_b;
-  }
-
-  uint8_t tal_min_u8(const uint8_t value_a, const uint8_t value_b) {
-    return value_a < value_b ? value_a : value_b;
-  }
-
-  uint16_t tal_min_u16(const uint16_t value_a, const uint16_t value_b) {
-    return value_a < value_b ? value_a : value_b;
-  }
-
-  uint32_t tal_min_u32(const uint32_t value_a, const uint32_t value_b) {
-    return value_a < value_b ? value_a : value_b;
-  }
-
-  uint64_t tal_min_u64(const uint64_t value_a, const uint64_t value_b) {
-    return value_a < value_b ? value_a : value_b;
-  }
-
-  int8_t tal_max_i8(const int8_t value_a, const int8_t value_b) {
-    return value_a > value_b ? value_a : value_b;
-  }
-
-  int16_t tal_max_i16(const int16_t value_a, const int16_t value_b) {
-    return value_a > value_b ? value_a : value_b;
-  }
-
-  int32_t tal_max_i32(const int32_t value_a, const int32_t value_b) {
-    return value_a > value_b ? value_a : value_b;
-  }
-
-  int64_t tal_max_i64(const int64_t value_a, const int64_t value_b) {
-    return value_a > value_b ? value_a : value_b;
-  }
-
-  uint8_t tal_max_u8(const uint8_t value_a, const uint8_t value_b) {
-    return value_a > value_b ? value_a : value_b;
-  }
-
-  uint16_t tal_max_u16(const uint16_t value_a, const uint16_t value_b) {
-    return value_a > value_b ? value_a : value_b;
-  }
-  
-  uint32_t tal_max_u32(const uint32_t value_a, const uint32_t value_b) {
-    return value_a > value_b ? value_a : value_b;
-  }
-
-  uint64_t tal_max_u64(const uint64_t value_a, const uint64_t value_b) {
-    return value_a > value_b ? value_a : value_b;
   }
 
   int8_t tal_clamp_i8(const int8_t value, 
@@ -531,6 +559,14 @@
     return (int32_t)value;
   }
 
+  int64_t tal_satcast_i64u(const uint64_t value, bool* sat_flag) {
+    if (value > INT64_MAX) {
+      if (sat_flag) { *sat_flag = true; }
+      return INT64_MAX;
+    }
+    return (int64_t)value;
+  }
+
   uint8_t tal_satcast_u8(const int64_t value, bool* sat_flag) {
     if (value < 0) {
       if (sat_flag) { *sat_flag = true; }
@@ -565,6 +601,14 @@
       return UINT32_MAX;
     }
     return (uint32_t)value;
+  }
+
+  uint64_t tal_satcast_u64(const int64_t value, bool* sat_flag) {
+    if (value < 0) {
+      if (sat_flag) { *sat_flag = true; }
+      return 0;
+    }
+    return (uint64_t)value;
   }
 
   uint8_t tal_satcast_u8u(const uint64_t value, bool* sat_flag) {
@@ -1181,7 +1225,7 @@
   }
 
 
-  int8_t tal_sarshift_i8(const int8_t value, 
+  int8_t tal_srshift_i8(const int8_t value, 
       const int32_t shift, bool* sat_flag) {
     for (int i = 0; i < shift; ++i) {
       const int8_t mask = (int8_t)1 << i;
@@ -1193,7 +1237,7 @@
     return value >> shift;
   }
 
-  int16_t tal_sarshift_i16(const int16_t value, 
+  int16_t tal_srshift_i16(const int16_t value, 
       const int32_t shift, bool* sat_flag) {
     for (int i = 0; i < shift; ++i) {
       const int16_t mask = (int16_t)1 << i;
@@ -1205,7 +1249,7 @@
     return value >> shift;
   }
 
-  int32_t tal_sarshift_i32(const int32_t value, 
+  int32_t tal_srshift_i32(const int32_t value, 
       const int32_t shift, bool* sat_flag) {
     for (int i = 0; i < shift; ++i) {
       const int32_t mask = (int32_t)1 << i;
@@ -1217,7 +1261,7 @@
     return value >> shift;
   }
 
-  int64_t tal_sarshift_i64(const int64_t value, 
+  int64_t tal_srshift_i64(const int64_t value, 
       const int32_t shift, bool* sat_flag) {
     for (int i = 0; i < shift; ++i) {
       const int64_t mask = (int64_t)1 << i;
@@ -1229,7 +1273,7 @@
     return value >> shift;
   }
 
-  uint8_t tal_sarshift_u8(const uint8_t value, 
+  uint8_t tal_srshift_u8(const uint8_t value, 
       const int32_t shift, bool* sat_flag) {
     for (int i = 0; i < shift; ++i) {
       const uint8_t mask = (uint8_t)1 << i;
@@ -1241,7 +1285,7 @@
     return value >> shift;
   }
 
-  uint16_t tal_sarshift_u16(const uint16_t value, 
+  uint16_t tal_srshift_u16(const uint16_t value, 
       const int32_t shift, bool* sat_flag) {
     for (int i = 0; i < shift; ++i) {
       const uint16_t mask = (uint16_t)1 << i;
@@ -1253,7 +1297,7 @@
     return value >> shift;
   }
 
-  uint32_t tal_sarshift_u32(const uint32_t value, 
+  uint32_t tal_srshift_u32(const uint32_t value, 
       const int32_t shift, bool* sat_flag) {
     for (int i = 0; i < shift; ++i) {
       const uint32_t mask = (uint32_t)1 << i;
@@ -1265,7 +1309,7 @@
     return value >> shift;
   }
 
-  uint64_t tal_sarshift_u64(const uint64_t value, 
+  uint64_t tal_srshift_u64(const uint64_t value, 
       const int32_t shift, bool* sat_flag) {
     for (int i = 0; i < shift; ++i) {
       const uint64_t mask = (uint64_t)1 << i;

@@ -23,7 +23,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "include/tal/attributes.h"
+#include "src/common/attributes.h"
+#include "include/tal/numeric.h"
 
 #if defined(__cplusplus)
   extern "C" {
@@ -34,54 +35,51 @@
    * @param dst (void*) The destination location
    * @param src (const void*) The source location.
    * @param size (int32_t) The number of bytes to copy.
-   * @returns (void*) The destination location.
-   * @warning - The source and destination locations must NOT overlap.
+   * @param err (bool*) The error flag. Accessed and set if 'size' is less 
+   *            than 0, or if 'dst' or 'src' are NULL. If set, this function 
+   *            is guaranteed to have no other side effects.
+   * @returns (void*) The destination location ('dst').
+   * @note - The source and destination locations may overlap.
    */
-  tal_fn_attr_inline inline void* tal_memcpy(void* restrict dst, 
-      const void* restrict src, const int32_t size);
+  tal_fn_attr_inline inline void* tal_mem_copy(void* dst, const void* src, 
+      const int32_t size, bool* err);
 
   /**
    * @brief Copies a block of memory from one location to annother, n times.
-   * @param dst (void*) The destination location
+   * @param dst (void*) The destination location.
    * @param src (const void*) The source location.
    * @param size (int32_t) The number of bytes to copy.
-   * @param n (int32_t) The number of times to copy the source to the destination.
-   * @returns (void*) The destination location.
-   * @note - Each block of memory from 'source' is copied to a contiguous location
-   *         in 'destination'.
-   * @warning - The source and destination locations must NOT overlap.
+   * @param n (int32_t) The number of times to copy 'size' bytes from the source
+   *          location to a contiguous location in the destination.
+   * @param err (bool*) The error flag. Accessed and set if 'size' or 'n' is
+   *            less than 0, or if 'dst' or 'src' are NULL. If set, this function
+   *            is guaranteed to have no other side effects.
+   * @returns (void*) The destination location ('dst').
+   * @note - The source and destination locations may overlap.
    */
-  tal_fn_attr_inline inline void* tal_memncpy(void* restrict dst, 
-      const void* restrict src, const int32_t size, const int32_t n);
+  tal_fn_attr_inline inline void* tal_mem_copyn(void* dst, const void* src, 
+      const int32_t size, const int32_t n, bool* err);
 
   /**
-   * @brief Moves a block of memory from one location to annother.
-   * @param dst (void*) The destination location
-   * @param src (const void*) The source location.
-   * @param size (int32_t) The number of bytes to move.
-   * @returns (void*) The destination location.
-   * @note - The source and destination locations MAY overlap.
-   */
-  tal_fn_attr_inline inline void* tal_memmove(void* dst, const void* src, 
-      const int32_t size);
-
-  /**
-   * @defgroup tal_memset_ux
-   * @brief Sets every block of memory at a location to a specific value.
+   * @defgroup tal_mem_copyn_xx
+   * @brief Sets every value in memory at a location to a specific value.
    * @param mem (void*) The location in memory to set.
-   * @param value (unsigned integer denoted by suffix) The value to set.
-   * @param cnt (int32_t) The number of values to set (note size varies by type).
-   * @returns (void*) The set location in memory.
+   * @param value (integer type denoted by suffix) The value to set.
+   * @param cnt (int32_t) The number of values to set (note: size varies by type).
+   * @param err (bool*) The error flag. Accessed and set if 'cnt' is less than 0,
+   *            or if 'mem' is NULL. If set, this function is guaranteed to have
+   *            no other side effects.
+   * @returns (void*) The set location in memory ('mem').
    * @{
    */
-  tal_fn_attr_inline inline void* tal_memset_u8(void* mem, 
-      const uint8_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memset_u16(void* mem, 
-      const uint16_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memset_u32(void* mem, 
-      const uint32_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memset_u64(void* mem, 
-      const uint64_t value, const int32_t cnt);
+  tal_fn_attr_inline inline void* tal_mem_copyn_u8(void* mem, const uint8_t value, 
+      const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_copyn_u16(void* mem, const uint16_t value, 
+      const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_copyn_u32(void* mem, const uint32_t value, 
+      const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_copyn_u64(void* mem, const uint64_t value, 
+      const int32_t cnt, bool* err);
   /** @} */
 
   /**
@@ -89,90 +87,68 @@
    * @param mem_a (void*) The first block of memory.
    * @param mem_b (void*) The second block of memory.
    * @param size (int32_t) The number of bytes to swap.
-   * @warning - The source and destination locations must NOT overlap.
+   * @param err (bool*) The error flag. Accessed and set if 'size' is less than 0,
+   *            or if 'mem_a' or 'mem_b' are NULL. If set, this function is 
+   *            guaranteed to have no other side effects.
+   * @note - 'mem_a' and 'mem_b' must NOT overlap.
    */
-  tal_fn_attr_inline inline void tal_memswap(void* restrict mem_a, 
-      void* restrict mem_b, const int32_t size);
-
-  /**
-   * @brief Exchanges the contents of a block of memory with annother.
-   * @param dst (void*) The destination location.
-   * @param xchg (void*) The location to exchange the memory of.
-   * @param src (const void*) The source location.
-   * @param size (int32_t) The number of bytes to exchange.
-   * @returns (void*) The exchanged location.
-   * @note - This function copies the contents of 'src' to 'xchg', and
-   *         copies the old contents of 'xchg' to 'dst'.
-   * @warning - The source, destination and exchange locations must not overlap.
-   */
-  tal_fn_attr_inline inline void* tal_memxchg(void* restrict dst, 
-      void* restrict xchg, const void* restrict src, const int32_t size);
-
-  /**
-   * @defgroup tal_memxchg_ux
-   * @brief Exchanges the contents of a block of memory with a specific value.
-   * @param dst (void*) The destination location.
-   * @param xchg (void*) The location to exchange the memory of.
-   * @param value (unsigned integer denoted by suffix) The value to exchange.
-   * @param cnt (int32_t) The number of values to exchange (note size varies by type).
-   * @returns (void*) The exchanged location.
-   * @note - This function copies the contents of 'value' to 'xchg', and
-   *         copies the old contents of 'xchg' to 'dst'.
-   * @{
-   */
-  tal_fn_attr_inline inline void* tal_memxchg_u8(void* dst, void* xchg, 
-      const uint8_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memxchg_u16(void* dst, void* xchg, 
-      const uint16_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memxchg_u32(void* dst, void* xchg, 
-      const uint32_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memxchg_u64(void* dst, void* xchg, 
-      const uint64_t value, const int32_t cnt);
-  /** @} */
+  tal_fn_attr_inline inline void tal_mem_swap(void* restrict mem_a, 
+      void* restrict mem_b, const int32_t size, bool* err);
 
   /**
    * @brief Compares two blocks of memory for equality.
    * @param mem_a (const void*) The first block of memory.
    * @param mem_b (const void*) The second block of memory.
    * @param size (int32_t) The number of bytes to compare.
-   * @returns (bool) True if every bit in 'mem_a' is equal to the
-   *          corresponding bit in 'mem_b', or false otherwise.
+   * @param err (bool*) The error flag. Accessed and set if 'size' is less than 0,
+   *            or if 'mem_a' or 'mem_b' are NULL. If set, this function returns
+   *            false and is guaranteed to have no other side effects.
+   * @returns (bool) True if every bit in 'mem_a' is equal to the corresponding 
+   *          bit in 'mem_b', or false otherwise.
    * @note - 'mem_a' and 'mem_b' may overlap.
    */
-  tal_fn_attr_inline inline bool tal_memcmp(const void* mem_a, 
-      const void* mem_b, const int32_t size);
+  tal_fn_attr_inline inline bool tal_mem_cmp(const void* mem_a, 
+      const void* mem_b, const int32_t size, bool* err);
 
   /**
-   * @brief Compares two blocks of memory for equality, n times.
+   * @brief Compares a block of memory to annother for equality, n times.
    * @param mem_a (const void*) The first block of memory.
-   * @param mem_b (const void*) The second block of memory.
+   * @param mem_b (const void*) The second, block of memory (repeated).
    * @param size (int32_t) The number of bytes to compare.
-   * @param n (int32_t) The number of times to compare 'mem_b' to 'mem_a'.
-   * @returns (bool) True if every 'size' bytes in 'mem_a' is equal to
-   *          'mem_b', or false otherwise.
+   * @param n (int32_t) The number of times to compare 'mem_b' to contiguous
+   *          blocks of memory in 'mem_a'.
+   * @param err (bool*) The error flag. Accessed and set if 'size' or 'n' is less
+   *            than 0, or if 'mem_a' or 'mem_b' are NULL. If set, this function
+   *            returns false and is guaranteed to have no other side effects.
+   * @returns (bool) True if every 'size' bytes in 'mem_a' is equal to 'mem_b'
+   *          'n' times, or false otherwise.
    * @note - 'mem_a' and 'mem_b' may overlap.
    */
-  tal_fn_attr_inline inline bool tal_memncmp(const void* restrict mem_a, 
-      const void* restrict mem_b, const int32_t size, const int32_t n);
+  tal_fn_attr_inline inline bool tal_mem_cmpn(const void* mem_a, 
+      const void* mem_b, const int32_t size, const int32_t n, bool* err);
 
   /**
-   * @defgroup tal_memcmp_ux
-   * @brief Compares every (suffix) bytes in a block of memory to a specific value.
+   * @defgroup tal_mem_cmpn_x
+   * @brief Compares every <size of value> bytes in a block of memory to a 
+   *        specific value.
    * @param mem (const void*) The block of memory to compare.
-   * @param value (unsigned integer denoted by suffix) The value to compare.
+   * @param value (integer type denoted by suffix) The value to compare (repeated).
    * @param cnt (int32_t) The number of values to compare (note size varies by type).
-   * @returns (bool) True if every (suffix) bytes in 'mem' is equal to 'value',
+   * @param err (bool*) The error flag. Accessed and set if 'cnt' is less than 0,
+   *            or if 'mem' is NULL. If set, this function returns false and is
+   *            guaranteed to have no other side effects.
+   * @returns (bool) True if every <size of value> bytes in 'mem' is equal to 'value',
    *          or false otherwise.
    * @{
    */
-  tal_fn_attr_inline inline bool tal_memcmp_u8(const void* mem, 
-      const uint8_t value, const int32_t cnt);
-  tal_fn_attr_inline inline bool tal_memcmp_u16(const void* mem, 
-      const uint16_t value, const int32_t cnt);
-  tal_fn_attr_inline inline bool tal_memcmp_u32(const void* mem, 
-      const uint32_t value, const int32_t cnt);
-  tal_fn_attr_inline inline bool tal_memcmp_u64(const void* mem, 
-      const uint64_t value, const int32_t cnt);
+  tal_fn_attr_inline inline bool tal_mem_cmpn_u8(const void* mem, 
+      const uint8_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline bool tal_mem_cmpn_u16(const void* mem, 
+      const uint16_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline bool tal_mem_cmpn_u32(const void* mem, 
+      const uint32_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline bool tal_mem_cmpn_u64(const void* mem, 
+      const uint64_t value, const int32_t cnt, bool* err);
   /** @} */
 
   /**
@@ -187,8 +163,8 @@
    *          NULL if no such location exists, or invalid arguments are given.
    * @note - 'mem' and 'fmem' may overlap.
    */
-  tal_fn_attr_inline inline void* tal_memmem(const void* mem, 
-      const void* fmem, const int32_t size, const int32_t fsize);
+  tal_fn_attr_inline inline void* tal_mem_get(const void* mem, 
+      const void* fmem, const int32_t size, const int32_t fsize, bool* err);
 
   /**
    * @brief Gets a pointer to the last location in a block of memory that 
@@ -202,8 +178,8 @@
    *          NULL if no such location exists, or invalid arguments are given.
    * @note - 'mem' and 'fmem' may overlap.
    */
-  tal_fn_attr_inline inline void* tal_memrmem(const void* mem, 
-      const void* fmem, const int32_t size, const int32_t fsize);
+  tal_fn_attr_inline inline void* tal_mem_getr(const void* mem, 
+      const void* fmem, const int32_t size, const int32_t fsize, bool* err);
 
   /**
    * @brief Gets a pointer to the nth location in a block of memory that
@@ -218,8 +194,8 @@
    *          NULL if no such location exists, or invalid arguments are given.
    * @note - 'mem' and 'fmem' may overlap.
    */
-  tal_fn_attr_inline inline void* tal_memnmem(const void* mem, const void* fmem, 
-      const int32_t size, const int32_t fsize, const int32_t n);
+  tal_fn_attr_inline inline void* tal_mem_getn(const void* mem, const void* fmem, 
+      const int32_t size, const int32_t fsize, const int32_t n, bool* err);
 
   /**
    * @defgroup tal_memval
@@ -234,14 +210,14 @@
    *          invalid arguments are given.
    * @{
    */
-  tal_fn_attr_inline inline void* tal_memval8(const void* mem, 
-      const uint8_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memval16(const void* mem, 
-      const uint16_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memval32(const void* mem, 
-      const uint32_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memval64(const void* mem, 
-      const uint64_t value, const int32_t cnt);
+  tal_fn_attr_inline inline void* tal_mem_get_u8(const void* mem, 
+      const uint8_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_get_u16(const void* mem, 
+      const uint16_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_get_u32(const void* mem, 
+      const uint32_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_get_u64(const void* mem, 
+      const uint64_t value, const int32_t cnt, bool* err);
   /** @} */
 
   /**
@@ -257,14 +233,14 @@
    *          invalid arguments are given.
    * @{
    */
-  tal_fn_attr_inline inline void* tal_memrval8(const void* mem, 
-      const uint8_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memrval16(const void* mem, 
-      const uint16_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memrval32(const void* mem, 
-      const uint32_t value, const int32_t cnt);
-  tal_fn_attr_inline inline void* tal_memrval64(const void* mem, 
-      const uint64_t value, const int32_t cnt);
+  tal_fn_attr_inline inline void* tal_mem_ptrr_u8(const void* mem, 
+      const uint8_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_getr_u16(const void* mem, 
+      const uint16_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_getr_u32(const void* mem, 
+      const uint32_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_getr_u64(const void* mem, 
+      const uint64_t value, const int32_t cnt, bool* err);
   /** @} */
 
   /**
@@ -281,14 +257,14 @@
    *          invalid arguments are given.
    * @{
    */
-  tal_fn_attr_inline inline void* tal_memnval8(const void* mem, 
-      const uint8_t value, const int32_t cnt, const int32_t n);
-  tal_fn_attr_inline inline void* tal_memnval16(const void* mem, 
-      const uint16_t value, const int32_t cnt, const int32_t n);
-  tal_fn_attr_inline inline void* tal_memnval32(const void* mem, 
-      const uint32_t value, const int32_t cnt, const int32_t n);
-  tal_fn_attr_inline inline void* tal_memnval64(const void* mem, 
-      const uint64_t value, const int32_t cnt, const int32_t n);
+  tal_fn_attr_inline inline void* tal_mem_getn_u8(const void* mem, 
+      const uint8_t value, const int32_t cnt, const int32_t n, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_getn_u16(const void* mem, 
+      const uint16_t value, const int32_t cnt, const int32_t n, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_getn_u32(const void* mem, 
+      const uint32_t value, const int32_t cnt, const int32_t n, bool* err);
+  tal_fn_attr_inline inline void* tal_mem_getn_u64(const void* mem, 
+      const uint64_t value, const int32_t cnt, const int32_t n, bool* err);
   /** @} */
 
   /**
@@ -303,8 +279,8 @@
    *         -1 if no such location exists, or invalid arguments are given.
    * @note - 'mem' and 'fmem' may overlap.
    */
-  tal_fn_attr_inline inline int32_t tal_memmem_i(const void* mem, 
-      const void* fmem, const int32_t size, const int32_t fsize);
+  tal_fn_attr_inline inline int32_t tal_mem_index(const void* mem, 
+      const void* fmem, const int32_t size, const int32_t fsize, bool* err);
 
   /**
    * @brief Gets the byte offset of the last location in a block of memory
@@ -318,8 +294,8 @@
    *          -1 if no such location exists, or invalid arguments are given.
    * @note - 'mem' and 'fmem' may overlap.
    */
-  tal_fn_attr_inline inline int32_t tal_memrmem_i(const void* mem, 
-      const void* fmem, const int32_t size, const int32_t fsize);
+  tal_fn_attr_inline inline int32_t tal_mem_indexr(const void* mem, 
+      const void* fmem, const int32_t size, const int32_t fsize, bool* err);
 
   /**
    * @brief Gets the byte offset of the nth location in a block of memory
@@ -334,8 +310,8 @@
    *          -1 if no such location exists, or invalid arguments are given.
    * @note - 'mem' and 'fmem' may overlap.
    */
-  tal_fn_attr_inline inline int32_t tal_memnmem_i(const void* mem, 
-      const void* fmem, const int32_t size, const int32_t fsize, const int32_t n);
+  tal_fn_attr_inline inline int32_t tal_mem_indexn(const void* mem, const void* fmem,
+      const int32_t size, const int32_t fsize, const int32_t n, bool* err);
 
   /**
    * @defgroup tal_memval_i
@@ -350,14 +326,14 @@
    *          invalid arguments are given.
    * @{
    */
-  tal_fn_attr_inline inline int32_t tal_memval8_i(void* mem, 
-      const uint8_t value, const int32_t cnt);
-  tal_fn_attr_inline inline int32_t tal_memval16_i(void* mem, 
-      const uint16_t value, const int32_t cnt);
-  tal_fn_attr_inline inline int32_t tal_memval32_i(void* mem, 
-      const uint32_t value, const int32_t cnt);
-  tal_fn_attr_inline inline int32_t tal_memval64_i(void* mem, 
-      const uint64_t value, const int32_t cnt);
+  tal_fn_attr_inline inline int32_t tal_mem_index_u8(const void* mem, 
+      const uint8_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline int32_t tal_mem_index_u16(const void* mem, 
+      const uint16_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline int32_t tal_mem_index_u32(const void* mem, 
+      const uint32_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline int32_t tal_mem_index_u64(const void* mem, 
+      const uint64_t value, const int32_t cnt, bool* err);
   /** @} */
 
   /**
@@ -373,14 +349,14 @@
    *          invalid arguments are given.
    * @{
    */
-  tal_fn_attr_inline inline int32_t tal_memrval8_i(void* mem, 
-      const uint8_t value, const int32_t cnt);
-  tal_fn_attr_inline inline int32_t tal_memrval16_i(void* mem, 
-      const uint16_t value, const int32_t cnt);
-  tal_fn_attr_inline inline int32_t tal_memrval32_i(void* mem, 
-      const uint32_t value, const int32_t cnt);
-  tal_fn_attr_inline inline int32_t tal_memrval64_i(void* mem, 
-      const uint64_t value, const int32_t cnt);
+  tal_fn_attr_inline inline int32_t tal_mem_indexr_u8(const void* mem, 
+      const uint8_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline int32_t tal_mem_indexr_u16(const void* mem, 
+      const uint16_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline int32_t tal_mem_indexr_u32(const void* mem, 
+      const uint32_t value, const int32_t cnt, bool* err);
+  tal_fn_attr_inline inline int32_t tal_mem_indexr_u64(const void* mem, 
+      const uint64_t value, const int32_t cnt, bool* err);
   /** @} */
 
   /**
@@ -397,47 +373,39 @@
    *          invalid arguments are given.
    * @{
    */
-  tal_fn_attr_inline inline int32_t tal_memnval8_i(void* mem, 
-      const uint8_t value, const int32_t cnt, const int32_t n);
-  tal_fn_attr_inline inline int32_t tal_memnval16_i(void* mem, 
-      const uint16_t value, const int32_t cnt, const int32_t n);
-  tal_fn_attr_inline inline int32_t tal_memnval32_i(void* mem, 
-      const uint32_t value, const int32_t cnt, const int32_t n);
-  tal_fn_attr_inline inline int32_t tal_memnval64_i(void* mem, 
-      const uint64_t value, const int32_t cnt, const int32_t n);
+  tal_fn_attr_inline inline int32_t tal_mem_indexn_u8(const void* mem, 
+      const uint8_t value, const int32_t cnt, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int32_t tal_mem_indexn_u16(const void* mem, 
+      const uint16_t value, const int32_t cnt, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int32_t tal_mem_indexn_u32(const void* mem, 
+      const uint32_t value, const int32_t cnt, const int32_t n, bool* err);
+  tal_fn_attr_inline inline int32_t tal_mem_indexn_u64(const void* mem, 
+      const uint64_t value, const int32_t cnt, const int32_t n, bool* err);
   /** @} */
 
   /**************************************************************************************************
    * @internal Implementation
    **************************************************************************************************/
 
-  void* tal_memcpy(void* restrict dst, const void* restrict src, 
+  static bool mem_overlap(const void* mem_a, const void* mem_b,
       const int32_t size) {
-    if (dst && src && size > 0) {
-      uint8_t *d = dst;
-      const uint8_t *s = src;
-      for (int32_t i = 0; i < size; ++i) { d[i] = s[i]; }
+    const uint64_t a_addr = (uint64_t)mem_a;
+    const uint64_t b_addr = (uint64_t)mem_b;
+    bool flag = false;
+    if (a_addr < b_addr) {
+      return tal_sadd_u64(a_addr, (uint64_t)size, &flag) > b_addr;
+    } else {
+      return tal_sadd_u64(b_addr, (uint64_t)size, &flag) > a_addr;
     }
-    return dst;
   }
 
-  void* tal_memncpy(void* restrict dst, const void* restrict src,
-      const int32_t size, const int32_t n) {
-    if (dst && src && size > 0 && n > 0) {
-      uint8_t *d = dst;
-      const uint8_t *s = src;
-      for (int32_t i = 0; i < n; ++i) {
-        for (int32_t j = 0; j < size; ++j) { d[j * i] = s[j]; }
-      }
-    }
-    return dst;
-  }
-
-  void* tal_memmove(void* dst, const void* src, const int32_t size) {
-    if (dst && src && size > 0) {
-      uint8_t *d = dst;
-      const uint8_t *s = src;
-      if (d <= s) {
+  void* tal_mem_copy(void* dst, const void* src, const int32_t size, bool* err) {
+    if (!dst || !src || size < 0) {
+      *err = true;
+    } else {
+      uint8_t* d = dst;
+      const uint8_t* s = src;
+      if ((uintptr_t)d <= (uintptr_t)s) {
         for (int32_t i = 0; i < size; ++i) { d[i] = s[i]; }
       } else {
         for (int32_t i = size - 1; i >= 0; --i) { d[i] = s[i]; }
@@ -446,43 +414,77 @@
     return dst;
   }
 
-  void* tal_memset_u8(void* mem, const uint8_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      uint8_t *m = mem;
+  void* tal_mem_copyn(void* dst, const void* src, const int32_t size, 
+      const int32_t n, bool* err) {
+    if (!dst || !src || n < 0 || size < 0) {
+      *err = true;
+    } else {
+      uint8_t* d = dst;
+      const uint8_t* s = src;
+      if ((uintptr_t)d <= (uintptr_t)s) {
+        for (int32_t i = 0; i < n; ++i) {
+          for (int32_t j = 0; j < size; ++j) { d[(i * size) + j] = s[j]; }
+        }
+      } else {
+        for (int32_t i = n - 1; i >= 0; --i) {
+          for (int32_t j = size - 1; j >= 0; --j) { d[(i * size) + j] = s[i]; }
+        }
+      }
+    }
+    return dst;
+  }
+
+  void* tal_mem_copyn_u8(void* mem, const uint8_t value, const int32_t cnt, 
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      uint8_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) { m[i] = value; }
     }
     return mem;
   }
 
-  void* tal_memset_u16(void* mem, const uint16_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      uint16_t *m = mem;
+  void* tal_mem_copyn_u16(void* mem, const uint16_t value, const int32_t cnt, 
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      uint16_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) { m[i] = value; }
     }
     return mem;
   }
 
-  void* tal_memset_u32(void* mem, const uint32_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      uint32_t *m = mem;
+  void* tal_mem_copyn_u32(void* mem, const uint32_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      uint32_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) { m[i] = value; }
     }
     return mem;
   }
 
-  void* tal_memset_u64(void* mem, const uint64_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      uint64_t *m = mem;
+  void* tal_mem_copyn_u64(void* mem, const uint64_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      uint64_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) { m[i] = value; }
     }
     return mem;
   }
 
-  void tal_memswap(void* restrict mem_a, void* restrict mem_b, 
-      const int32_t size) {
-    if (mem_a && mem_b && size > 0) {
-      uint8_t *a = mem_a;
-      uint8_t *b = mem_b;
+  void tal_mem_swap(void* restrict mem_a, void* restrict mem_b, 
+      const int32_t size, bool* err) {
+    if (!mem_a || !mem_b || size < 0 || mem_overlap(mem_a, mem_b, size)) {
+      *err = true;
+    } else {
+      uint8_t* a = mem_a;
+      uint8_t* b = mem_b;
       for(int32_t i = 0; i < size; ++i){
         uint8_t tmp = a[i];
         a[i] = b[i];
@@ -491,92 +493,28 @@
     }
   }
 
-  void* tal_memxchg(void* restrict dst, void* restrict xchg, 
-      const void* restrict src, const int32_t size) {
-    if (dst && xchg && src && size > 0) {
-      uint8_t *d = dst;
-      uint8_t *x = xchg;
-      const uint8_t *s = src;
-      for (int32_t i = 0; i < size; ++i) {
-        uint8_t tmp = x[i];
-        x[i] = s[i];
-        d[i] = tmp;
-      }
-    }
-    return xchg;
-  }
-
-  void* tal_memxchg_u8(void* dst, void* xchg, const uint8_t value, 
-      const int32_t cnt) {
-    if (dst && xchg && cnt > 0) {
-      uint8_t *d = dst;
-      uint8_t *x = xchg;
-      for (int32_t i = 0; i < cnt; ++i) {
-        uint8_t tmp = x[i];
-        x[i] = value;
-        d[i] = tmp;
-      }
-    }
-    return xchg;
-  }
-
-  void* tal_memxchg_u16(void* dst, void* xchg, const uint16_t value, 
-      const int32_t cnt) {
-    if (dst && xchg && cnt > 0) {
-      uint16_t *d = dst;
-      uint16_t *x = xchg;
-      for (int32_t i = 0; i < cnt; ++i) {
-        uint16_t tmp = x[i];
-        x[i] = value;
-        d[i] = tmp;
-      }
-    }
-    return xchg;
-  }
-
-  void* tal_memxchg_u32(void* dst, void* xchg, const uint32_t value, 
-      const int32_t cnt) {
-    if (dst && xchg && cnt > 0) {
-      uint32_t *d = dst;
-      uint32_t *x = xchg;
-      for (int32_t i = 0; i < cnt; ++i) {
-        uint32_t tmp = x[i];
-        x[i] = value;
-        d[i] = tmp;
-      }
-    }
-    return xchg;
-  }
-
-  void* tal_memxchg_u64(void* dst, void* xchg, const uint64_t value, 
-      const int32_t cnt) {
-    if (dst && xchg && cnt > 0) {
-      uint64_t *d = dst;
-      uint64_t *x = xchg;
-      for (int32_t i = 0; i < cnt; ++i) {
-        uint64_t tmp = x[i];
-        x[i] = value;
-        d[i] = tmp;
-      }
-    }
-    return xchg;
-  }
-
-  bool tal_memcmp(const void* mem_a, const void* mem_b, const int32_t size) {
-    if (!mem_a || !mem_b || size <= 0) { return false; }
-    const uint8_t *a = mem_a;
-    const uint8_t *b = mem_b;
+  bool tal_mem_cmp(const void* mem_a, const void* mem_b, const int32_t size,
+      bool* err) {
+    if (!mem_a || !mem_b || size <= 0) {
+      *err = true;
+      return false;
+    } 
+    const uint8_t* a = mem_a;
+    const uint8_t* b = mem_b;
     for (int32_t i = 0; i < size; ++i) {
       if (a[i] != b[i]) { return false; }
     }
     return true;
   }
 
-  bool tal_memncmp(const void* mem_a, const void* mem_b, const int32_t size, 
-      const int32_t n) {
-    if (!mem_a || !mem_b || size <= 0 && n <= 0) { return false; }
-    const uint8_t *a = mem_a;
-    const uint8_t *b = mem_b;
+  bool tal_mem_cmpn(const void* mem_a, const void* mem_b, const int32_t size,
+      const int32_t n, bool* err) {
+    if (!mem_a || !mem_b || size < 0 || n < 0) {
+      *err = true;
+      return false;
+    }
+    const uint8_t* a = mem_a;
+    const uint8_t* b = mem_b;
     for (int32_t i = 0; i < n; ++i) {
       for (int32_t j = 0; j < size; ++j) {
         if (a[j * i] != b[j]) { return false; }
@@ -585,48 +523,66 @@
     return true;
   }
 
-  bool tal_memcmp_u8(const void* mem, const uint8_t value, const int32_t cnt) {
-    if (!mem || cnt <= 0) { return false; }
-    const uint8_t *m = mem;
+  bool tal_mem_cmpn_u8(const void* mem, const uint8_t value, const int32_t cnt, 
+      bool* err) {
+    if (!mem || cnt < 0) { 
+      *err = true;
+      return false;
+    }
+    const uint8_t* m = mem;
     for (int32_t i = 0; i < cnt; ++i) {
       if (m[i] != value) { return false; }
     }
     return true;
   }
 
-  bool tal_memcmp_u16(const void* mem, const uint16_t value, const int32_t cnt) {
-    if (!mem || cnt <= 0) { return false; }
-    const uint16_t *m = mem;
+  bool tal_mem_cmpn_u16(const void* mem, const uint16_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) { 
+      *err = true;
+      return false;
+    }
+    const uint16_t* m = mem;
     for (int32_t i = 0; i < cnt; ++i) {
       if (m[i] != value) { return false; }
     }
     return true;
   }
 
-  bool tal_memcmp_u32(const void* mem, const uint32_t value, const int32_t cnt) {
-    if (!mem || cnt <= 0) { return false; }
-    const uint32_t *m = mem;
+  bool tal_mem_cmpn_u32(const void* mem, const uint32_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) { 
+      *err = true;
+      return false;
+    }
+    const uint32_t* m = mem;
     for (int32_t i = 0; i < cnt; ++i) {
       if (m[i] != value) { return false; }
     }
     return true;
   }
 
-  bool tal_memcmp_u64(const void* mem, const uint64_t value, const int32_t cnt) {
-    if (!mem || cnt <= 0) { return false; }
-    const uint64_t *m = mem;
+  bool tal_mem_cmpn_u64(const void* mem, const uint64_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) { 
+      *err = true;
+      return false;
+    }
+    const uint64_t* m = mem;
     for (int32_t i = 0; i < cnt; ++i) {
       if (m[i] != value) { return false; }
     }
     return true;
   }
 
-  void* tal_memmem(const void* mem, const void* fmem, const int32_t size, 
-      const int32_t fsize) {
-    if (mem && fmem && size > 0 && fsize > 0) {
+  void* tal_mem_get(const void* mem, const void* fmem, const int32_t size, 
+      const int32_t fsize, bool* err) {
+    if (!mem || !fmem || size < 0 || fsize < 0) {
+      *err = true;
+    } else {
       int32_t fi = 0;
-      const uint8_t *m = mem;
-      const uint8_t *f = fmem;
+      const uint8_t* m = mem;
+      const uint8_t* f = fmem;
       for (int32_t i = 0; i < size; ++i) {
         if (m[i] == f[fi]) {
           ++fi;
@@ -639,12 +595,14 @@
     return NULL;
   }
 
-  void* tal_memrmem(const void* mem, const void* fmem, const int32_t size, 
-      const int32_t fsize) {
-    if (mem && fmem && size > 0 && fsize > 0) {
+  void* tal_mem_getr(const void* mem, const void* fmem, const int32_t size, 
+      const int32_t fsize, bool* err) {
+    if (!mem || !fmem || size < 0 || fsize < 0) {
+      *err = true;
+    } else {
       int32_t fi = fsize - 1;
-      const uint8_t *m = mem;
-      const uint8_t *f = fmem;
+      const uint8_t* m = mem;
+      const uint8_t* f = fmem;
       for (int32_t i = size - 1; i >= 0; --i) {
         if (m[i] == f[fi]) {
           --fi;
@@ -657,13 +615,15 @@
     return NULL;
   }
 
-  void* tal_memnmem(const void* mem, const void* fmem, const int32_t size, 
-      const int32_t fsize, const int32_t n) {
-    if (mem && fmem && size > 0 && fsize > 0) {
+  void* tal_mem_getn(const void* mem, const void* fmem, const int32_t size, 
+      const int32_t fsize, const int32_t n, bool* err) {
+    if (!mem || !fmem || size < 0 || fsize < 0 || n < 0) {
+      *err = true;
+    } else {
       int32_t fi = 0;
       int32_t fcnt = 0;
-      const uint8_t *m = mem;
-      const uint8_t *f = fmem;
+      const uint8_t* m = mem;
+      const uint8_t* f = fmem;
       for (int32_t i = 0; i < size; ++i) {
         if (m[i] == f[fi]) {
           ++fi;
@@ -679,9 +639,12 @@
     return NULL;
   }
 
-  void* tal_memval8(const void* mem, const uint8_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint8_t *m = mem;
+  void* tal_mem_get_u8(const void* mem, const uint8_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint8_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) { return (void*)(mem + i); }
       }
@@ -689,9 +652,12 @@
     return NULL;
   }
 
-  void* tal_memval16(const void* mem, const uint16_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint16_t *m = mem;
+  void* tal_mem_get_u16(const void* mem, const uint16_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint16_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) { return (void*)(mem + i); }
       }
@@ -699,9 +665,12 @@
     return NULL;
   }
 
-  void* tal_memval32(const void* mem, const uint32_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint32_t *m = mem;
+  void* tal_mem_get_u32(const void* mem, const uint32_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint32_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) { return (void*)(mem + i); }
       }
@@ -709,9 +678,12 @@
     return NULL;
   }
 
-  void* tal_memval64(const void* mem, const uint64_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint64_t *m = mem;
+  void* tal_mem_get_u64(const void* mem, const uint64_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint64_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) { return (void*)(mem + i); }
       }
@@ -719,9 +691,12 @@
     return NULL;
   }
 
-  void* tal_memrval8(const void* mem, const uint8_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint8_t *m = mem;
+  void* tal_mem_getr_u8(const void* mem, const uint8_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint8_t* m = mem;
       for (int32_t i = cnt - 1; i >= 0; --i) {
         if (m[i] == value) { return (void*)(mem + i); }
       }
@@ -729,9 +704,12 @@
     return NULL;
   }
 
-  void* tal_memrval16(const void* mem, const uint16_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint16_t *m = mem;
+  void* tal_mem_getr_u16(const void* mem, const uint16_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint16_t* m = mem;
       for (int32_t i = cnt - 1; i >= 0; --i) {
         if (m[i] == value) { return (void*)(mem + i); }
       }
@@ -739,9 +717,12 @@
     return NULL;
   }
 
-  void* tal_memrval32(const void* mem, const uint32_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint32_t *m = mem;
+  void* tal_mem_getr_u32(const void* mem, const uint32_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint32_t* m = mem;
       for (int32_t i = cnt - 1; i >= 0; --i) {
         if (m[i] == value) { return (void*)(mem + i); }
       }
@@ -749,9 +730,12 @@
     return NULL;
   }
 
-  void* tal_memrval64(const void* mem, const uint64_t value, const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint64_t *m = mem;
+  void* tal_mem_getr_u64(const void* mem, const uint64_t value, const int32_t cnt,
+      bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint64_t* m = mem;
       for (int32_t i = cnt - 1; i >= 0; --i) {
         if (m[i] == value) { return (void*)(mem + i); }
       }
@@ -760,11 +744,13 @@
   }
 
 
-  void* tal_memnval8(const void* mem, const uint8_t value, 
-      const int32_t cnt, const int32_t n) {
-    if (mem && cnt > 0) {
+  void* tal_mem_getn_u8(const void* mem, const uint8_t value, const int32_t cnt, 
+      const int32_t n, bool* err) {
+    if (!mem || cnt < 0 || n < 0) {
+      *err = true;
+    } else {
       int32_t cur_cnt = 0;
-      const uint8_t *m = mem;
+      const uint8_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) {
           ++cur_cnt;
@@ -775,11 +761,13 @@
     return NULL;
   }
 
-  void* tal_memnval16(const void* mem, const uint16_t value, 
-      const int32_t cnt, const int32_t n) {
-    if (mem && cnt > 0) {
+  void* tal_mem_getn_u16(const void* mem, const uint16_t value, const int32_t cnt, 
+      const int32_t n, bool* err) {
+    if (!mem || cnt < 0 || n < 0) {
+      *err = true;
+    } else {
       int32_t cur_cnt = 0;
-      const uint16_t *m = mem;
+      const uint16_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) {
           ++cur_cnt;
@@ -790,11 +778,13 @@
     return NULL;
   }
 
-  void* tal_memnval32(const void* mem, const uint32_t value, 
-      const int32_t cnt, const int32_t n) {
-    if (mem && cnt > 0) {
+  void* tal_mem_getn_u32(const void* mem, const uint32_t value, const int32_t cnt, 
+      const int32_t n, bool* err) {
+    if (!mem || cnt < 0 || n < 0) {
+      *err = true;
+    } else {
       int32_t cur_cnt = 0;
-      const uint32_t *m = mem;
+      const uint32_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) {
           ++cur_cnt;
@@ -805,11 +795,13 @@
     return NULL;
   }
 
-  void* tal_memnval64(const void* mem, const uint64_t value, 
-      const int32_t cnt, const int32_t n) {
-    if (mem && cnt > 0) {
+  void* tal_mem_getn_u64(const void* mem, const uint64_t value, const int32_t cnt, 
+      const int32_t n, bool* err) {
+    if (!mem || cnt < 0 || n < 0) {
+      *err = true;
+    } else {
       int32_t cur_cnt = 0;
-      const uint64_t *m = mem;
+      const uint64_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) {
           ++cur_cnt;
@@ -820,12 +812,14 @@
     return NULL;
   }
 
-  int32_t tal_memmem_i(const void* mem, const void* fmem, 
-      const int32_t size, const int32_t fsize) {
-    if (mem && fmem && size > 0 && fsize > 0) {
+  int32_t tal_mem_index(const void* mem, const void* fmem, const int32_t size, 
+      const int32_t fsize, bool* err) {
+    if (!mem || !fmem || size < 0 || fsize < 0) {
+      *err = true;
+    } else {
       int32_t fi = 0;
-      const uint8_t *m = mem;
-      const uint8_t *f = fmem;
+      const uint8_t* m = mem;
+      const uint8_t* f = fmem;
       for (int32_t i = 0; i < size; ++i) {
         if (m[i] == f[fi]) {
           ++fi;
@@ -838,31 +832,35 @@
     return -1;
   }
 
-  int32_t tal_memrmem_i(const void* mem, const void* fmem, 
-      const int32_t size, const int32_t fsize) {
-    if (mem && fmem && size > 0 && fsize > 0) {
+  int32_t tal_mem_indexr(const void* mem, const void* fmem, const int32_t size, 
+      const int32_t fsize, bool* err) {
+    if (!mem || !fmem || size < 0 || fsize < 0) {
+      *err = true;
+    } else {
       int32_t fi = fsize - 1;
-      const uint8_t *m = mem;
-      const uint8_t *f = fmem;
+      const uint8_t* m = mem;
+      const uint8_t* f = fmem;
       for (int32_t i = size - 1; i >= 0; --i) {
         if (m[i] == f[fi]) {
           --fi;
-          if (!fi) { return i + fsize; }
+          if (!fi) { return i; }
         } else { 
-          fi = 0;
+          fi = fsize - 1;
         }
       }
     }
     return -1;
   }
 
-  int32_t tal_memnmem_i(const void* mem, const void* fmem, 
-      const int32_t size, const int32_t fsize, const int32_t n) {
-    if (mem && fmem && size > 0 && fsize > 0) {
+  int32_t tal_mem_indexn(const void* mem, const void* fmem, const int32_t size,
+      const int32_t fsize, const int32_t n, bool* err) {
+    if (!mem || !fmem || size < 0 || fsize < 0 || n < 0) {
+      *err = true;
+    } else {
       int32_t fi = 0;
       int32_t fcnt = 0;
-      const uint8_t *m = mem;
-      const uint8_t *f = fmem;
+      const uint8_t* m = mem;
+      const uint8_t* f = fmem;
       for (int32_t i = 0; i < size; ++i) {
         if (m[i] == f[fi]) {
           ++fi;
@@ -878,10 +876,24 @@
     return -1;
   }
 
-  int32_t tal_memval8_i(void* mem, const uint8_t value, 
-      const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint8_t *m = mem;
+  int32_t tal_mem_index_u8(const void* mem, const uint8_t value, 
+      const int32_t cnt, bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint8_t* m = mem;
+      for (int32_t i = 0; i < cnt; ++i) {
+        if (m[i] == value) { return i; }
+      }
+    }
+  }
+
+  int32_t tal_mem_index_u16(const void* mem, const uint16_t value, 
+      const int32_t cnt,  bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint16_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) { return i; }
       }
@@ -889,10 +901,12 @@
     return -1;
   }
 
-  int32_t tal_memval16_i(void* mem, const uint16_t value, 
-      const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint16_t *m = mem;
+  int32_t tal_mem_index_u32(const void* mem, const uint32_t value, 
+      const int32_t cnt, bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint32_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) { return i; }
       }
@@ -900,21 +914,12 @@
     return -1;
   }
 
-  int32_t tal_memval32_i(void* mem, const uint32_t value, 
-      const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint32_t *m = mem;
-      for (int32_t i = 0; i < cnt; ++i) {
-        if (m[i] == value) { return i; }
-      }
-    }
-    return -1;
-  }
-
-  int32_t tal_memval64_i(void* mem, const uint64_t value, 
-      const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint64_t *m = mem;
+  int32_t tal_mem_index_u64(const void* mem, const uint64_t value, 
+      const int32_t cnt, bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint64_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) { return i; }
       }
@@ -922,10 +927,12 @@
     return -1;
   }
   
-  int32_t tal_memrval8_i(void* mem, const uint8_t value, 
-      const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint8_t *m = mem;
+  int32_t tal_mem_indexr_u8(const void* mem, const uint8_t value, 
+      const int32_t cnt, bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint8_t* m = mem;
       for (int32_t i = cnt - 1; i >= 0; --i) {
         if (m[i] == value) { return i; }
       }
@@ -933,10 +940,12 @@
     return -1;
   }
 
-  int32_t tal_memrval16_i(void* mem, const uint16_t value, 
-      const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint16_t *m = mem;
+  int32_t tal_mem_indexr_u16(const void* mem, const uint16_t value, 
+      const int32_t cnt, bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint16_t* m = mem;
       for (int32_t i = cnt - 1; i >= 0; --i) {
         if (m[i] == value) { return i; }
       }
@@ -944,10 +953,12 @@
     return -1;
   }
 
-  int32_t tal_memrval32_i(void* mem, const uint32_t value, 
-      const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint32_t *m = mem;
+  int32_t tal_mem_indexr_u32(const void* mem, const uint32_t value, 
+      const int32_t cnt, bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint32_t* m = mem;
       for (int32_t i = cnt - 1; i >= 0; --i) {
         if (m[i] == value) { return i; }
       }
@@ -955,22 +966,26 @@
     return -1;
   }
 
-  int32_t tal_memrval64_i(void* mem, const uint64_t value, 
-      const int32_t cnt) {
-    if (mem && cnt > 0) {
-      const uint64_t *m = mem;
+  int32_t tal_mem_indexr_u64(const void* mem, const uint64_t value, 
+      const int32_t cnt, bool* err) {
+    if (!mem || cnt < 0) {
+      *err = true;
+    } else {
+      const uint64_t* m = mem;
       for (int32_t i = cnt - 1; i >= 0; --i) {
         if (m[i] == value) { return i; }
       }
     }
     return -1;
   }
-  
-  int32_t tal_memnval8_i(void* mem, const uint8_t value, 
-      const int32_t cnt, const int32_t n) {
-    if (mem && cnt > 0) {
+
+  int32_t tal_mem_indexn_u8(const void* mem, const uint8_t value, 
+      const int32_t cnt, const int32_t n, bool* err) {
+    if (!mem || cnt < 0 || n < 0) {
+      *err = true;
+    } else {
       int32_t cur_cnt = 0;
-      const uint8_t *m = mem;
+      const uint8_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) {
           ++cur_cnt;
@@ -981,11 +996,13 @@
     return -1;
   }
 
-  int32_t tal_memnval16_i(void* mem, const uint16_t value, 
-      const int32_t cnt, const int32_t n) {
-    if (mem && cnt > 0) {
+  int32_t tal_mem_indexn_u16(const void* mem, const uint16_t value, 
+      const int32_t cnt, const int32_t n, bool* err) {
+    if (!mem || cnt < 0 || n < 0) {
+      *err = true;
+    } else {
       int32_t cur_cnt = 0;
-      const uint16_t *m = mem;
+      const uint16_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) {
           ++cur_cnt;
@@ -996,11 +1013,13 @@
     return -1;
   }
 
-  int32_t tal_memnval32_i(void* mem, const uint32_t value, 
-      const int32_t cnt, const int32_t n) {
-    if (mem && cnt > 0) {
+  int32_t tal_mem_indexn_u32(const void* mem, const uint32_t value, 
+      const int32_t cnt, const int32_t n, bool* err) {
+    if (!mem || cnt < 0 || n < 0) {
+      *err = true;
+    } else {
       int32_t cur_cnt = 0;
-      const uint32_t *m = mem;
+      const uint32_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) {
           ++cur_cnt;
@@ -1011,11 +1030,13 @@
     return -1;
   }
 
-  int32_t tal_memnval64_i(void* mem, const uint64_t value, 
-      const int32_t cnt, const int32_t n) {
-    if (mem && cnt > 0) {
+  int32_t tal_mem_indexn_u64(const void* mem, const uint64_t value, 
+      const int32_t cnt, const int32_t n, bool* err) {
+    if (!mem || cnt < 0 || n < 0) {
+      *err = true;
+    } else {
       int32_t cur_cnt = 0;
-      const uint64_t *m = mem;
+      const uint64_t* m = mem;
       for (int32_t i = 0; i < cnt; ++i) {
         if (m[i] == value) {
           ++cur_cnt;

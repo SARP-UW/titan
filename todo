@@ -1,15 +1,8 @@
 # TODO
 
 # Include
-- [ ] assert
-- [X] attributes.h
-- [X] bit.h
-- [X] env_info.h
-- [X] imath.h
-- [X] mask.h
-- [X] mem.h
-- [X] numeric.h
-- [X] str.h
+- [X] bit.h (FINAL)
+
 
 # Arch
  
@@ -20,3 +13,5 @@
   - [ ] mpu.h
   - [ ] debug.h
   - [ ] core.h
+
+  ## External

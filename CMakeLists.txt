@@ -43,8 +43,7 @@ add_executable(${EXECUTABLE}
 
 # Set include directory
 target_include_directories(${EXECUTABLE} PRIVATE
-  ${CMAKE_SOURCE_DIR}/include
-  ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}
 )
 
 # Set compiler defines
