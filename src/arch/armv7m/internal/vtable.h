@@ -22,7 +22,7 @@
 
 #pragma once
 #include <stdint.h>
-#include "include/tal/attributes.h"
+#include "src/common/attributes.h"
 
 #if defined(__cplusplus)
   extern "C" {

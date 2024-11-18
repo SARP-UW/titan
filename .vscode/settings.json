@@ -10,6 +10,8 @@
     "functional": "c",
     "tuple": "c",
     "utility": "c",
-    "limits": "c"
+    "limits": "c",
+    "optional": "c",
+    "system_error": "c"
   }
 }

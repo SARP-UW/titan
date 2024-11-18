@@ -24,7 +24,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <limits.h>
-#include "src/common/attributes.h"
+#include "src/common/attributes.h" // for inline attribute
 
 #if defined(__cplusplus)
   extern "C" {
@@ -204,22 +204,22 @@
    * @brief Performs a circular left shift on an integer value.
    * @param value (unsigned integer denoted by suffix) The value to rotate.
    * @param shift (int32_t) The number of bits to rotate by.
-   * @param err (bool*) Error flag. Accessed and set true if shift is negative. 
    * @returns (unsigned integer denoted by suffix) The result of circularly 
-   *          rotating the given value to the left by 'shift' bits.
+   *          rotating the given value to the left by 'shift' bits, or right
+   *          by 'shift' bits if 'shift' is negative.
    * @note - This function performs a "circular shift", meaining that bits
    *         shifted beyond the end of the integer's range wrap around to
    *         the beginning.
    * @{
    */
-  tal_fn_attr_inline inline uint8_t tal_rotl_u8(
-      const uint8_t value, const int32_t shift, bool* err);
-  tal_fn_attr_inline inline uint16_t tal_rotl_u16(
-      const uint16_t value, const int32_t shift, bool* err);
-  tal_fn_attr_inline inline uint32_t tal_rotl_u32(
-      const uint32_t value, const int32_t shift, bool* err);
-  tal_fn_attr_inline inline uint64_t tal_rotl_u64(
-      const uint64_t value, const int32_t shift, bool* err);
+  tal_fn_attr_inline inline uint8_t tal_rotl_u8(const uint8_t value, 
+      const int32_t shift);
+  tal_fn_attr_inline inline uint16_t tal_rotl_u16(const uint16_t value, 
+      const int32_t shift);
+  tal_fn_attr_inline inline uint32_t tal_rotl_u32(const uint32_t value, 
+      const int32_t shift);
+  tal_fn_attr_inline inline uint64_t tal_rotl_u64(const uint64_t value, 
+      const int32_t shift);
   /** @} */
 
   /**
@@ -227,22 +227,22 @@
    * @brief Performs a circular right shift on an integer value.
    * @param value (unsigned integer denoted by suffix) The value to rotate.
    * @param shift (int32_t) The number of bits to rotate by.
-   * @param err (bool*) Error flag. Accessed and set true if shift is negative. 
    * @returns (unsigned integer denoted by suffix) The result of circularly 
-   *          rotating the given value to the right by 'shift' bits.
+   *          rotating the given value to the right by 'shift' bits, or left
+   *          by 'shift' bits is 'shift' is negative.
    * @note - This function performs a "circular shift", meaining that bits
    *         shifted beyond the end of the integer's range wrap around to
    *         the beginning.
    * @{
    */
-  tal_fn_attr_inline inline uint8_t tal_rotr_u8(
-      const uint8_t value, const int32_t shift, bool* err);
-  tal_fn_attr_inline inline uint16_t tal_rotr_u16(
-      const uint16_t value, const int32_t shift, bool* err);
-  tal_fn_attr_inline inline uint32_t tal_rotr_u32(
-      const uint32_t value, const int32_t shift, bool* err);
-  tal_fn_attr_inline inline uint64_t tal_rotr_u64(
-      const uint64_t value, const int32_t shift, bool* err);
+  tal_fn_attr_inline inline uint8_t tal_rotr_u8(const uint8_t value, 
+      const int32_t shift);
+  tal_fn_attr_inline inline uint16_t tal_rotr_u16(const uint16_t value, 
+      const int32_t shift);
+  tal_fn_attr_inline inline uint32_t tal_rotr_u32(const uint32_t value, 
+      const int32_t shift);
+  tal_fn_attr_inline inline uint64_t tal_rotr_u64(const uint64_t value, 
+      const int32_t shift);
   /** @} */
 
   /**************************************************************************************************
@@ -254,110 +254,111 @@
    * @brief Creates a mask of contiguous set bits at specific location.
    * @param pos (int32_t) The number of bits between the LSB and the first set bit.
    * @param len (int32_t) The number of contiguous set bits.
-   * @param err (bool*) Error flag. Accessed and set true if 'pos' is less than 
-   *            0 or 'len' is less than or equal to 0. Accessed and set true if
-   *            pos + len is greater than the number of bits in the suffix type.
+   * @param err (bool*) Error flag. Accessed and set true if 'pos' or 'len' is
+   *            negative, pos + len exceeds the bit-width of the suffix type,
+   *            or an internal error occurs.
    * @returns (unsigned integer denoted by suffix) A mask with 'len' contiguous
-   *          set bits starting 'pos' bits from the LSB.
+   *          set bits starting 'pos' bits from the LSB, or 0 if an error occurs.
    */
   tal_fn_attr_inline inline uint8_t tal_mask_u8(const int32_t pos, 
-      const int32_t len, bool* err);
+      const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint16_t tal_mask_u16(const int32_t pos, 
-      const int32_t len, bool* err);
+      const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint32_t tal_mask_u32(const int32_t pos, 
-      const int32_t len, bool* err);
+      const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint64_t tal_mask_u64(const int32_t pos, 
-      const int32_t len, bool* err);
+      const int32_t len, bool* const err);
 
   /**
+   * @defgroup tal_write_bits
    * @brief Writes a value to a specific range of bits in another value.
    * @param value (unsigned integer denoted by suffix) The value to write to.
    * @param dest (unsigned integer denoted by suffix) The value to write to.
    * @param pos (int32_t) The position of the range to write to (bits from lsb).
    * @param len (int32_t) The length of the range to write to (bits).
    * @param err (bool*) Error flag. Accessed and set true if 'pos' or 'len' is 
-   *            less than 0, or if pos + len is greater than the bit-width of
-   *            the suffix type. If set, this function returns 0 and is
-   *            guaranteed to have no other side effects.
+   *            negative, pos + len exceeds the bit-width of the suffix type,
+   *            the bit-width of 'value' exceeds 'len', or an internal error occurs.
    * @returns (unsigned integer denoted by suffix) The result of writing 'value'
-   *          to the range of bits in 'dest' specified by 'pos' and 'len'.
+   *          to the range of bits in 'dest' specified by 'pos' and 'len' or
+   *          'dest' unaltered if an error occurs.
    */
   tal_fn_attr_inline inline uint8_t tal_write_bits_u8(const uint8_t value, 
-      const uint8_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint8_t dest, const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint16_t tal_write_bits_u16(const uint16_t value, 
-      const uint16_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint16_t dest, const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint32_t tal_write_bits_u32(const uint32_t value, 
-      const uint32_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint32_t dest, const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint64_t tal_write_bits_u64(const uint64_t value, 
-      const uint64_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint64_t dest, const int32_t pos, const int32_t len, bool* const err);
 
   /**
+   * @defgroup tal_read_bits
    * @brief Reads a value from a specific range of bits in another value.
    * @param dest (unsigned integer denoted by suffix) The value to read from.
    * @param pos (int32_t) The position of the range to read from (bits from lsb).
    * @param len (int32_t) The length of the range to read from (bits).
-   * @param err (bool*) Error flag. Accessed and set true if 'pos' or 'len' is
-   *            less than 0, or if pos + len is greater than the bit-width of
-   *            the suffix type. If set, this function returns 0 and is
-   *            guaranteed to have no other side effects.
+   * @param err (bool*) Error flag. Accessed and set true if 'pos' or 'len' 
+   *            is negative, pos + len exceeds the bit-width of the suffix type,
+   *            or an internal error occurs.
    * @returns (unsigned integer denoted by suffix) The value of the range of bits
-   *          in 'dest' specified by 'pos' and 'len'.
+   *          in 'dest' specified by 'pos' and 'len', or 0 if an error occurs.
    */
   tal_fn_attr_inline inline uint8_t tal_read_bits_u8(const uint8_t dest,
-      const int32_t pos, const int32_t len, bool* err);
+      const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint16_t tal_read_bits_u16(const uint16_t dest,
-      const int32_t pos, const int32_t len, bool* err);
+      const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint32_t tal_read_bits_u32(const uint32_t dest,
-      const int32_t pos, const int32_t len, bool* err);
+      const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint64_t tal_read_bits_u64(const uint64_t dest,
-      const int32_t pos, const int32_t len, bool* err);
+      const int32_t pos, const int32_t len, bool* const err);
 
   /**
+   * @defgroup tal_set_bits
    * @brief Sets all bits in a specific range to either 0 or 1.
    * @param value (bool) If true, all bits in the given range are set to 1.
    *              If false, all bits in the given range are set to 0.
    * @param dest (unsigned integer denoted by suffix) The value to modify.
    * @param pos (int32_t) The position of the range to modify (bits from lsb).
    * @param len (int32_t) The length of the range to modify (bits).
-   * @param err (bool*) Error flag. Accessed and set true if 'pos' or 'len' is
-   *            less than 0, or if pos + len is greater than the bit-width of
-   *            the suffix type. If set, this function returns 'value',
-   *            unaltered, and is guaranteed to have no other side effects.
+   * @param err (bool*) Error flag. Accessed and set true if 'pos' or 'len' 
+   *            is negative, pos + len exceeds the bit-width of the suffix type,
+   *            or an internal error occurs.
    * @returns (unsigned integer denoted by suffix) The result of setting all
-   *          bits in the range specified by 'pos' and 'len' to either 1 if
-   *          'value' is true, or 0 otherwise.
+   *          bits in the range of 'dest' specified by 'pos' and 'len' to 
+   *          'value', or 'dest' unaltered if an error occurs.
    */
   tal_fn_attr_inline inline uint8_t tal_set_bits_u8(const bool value,
-      const uint8_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint8_t dest, const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint16_t tal_set_bits_u16(const bool value,
-      const uint16_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint16_t dest, const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint32_t tal_set_bits_u32(const bool value,
-      const uint32_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint32_t dest, const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline uint64_t tal_set_bits_u64(const bool value,
-      const uint64_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint64_t dest, const int32_t pos, const int32_t len, bool* const err);
 
   /**
+   * @defgroup tal_get_bits
    * @brief Determines if all bits in a specific range are set to either 0 or 1.
    * @param value (bool) If true, all bits in the given range are compared to 1.
    *              If false, all bits in the given range are compared to 0.
    * @param dest (unsigned integer denoted by suffix) The value to query.
    * @param pos (int32_t) The position of the range to query (bits from lsb).
    * @param len (int32_t) The length of the range to query (bits).
-   * @param err (bool*) Error flag. Accessed and set true if 'pos' or 'len' is
-   *            less than 0, or if pos + len is greater than the bit-width of
-   *            the suffix type. If set, this function returns false and is
-   *            guaranteed to have no other side effects.
-   * @returns (bool) True if all bits in the range specified by 'pos' and 'len'
-   *          are equal to 'value' (true = 1, false = 0), or false otherwise.
+   * @param err (bool*) Error flag. Accessed and set true if 'pos' or 'len'
+   *            is negative, pos + len exceeds the bit-width of the suffix type,
+   *            or an internal error occurs.
+   * @returns (bool) True if no error occurs and all bits in the specified range 
+   *          are equal to 'value', or false otherwise.
    */
   tal_fn_attr_inline inline bool tal_get_bits_u8(const bool value,
-      const uint8_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint8_t dest, const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline bool tal_get_bits_u16(const bool value,
-      const uint16_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint16_t dest, const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline bool tal_get_bits_u32(const bool value,
-      const uint32_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint32_t dest, const int32_t pos, const int32_t len, bool* const err);
   tal_fn_attr_inline inline bool tal_get_bits_u64(const bool value,
-      const uint64_t dest, const int32_t pos, const int32_t len, bool* err);
+      const uint64_t dest, const int32_t pos, const int32_t len, bool* const err);
 
   /**************************************************************************************************
    * @internal Implementation Resources
@@ -752,127 +753,96 @@
     return (uint64_t)1 << (tal_bit_width_u64(value - 1u) - 1);
   }
 
-  uint8_t tal_rotl_u8(const uint8_t value, const int32_t shift, bool* err) {
-    if (shift < 0) {
-      *err = true; 
-      return 0; 
-    }
+  uint8_t tal_rotl_u8(const uint8_t value, const int32_t shift) {
     const int32_t diff = shift % tal_uint8_dig__;
     if (diff > 0) {
       return (value << diff) | (value >> (tal_uint8_dig__ - diff));
     } else if (diff < 0) {
-      return tal_rotr_u8(value, -shift, err);
+      return tal_rotr_u8(value, -shift);
     } else {
       return value;
     }
   }
 
-  uint16_t tal_rotl_u16(const uint16_t value, const int32_t shift, bool* err) {
-    if (shift < 0) { 
-      *err = true; 
-      return 0; 
-    }
+  uint16_t tal_rotl_u16(const uint16_t value, const int32_t shift) {
     const int32_t diff = shift % tal_uint16_dig__;
     if (diff > 0) {
       return (value << diff) | (value >> (tal_uint16_dig__ - diff));
     } else if (diff < 0) {
-      return tal_rotr_u16(value, -shift, err);
+      return tal_rotr_u16(value, -shift);
     } else {
       return value;
     }
   }
 
-  uint32_t tal_rotl_u32(const uint32_t value, const int32_t shift, bool* err) {
-    if (shift < 0) { 
-      *err = true; 
-      return 0; 
-    }
+  uint32_t tal_rotl_u32(const uint32_t value, const int32_t shift) {
     const int32_t diff = shift % tal_uint32_dig__;
     if (diff > 0) {
       return (value << diff) | (value >> (tal_uint32_dig__ - diff));
     } else if (diff < 0) {
-      return tal_rotr_u32(value, -shift, err);
+      return tal_rotr_u32(value, -shift);
     } else {
       return value;
     }
   }
 
-  uint64_t tal_rotl_u64(const uint64_t value, const int32_t shift, bool* err) {
-    if (shift < 0) { 
-      *err = true; 
-      return 0; 
-    }
+  uint64_t tal_rotl_u64(const uint64_t value, const int32_t shift) {
     const int32_t diff = shift % tal_uint64_dig__;
     if (diff > 0) {
       return (value << diff) | (value >> (tal_uint64_dig__ - diff));
     } else if (diff < 0) {
-      return tal_rotr_u64(value, -shift, err);
+      return tal_rotr_u64(value, -shift);
     } else {
       return value;
     }
   }
 
-  uint8_t tal_rotr_u8(const uint8_t value, const int32_t shift, bool* err) {
-    if (shift < 0u) { 
-      *err = true; 
-      return 0u;
-    }
+  uint8_t tal_rotr_u8(const uint8_t value, const int32_t shift) {
     const int32_t diff = shift % tal_uint8_dig__;
     if (diff > 0) {
       return (value >> diff) | (value << (tal_uint8_dig__ - diff));
     } else if (diff < 0) {
-      return tal_rotl_u8(value, -shift, err);
+      return tal_rotl_u8(value, -shift);
     } else {
       return value;
     }
   }
 
-  uint16_t tal_rotr_u16(const uint16_t value, const int32_t shift, bool* err) {
-    if (shift < 0u) { 
-      *err = true; 
-      return 0u;
-    }
+  uint16_t tal_rotr_u16(const uint16_t value, const int32_t shift) {
     const int32_t diff = shift % tal_uint16_dig__;
     if (diff > 0) {
       return (value >> diff) | (value << (tal_uint16_dig__ - diff));
     } else if (diff < 0) {
-      return tal_rotl_u16(value, -shift, err);
+      return tal_rotl_u16(value, -shift);
     } else {
       return value;
     }
   }
 
-  uint32_t tal_rotr_u32(const uint32_t value, const int32_t shift, bool* err) {
-    if (shift < 0u) { 
-      *err = true; 
-      return 0u;
-    }
+  uint32_t tal_rotr_u32(const uint32_t value, const int32_t shift) {
     #if defined(TAL_ARCH_ARMV7M)
-      uint32_t result = 0;
-      asm ("ror %0, %1, %2" : "=rm" (result) : "rm" (value), "rm" (shift));
-      return result;
-    #else
-      const int32_t diff = shift % tal_uint32_dig__;
-      if (diff > 0) {
-        return (value >> diff) | (value << (tal_uint32_dig__ - diff));
-      } else if (diff < 0) {
-        return tal_rotl_u32(value, -shift, err);
-      } else {
-        return value;
+      if (shift >= 0) {
+        uint32_t result = 0;
+        asm ("ror %0, %1, %2" : "=rm" (result) : "rm" (value), "rm" (shift));
+        return result;
       }
     #endif
+    const int32_t diff = shift % tal_uint32_dig__;
+    if (diff > 0) {
+      return (value >> diff) | (value << (tal_uint32_dig__ - diff));
+    } else if (diff < 0) {
+      return tal_rotl_u32(value, -shift);
+    } else {
+      return value;
+    }
   }
 
-  uint64_t tal_rotr_u64(const uint64_t value, const int32_t shift, bool* err) {
-    if (shift < 0u) { 
-      *err = true; 
-      return 0u;
-    }
+  uint64_t tal_rotr_u64(const uint64_t value, const int32_t shift) {
     const int32_t diff = shift % tal_uint64_dig__;
     if (diff > 0) {
       return (value >> diff) | (value << (tal_uint64_dig__ - diff));
     } else if (diff < 0) {
-      return tal_rotl_u64(value, -shift, err);
+      return tal_rotl_u64(value, -shift);
     } else {
       return value;
     }
@@ -882,253 +852,251 @@
    * @internal Implementation for Bitmask Utilities
    **************************************************************************************************/
 
-  // Determines if a pos/len pair is within the given bit width.
-  static bool valid_pos(const int32_t pos, const int32_t len, 
-      const int32_t bit_width) {
-    return pos >= 0 && len >= 0 && (pos + len) <= bit_width;
-  }
-
-  uint8_t tal_mask_u8(const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, tal_bit_size(uint8_t))) {
+  uint8_t tal_mask_u8(const int32_t pos, const int32_t len, bool* const err) {
+    if (pos < 0 || len < 0) {
       *err = true;
-      return 0;
+      return 0u;
     }
+    if (pos + len > tal_bit_size(uint8_t)) { *err = true; }
+    if (len == 0) { return 0u; }
     return (((uint8_t)1 << len) - (uint8_t)1) << pos;
   }
 
-  uint16_t tal_mask_u16(const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, tal_bit_size(uint16_t))) {
+  uint16_t tal_mask_u16(const int32_t pos, const int32_t len, bool* const err) {
+    if (pos < 0 || len < 0) {
       *err = true;
-      return 0;
+      return 0u;
     }
+    if (pos + len > tal_bit_size(uint16_t)) { *err = true; }
+    if (len == 0) { return 0u; }
     return (((uint16_t)1 << len) - (uint16_t)1) << pos;
   }
 
-  uint32_t tal_mask_u32(const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, tal_bit_size(uint32_t))) {
+  uint32_t tal_mask_u32(const int32_t pos, const int32_t len, bool* const err) {
+    if (pos < 0 || len < 0) {
       *err = true;
-      return 0;
+      return 0u;
     }
+    if (pos + len > tal_bit_size(uint32_t)) { *err = true; }
+    if (len == 0) { return 0u; }
     return (((uint32_t)1 << len) - (uint32_t)1) << pos;
   }
 
-  uint64_t tal_mask_u64(const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, tal_bit_size(uint64_t))) {
+  uint64_t tal_mask_u64(const int32_t pos, const int32_t len, bool* const err) {
+    if (pos < 0 || len < 0) {
       *err = true;
-      return 0;
+      return 0u;
     }
+    if (pos + len > tal_bit_size(uint64_t)) { *err = true; }
+    if (len == 0) { return 0u; }
     return (((uint64_t)1 << len) - (uint64_t)1) << pos;
   }
 
   uint8_t tal_write_bits_u8(const uint8_t value, const uint8_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, tal_bit_size(uint8_t)) || 
-        tal_bit_width_u8(value) > len) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint8_t mask = tal_mask_u8(pos, len, &mask_err);
+    if (mask_err || tal_bit_width_u8(value) > len) {
       *err = true;
       return value;
-    } else {
-      const uint8_t mask = tal_mask_u8(pos, len, NULL);
-      return (dest & ~mask) | (value << pos);
     }
+    return (dest & ~mask) | (value << pos);
   }
 
   uint16_t tal_write_bits_u16(const uint16_t value, const uint16_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, tal_bit_size(uint16_t)) ||
-        tal_bit_width_u16(value) > len) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint16_t mask = tal_mask_u16(pos, len, &mask_err);
+    if (mask_err || tal_bit_width_u16(value) > len) {
       *err = true;
       return value;
-    } else {
-      const uint16_t mask = tal_mask_u16(pos, len, NULL);
-      return (dest & ~mask) | (value << pos);
     }
+    return (dest & ~mask) | (value << pos);
   }
 
   uint32_t tal_write_bits_u32(const uint32_t value, const uint32_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, tal_bit_size(uint32_t)) ||
-        tal_bit_width_u32(value) > len) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint32_t mask = tal_mask_u32(pos, len, &mask_err);
+    if (mask_err || tal_bit_width_u32(value) > len) {
       *err = true;
       return value;
-    } else {
-      const uint32_t mask = tal_mask_u32(pos, len, NULL);
-      return (dest & ~mask) | (value << pos);
     }
+    return (dest & ~mask) | (value << pos);
   }
 
   uint64_t tal_write_bits_u64(const uint64_t value, const uint64_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, tal_bit_size(uint64_t)) ||
-        tal_bit_width_u64(value) > len) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint8_t mask = tal_mask_u8(pos, len, &mask_err);
+    if (mask_err || tal_bit_width_u8(value) > len) {
       *err = true;
       return value;
-    } else {
-      const uint64_t mask = tal_mask_u64(pos, len, NULL);
-      return (dest & ~mask) | (value << pos);
     }
+    return (dest & ~mask) | (value << pos);
   }
 
   uint8_t tal_read_bits_u8(const uint8_t dest, const int32_t pos, 
-      const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, bit_width(uint8_t))) {
+      const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint8_t mask = tal_mask_u8(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
-      return 0;
-    } else {
-      const uint8_t mask = tal_mask_u8(pos, len, NULL);
-      return (dest & mask) >> pos;
+      return 0u;
     }
+    return (dest & mask) >> pos;
   }
 
   uint16_t tal_read_bits_u16(const uint16_t dest, const int32_t pos, 
-      const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, bit_width(uint16_t))) {
+      const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint16_t mask = tal_mask_u16(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
-      return 0;
-    } else {
-      const uint16_t mask = tal_mask_u16(pos, len, NULL);
-      return (dest & mask) >> pos;
+      return 0u;
     }
+    return (dest & mask) >> pos;
   }
 
   uint32_t tal_read_bits_u32(const uint32_t dest, const int32_t pos, 
-      const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, bit_width(uint32_t))) {
+      const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint32_t mask = tal_mask_u32(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
-      return 0;
-    } else {
-      const uint32_t mask = tal_mask_u32(pos, len, NULL);
-      return (dest & mask) >> pos;
+      return 0u;
     }
+    return (dest & mask) >> pos;
   }
 
   uint64_t tal_read_bits_u64(const uint64_t dest, const int32_t pos, 
-      const int32_t len, bool* err) {
-    if (!valid_pos(pos, len, bit_width(uint64_t))) {
+      const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint64_t mask = tal_mask_u64(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
-      return 0;
-    } else {
-      const uint64_t mask = tal_mask_u64(pos, len, NULL);
-      return (dest & mask) >> pos;
+      return 0u;
     }
+    return (dest & mask) >> pos;
   }
 
   uint8_t tal_set_bits_u8(const bool value, const uint8_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len)) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint8_t mask = tal_mask_u8(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
       return dest;
+    }
+    if (value) {
+      return dest | mask;
     } else {
-      const uint8_t mask = tal_mask_u8(pos, len, NULL);
-      if (value) {
-        return dest | mask;
-      } else {
-        return dest & ~mask;
-      }
+      return dest & ~mask;
     }
   }
 
   uint16_t tal_set_bits_u16(const bool value, const uint16_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len)) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint16_t mask = tal_mask_u16(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
       return dest;
+    }
+    if (value) {
+      return dest | mask;
     } else {
-      const uint16_t mask = tal_mask_u16(pos, len, NULL);
-      if (value) {
-        return dest | mask;
-      } else {
-        return dest & ~mask;
-      }
+      return dest & ~mask;
     }
   }
 
   uint32_t tal_set_bits_u32(const bool value, const uint32_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len)) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint32_t mask = tal_mask_u32(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
       return dest;
+    }
+    if (value) {
+      return dest | mask;
     } else {
-      const uint32_t mask = tal_mask_u32(pos, len, NULL);
-      if (value) {
-        return dest | mask;
-      } else {
-        return dest & ~mask;
-      }
+      return dest & ~mask;
     }
   }
 
   uint64_t tal_set_bits_u64(const bool value, const uint64_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len)) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint64_t mask = tal_mask_u64(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
       return dest;
+    }
+    if (value) {
+      return dest | mask;
     } else {
-      const uint64_t mask = tal_mask_u64(pos, len, NULL);
-      if (value) {
-        return dest | mask;
-      } else {
-        return dest & ~mask;
-      }
+      return dest & ~mask;
     }
   }
 
   bool tal_get_bits_u8(const bool value, const uint8_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len)) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint8_t mask = tal_mask_u8(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
       return false;
+    }
+    if (value) {
+      return (dest & mask) == mask;
     } else {
-      const uint8_t mask = tal_mask_u8(pos, len, NULL);
-      if (value) {
-        return (dest & mask) == mask;
-      } else {
-        return (dest & mask) == 0u;
-      }
+      return (dest & mask) == 0u;
     }
   }
 
   bool tal_get_bits_u16(const bool value, const uint16_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len)) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint16_t mask = tal_mask_u16(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
       return false;
+    }
+    if (value) {
+      return (dest & mask) == mask;
     } else {
-      const uint16_t mask = tal_mask_u16(pos, len, NULL);
-      if (value) {
-        return (dest & mask) == mask;
-      } else {
-        return (dest & mask) == 0u;
-      }
+      return (dest & mask) == 0u;
     }
   }
 
   bool tal_get_bits_u32(const bool value, const uint32_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len)) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint32_t mask = tal_mask_u32(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
       return false;
+    }
+    if (value) {
+      return (dest & mask) == mask;
     } else {
-      const uint32_t mask = tal_mask_u32(pos, len, NULL);
-      if (value) {
-        return (dest & mask) == mask;
-      } else {
-        return (dest & mask) == 0u;
-      }
+      return (dest & mask) == 0u;
     }
   }
 
   bool tal_get_bits_u64(const bool value, const uint64_t dest, 
-      const int32_t pos, const int32_t len, bool* err) {
-    if (!valid_pos(pos, len)) {
+      const int32_t pos, const int32_t len, bool* const err) {
+    bool mask_err = false;
+    const uint64_t mask = tal_mask_u64(pos, len, &mask_err);
+    if (mask_err) {
       *err = true;
       return false;
+    }
+    if (value) {
+      return (dest & mask) == mask;
     } else {
-      const uint64_t mask = tal_mask_u64(pos, len, NULL);
-      if (value) {
-        return (dest & mask) == mask;
-      } else {
-        return (dest & mask) == 0u;
-      }
+      return (dest & mask) == 0u;
     }
   }
 

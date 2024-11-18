@@ -21,16 +21,16 @@
 
 #include "src/arch/armv7m/internal/systick.h"
 #include "src/arch/armv7m/internal/tmp.h"
-#include "include/tal/mask.h"
 #include "include/tal/bit.h"
 #include "include/tal/numeric.h"
+#include "include/tal/tmp.h"
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
   /**************************************************************************************************
-   * @section Constants and Helper Functions/Macros
+   * @section Constants
    **************************************************************************************************/
 
   // Systick block registers
@@ -77,111 +77,112 @@
   #define pri_15_len 8
 
   // Misc constants
-  #define time_div 1000000 // microseconds -> seconds
+  // nanoseconds -> seconds
+  #define time_div 1000000000
 
   /**************************************************************************************************
-   * @section Systick Utility Implementations
+   * @section Helper Functions/Macros
    **************************************************************************************************/
 
-  // Complete
-  int64_t systick_value_to_duration(const int64_t systick_value) {
-    return systick_value / (cpu_freq / time_div);
-  }
+  // #define cycles_to_duration(cycles) (((uint64_t)cycles) / ((time_div) / (cpu_freq)))
 
-  // Complete
-  int64_t duration_to_systick_value(const int64_t micros) {
-    return micros * (cpu_freq / time_div);
-  }
+  // #define duration_to_cycles(duration) ((duration) * ((cpu_freq) / (time_div)))
+  // reg_val = tal_set_bits_u32(enabled, reg_val, tickint_pos, tickint_len, err);
 
   /**************************************************************************************************
    * @section Systick Management Implementations
    **************************************************************************************************/
 
-  // Complete
-  void set_systick_enabled(const bool enabled) {
-    if (enabled) {
-      tal_set_mask_u32v(csr_reg, ticken_pos, ticken_len);
-      tal_set_mask_u32v(csr_reg, tickint_pos, tickint_len);
-      tal_set_mask_u32v(csr_reg, clksrc_pos, clksrc_len);
-    } else {
-      tal_clr_mask_u32v(csr_reg, ticken_pos, ticken_len);
-      tal_clr_mask_u32v(csr_reg, tickint_pos, tickint_len);
-    }
+  void init_systick() {
+    set_systick_enabled(false, NULL);
+    set_systick_interrupt_enabled(false);
+    set_systick_interrupt_pending(false);
+    set_systick_interrupt_priority(default_systick_interrupt_priority, NULL);
+    *csr_reg = tal_set_bits_u32(false, *csr_reg, clksrc_pos, clksrc_len, NULL);
+    set_systick_period(default_systick_period, NULL);
+    set_systick_duration(0, NULL);
   }
 
-  // Complete
+  void set_systick_enabled(const bool enabled, bool* const err) {
+    if (enabled && get_systick_period() <= 0) { 
+      *err = true;
+      return;
+    }
+    *csr_reg = tal_set_bits_u32(enabled, *csr_reg, ticken_pos, ticken_len, NULL);
+  }
+
   bool get_systick_enabled(void) {
-    return tal_is_set_u32v(csr_reg, ticken_pos, ticken_len);
+    return tal_get_bits_u32(true, *csr_reg, ticken_pos, ticken_len, NULL);
   }
 
-  // Complete
-  bool set_systick_reload_value(const int64_t value) {
-    if (value < 0 || tal_bit_width_u64((uint64_t)value) > reload_len) {
-      return false;
-    }
-    tal_write_mask_u32v((uint32_t)value, rvr_reg, reload_pos, reload_len);
-    return true;
+  void set_systick_period(const int32_t ns, bool* const err) {
+    tal_assert(time_div != 0);
+    const uint64_t u_ns = tal_cast_u64i(ns, err);
+    const uint64_t cycles = tal_mul_u64(u_ns, time_div, err) / cpu_freq;
+    const uint32_t reg_val = tal_cast_u32u(cycles, err);
+    *rvr_reg = tal_write_bits_u32(reg_val, *rvr_reg, reload_pos, reload_len, err);
   }
 
-  // Complete
-  int64_t get_systick_reload_value(void) {
-    return (int64_t)tal_read_mask_u32v(rvr_reg, reload_pos, reload_len);
+  int32_t get_systick_period(void) {
+    const uint32_t reg_val = tal_read_bits_u32(*rvr_reg, 
+        reload_pos, reload_len, NULL);
+    const uint64_t u_ns = tal_mul_u64(u_ns, cpu_freq, NULL) / time_div;
+    return tal_cast_i32u(u_ns, NULL);
   }
 
-  // Complete
-  bool set_systick_value(const int64_t value) {
-    if (value < 0 || tal_bit_width_u32((uint64_t)value) > 32) { 
-      return false; 
-    }
-    *cvr_reg = (uint32_t)value;
-    return true;
+  void set_systick_duration(const int32_t ns, bool* const err) {
+    const uint64_t u_ns = tal_cast_u64i(ns, err);
+    const uint64_t cycles = tal_mul_u64(u_ns, time_div, err) / cpu_freq;
+    const uint32_t reg_val = tal_cast_u32(cycles, err);
+    *cvr_reg = reg_val;
   }
 
-  // Complete
-  int64_t get_systick_value(void) {
-    return (int64_t)*cvr_reg;
+  int32_t get_systick_duration(void) {
+    const uint32_t reg_val = *cvr_reg;
+    const uint64_t u_ns = tal_mul_u64(reg_val, time_div, NULL) / cpu_freq;
+    return tal_cast_i32u(u_ns, NULL);
   }
 
-  // Complete
-  void reload_systick(void) {
-    *cvr_reg = tal_read_mask_u32v(rvr_reg, reload_pos, reload_len);
+  void restart_systick(void) {
+    *cvr_reg = tal_read_bits(*rvr_reg, reload_pos, reload_len, NULL);
   }
 
   /**************************************************************************************************
    * @section Interrupt Management Implementations
    **************************************************************************************************/
 
-  // Complete
-  bool set_systick_int_priority(const int32_t priority) {
-    if (priority < 0 || tal_bit_width_u32((uint32_t)priority) > pri_15_len) {
-      return false;
-    }
-    tal_write_mask((uint32_t)priority, shpr3_reg, pri_15_pos, pri_15_len);
-    return true;
+  void set_systick_interrupt_enabled(const bool enabled) {
+    *csr_reg = tal_set_bits_u32(enabled, *csr_reg, tickint_pos, tickint_len, NULL);
   }
 
-  // Complete
-  int32_t get_systick_int_priority(void) {
-    return (int32_t)tal_read_mask_u32v(shpr3_reg, pri_15_pos, pri_15_len);
+  bool get_systick_interrupt_enabled(void) {
+    return tal_get_bits_u32(true, *csr_reg, tickint_pos, tickint_len, NULL);
   }
 
-  // Complete
+  void set_systick_interrupt_priority(const int32_t priority, bool* const err) {
+    const uint32_t reg_val = tal_cast_u32i(priority, err);
+    *shpr3_reg = tal_write_bits_u32(reg_val, *shpr3_reg, pri_15_pos, pri_15_len, err);
+  }
+
+  int32_t get_systick_interrupt_priority(void) {
+    const uint32_t reg_val = tal_read_bits_u32(*shpr3_reg, pri_15_pos, pri_15_len, NULL);
+    return tal_cast_i32(reg_val, NULL);
+  }
+
   void set_systick_int_pending(const bool pending) {
     if (pending) {
-      tal_set_mask_u32v(icsr_reg, pendstset_pos, pendstset_len);
+      *icsr_reg = tal_set_bits_u32(true, *icsr_reg, pendstset_pos, pendstset_len, NULL);
     } else {
-      tal_set_mask_u32v(icsr_reg, pendstclr_pos, pendstclr_len);
+      *icsr_reg = tal_set_bits_u32(true, *icsr_reg, pendstclr_pos, pendstclr_len, NULL);
     }
   }
 
-  // Complete
   bool get_systick_int_pending(void) {
-    return tal_is_set_u32v(icsr_reg, pendstset_pos, pendstset_len);
+    return tal_get_bits_u32(true, *icsr_reg, pendstset_pos, pendstset_len, NULL);
   }
 
-  // Complete
   bool get_systick_int_active(void) {
-    return tal_is_set_u32v(shcsr_reg, systickact_pos, systickact_len);
+    return tal_get_bits_u32(true, *shcsr_reg, systickact_pos, systickact_len, NULL);
   }
 
 #if defined(__cplusplus)

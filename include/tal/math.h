@@ -17,14 +17,16 @@
  * @file include/tal/math.h
  * @authors Joshua Beard & Aaron McBride
  * @brief Math utilities.
+ * @note API stable.
  */
 
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
 #include <limits.h>
-#include "src/common/attributes.h"
-#include "include/tal/numeric.h"
+#include "src/common/attributes.h" // for inline attribute.
+#include "include/tal/numeric.h" // For saturating arithmetic.
+#include "include/tal/tmp.h" // For to_addr__
 
 #if defined(__cplusplus)
   extern "C" {
@@ -39,31 +41,30 @@
    * @brief Gets the nth power of the given base (integer only).
    * @param base (integer type denoted by suffix) The base's value.
    * @param exp (int32_t) The exponent value.
-   * @param err (bool*) The error flag. Set if the result of the operation
-   *            would overflow. If set, this function returns the saturated
-   *            result of the operation and is guaranteed to have no other
-   *            side effects.
-   * @returns (integer type denoted by suffix) The saturated result of raising 
-   *          'base' to the power of 'exp'.
+   * @param err (bool*) The error flag. Accessed and set true if the result 
+   *            of the operation overflows, or an internal error occurs.
+   * @returns (integer type denoted by suffix) The result of raising 'base' to
+   *          the power of 'exp', clamped to the range of the suffix type, or
+   *          0 if a non-overflow error occurs.
    * @{
    */
   tal_fn_attr_inline inline int8_t tal_pow_i8(const int8_t base, 
-      const int32_t exp, bool* err);
+      const int32_t exp, bool* const err);
   tal_fn_attr_inline inline int16_t tal_pow_i16(const int16_t base, 
-      const int32_t exp, bool* err);
+      const int32_t exp, bool* const err);
   tal_fn_attr_inline inline int32_t tal_pow_i32(const int32_t base, 
-      const int32_t exp, bool* err);
+      const int32_t exp, bool* const err);
   tal_fn_attr_inline inline int64_t tal_pow_i64(const int64_t base, 
-      const int32_t exp, bool* err);
+      const int32_t exp, bool* const err);
 
   tal_fn_attr_inline inline uint8_t tal_pow_u8(const uint8_t base, 
-      const int32_t exp, bool* err);
+      const int32_t exp, bool* const err);
   tal_fn_attr_inline inline uint16_t tal_pow_u16(const uint16_t base, 
-      const int32_t exp, bool* err);
+      const int32_t exp, bool* const err);
   tal_fn_attr_inline inline uint32_t tal_pow_u32(const uint32_t base, 
-      const int32_t exp, bool* err);
+      const int32_t exp, bool* const err);
   tal_fn_attr_inline inline uint64_t tal_pow_u64(const uint64_t base, 
-      const int32_t exp, bool* err);
+      const int32_t exp, bool* const err);
   /** @} */
 
   /**
@@ -71,31 +72,31 @@
    * @brief Gets the nth root of the given radicand (integer only).
    * @param radicand (integer type denoted by suffix) The radicand's value.
    * @param index (int32_t) The index of the root -> (e.g. sqrt -> index = 2).
-   * @param err (bool*) The error flag. Set if the result of the operation
-   *            is undefined or complex (refer to provided link). If set, 
-   *            this function returns 0 and is guaranteed to have no other 
-   *            side effects.
-   * @returns (integer type denoted by suffix) The 'index' root of 'radicand'.
+   * @param err (bool*) The error flag. Accessed and set true if the result of 
+   *            the operation is undefined or complex (refer to provided link), 
+   *            or an internal error occurs.
+   * @returns (integer type denoted by suffix) The 'index' root of 'radicand',
+   *          or 0 if an error occurs.
    * @see https://en.wikipedia.org/wiki/Nth_root
    * @{
    */
-  tal_fn_attr_inline inline int8_t tal_root_i8(const int8_t radicand, 
-      const int32_t index, bool* err);
-  tal_fn_attr_inline inline int16_t tal_root_i16(const int16_t radicand, 
-      const int32_t index, bool* err);
-  tal_fn_attr_inline inline int32_t tal_root_i32(const int32_t radicand, 
-      const int32_t index, bool* err);
-  tal_fn_attr_inline inline int64_t tal_root_i64(const int64_t radicand, 
-      const int32_t index, bool* err);
+  tal_fn_attr_inline inline tal_pair_i8t tal_root_i8(const int8_t radicand, 
+      const int32_t index, bool* const err);
+  tal_fn_attr_inline inline tal_pair_i16t tal_root_i16(const int16_t radicand, 
+      const int32_t index, bool* const err);
+  tal_fn_attr_inline inline tal_pair_i32t tal_root_i32(const int32_t radicand, 
+      const int32_t index, bool* const err);
+  tal_fn_attr_inline inline tal_pair_i64t tal_root_i64(const int64_t radicand, 
+      const int32_t index, bool* const err);
 
-  tal_fn_attr_inline inline uint8_t tal_root_u8(const uint8_t radicand, 
-      const int32_t index, bool* err);
-  tal_fn_attr_inline inline uint16_t tal_root_u16(const uint16_t radicand, 
-      const int32_t index, bool* err);
-  tal_fn_attr_inline inline uint32_t tal_root_u32(const uint32_t radicand, 
-      const int32_t index, bool* err);
-  tal_fn_attr_inline inline uint64_t tal_root_u64(const uint64_t radicand, 
-      const int32_t index, bool* err);
+  tal_fn_attr_inline inline tal_pair_u8t tal_root_u8(const uint8_t radicand, 
+      const int32_t index, bool* const err);
+  tal_fn_attr_inline inline tal_pair_u16t tal_root_u16(const uint16_t radicand, 
+      const int32_t index, bool* const err);
+  tal_fn_attr_inline inline tal_pair_u32t tal_root_u32(const uint32_t radicand, 
+      const int32_t index, bool* const err);
+  tal_fn_attr_inline inline tal_pair_u64t tal_root_u64(const uint64_t radicand, 
+      const int32_t index, bool* const err);
   /** @} */
 
   /**
@@ -103,30 +104,30 @@
    * @brief Gets the base n logarithm of a given value (integer only).
    * @param value (integer type denoted by suffix) The value to take the log of.
    * @param base (int32_t) The base of the logarithm.
-   * @param err (bool*) The error flag. Set if 'value' is less than or equal to 0,
-   *            or if 'base' is less than or equal to 1 (result is undefined). If
-   *            set, this function returns 0 and is guaranteed to have no other
-   *            side effects.
-   * @returns (integer type denoted by suffix) The 'base' n logarithm of 'value'.
+   * @param err (bool*) The error flag. Accessed and set true if the result of
+   *            the operation is undefined ('value' <= 0 or 'base' <= 1), or an
+   *            internal error occurs.
+   * @returns (integer type denoted by suffix) The 'base' n logarithm of 'value',
+   *          or 0 if an error occurs.
    * @{
    */
-  tal_fn_attr_inline inline int8_t tal_log_i8(const int8_t value, 
-      const int32_t base, bool* err);
-  tal_fn_attr_inline inline int16_t tal_log_i16(const int16_t value, 
-      const int32_t base, bool* err);
-  tal_fn_attr_inline inline int32_t tal_log_i32(const int32_t value, 
-      const int32_t base, bool* err);
-  tal_fn_attr_inline inline int64_t tal_log_i64(const int64_t value, 
-      const int32_t base, bool* err);
+  tal_fn_attr_inline inline tal_pair_i8t tal_log_i8(const int8_t value, 
+      const int32_t base, bool* const err);
+  tal_fn_attr_inline inline tal_pair_i16t tal_log_i16(const int16_t value, 
+      const int32_t base, bool* const err);
+  tal_fn_attr_inline inline tal_pair_i32t tal_log_i32(const int32_t value, 
+      const int32_t base, bool* const err);
+  tal_fn_attr_inline inline tal_pair_i64t tal_log_i64(const int64_t value, 
+      const int32_t base, bool* const err);
 
-  tal_fn_attr_inline inline uint8_t tal_log_u8(const uint8_t value, 
-      const int32_t base, bool* err);
-  tal_fn_attr_inline inline uint16_t tal_log_u16(const uint16_t value, 
-      const int32_t base, bool* err);
-  tal_fn_attr_inline inline uint32_t tal_log_u32(const uint32_t value, 
-      const int32_t base, bool* err);
-  tal_fn_attr_inline inline uint64_t tal_log_u64(const uint64_t value, 
-      const int32_t base, bool* err);
+  tal_fn_attr_inline inline tal_pair_u8t tal_log_u8(const uint8_t value, 
+      const int32_t base, bool* const err);
+  tal_fn_attr_inline inline tal_pair_u16t tal_log_u16(const uint16_t value, 
+      const int32_t base, bool* const err);
+  tal_fn_attr_inline inline tal_pair_u32t tal_log_u32(const uint32_t value, 
+      const int32_t base, bool* const err);
+  tal_fn_attr_inline inline tal_pair_u64t tal_log_u64(const uint64_t value, 
+      const int32_t base, bool* const err);
   /** @} */
 
   /**************************************************************************************************
@@ -138,31 +139,32 @@
    * @brief Rounds a value down to a given multiple (integer only).
    * @param value (integer type denoted by suffix) The value to floor.
    * @param multiple (integer type denoted by suffix) The multiple to floor to.
-   * @param err (bool*) The error flag. Set if 'multiple' is less than or
-   *            equal to 0 or if the operation overflows. If set, this function 
-   *            returns 0, or the saturated result and is guaranteed to have no 
-   *            other side effects.
+   * @param err (bool*) The error flag. Accessed and set true if 'multiple' is 
+   *            less than or equal to 0, the operation overflows, or an internal
+   *            error occurs.
    * @returns (integer type denoted by suffix) 'value' rounded to the greatest
-   *          multiple of 'multiple' that is less than or equal to it.
+   *          multiple of 'multiple' that is less than or equal to it, if no
+   *          such multiple exists the nearest in-bounds multiple is returned,
+   *          or 0 if a non-overflow error occurs.
    * @{
    */
   tal_fn_attr_inline inline int8_t tal_floor_i8(const int8_t value, 
-      const int8_t multiple, bool* err);
+      const int8_t multiple, bool* const err);
   tal_fn_attr_inline inline int16_t tal_floor_i16(const int16_t value, 
-      const int16_t multiple, bool* err);
+      const int16_t multiple, bool* const err);
   tal_fn_attr_inline inline int32_t tal_floor_i32(const int32_t value, 
-      const int32_t multiple, bool* err);
+      const int32_t multiple, bool* const err);
   tal_fn_attr_inline inline int64_t tal_floor_i64(const int64_t value, 
-      const int64_t multiple, bool* err);
+      const int64_t multiple, bool* const err);
 
   tal_fn_attr_inline inline uint8_t tal_floor_u8(const uint8_t value, 
-      const uint8_t multiple, bool* err);
+      const uint8_t multiple, bool* const err);
   tal_fn_attr_inline inline uint16_t tal_floor_u16(const uint16_t value, 
-      const uint16_t multiple, bool* err);
+      const uint16_t multiple, bool* const err);
   tal_fn_attr_inline inline uint32_t tal_floor_u32(const uint32_t value, 
-      const uint32_t multiple, bool* err);
+      const uint32_t multiple, bool* const err);
   tal_fn_attr_inline inline uint64_t tal_floor_u64(const uint64_t value, 
-      const uint64_t multiple, bool* err);
+      const uint64_t multiple, bool* const err);
   /** @} */
 
   /**
@@ -170,31 +172,32 @@
    * @brief Rounds a value up to a given multiple (integer only).
    * @param value (integer type denoted by suffix) The value to round.
    * @param multiple (integer type denoted by suffix) The multiple to round up to.
-   * @param err (bool*) The error flag. Set if 'multiple' is less than or
-   *            equal to 0 or if the operation overflows. If set, this function 
-   *            returns 0, or the saturated result and is guaranteed to have no 
-   *            other side effects.
+   * @param err (bool*) The error flag. Accessed and set true if 'multiple' is 
+   *            less than or equal to 0, the operation overflows, or an internal
+   *            error occurs.
    * @returns (integer type denoted by suffix) 'value' rounded to the smallest
-   *          multiple of 'multiple' that is greater than or equal to it.
+   *          multiple of 'multiple' that is greater than or equal to it, 0 if
+   *          'multiple' is out of bounds, the saturated result if an overflow 
+   *          occurs, or 0 if a non-overflow error occurs.
    * @{
    */
   tal_fn_attr_inline inline int8_t tal_ceil_i8(const int8_t value, 
-      const int8_t multiple, bool* err);
+      const int8_t multiple, bool* const err);
   tal_fn_attr_inline inline int16_t tal_ceil_i16(const int16_t value, 
-      const int16_t multiple, bool* err);
+      const int16_t multiple, bool* const err);
   tal_fn_attr_inline inline int32_t tal_ceil_i32(const int32_t value, 
-      const int32_t multiple, bool* err);
+      const int32_t multiple, bool* const err);
   tal_fn_attr_inline inline int64_t tal_ceil_i64(const int64_t value, 
-      const int64_t multiple, bool* err);
+      const int64_t multiple, bool* const err);
 
   tal_fn_attr_inline inline uint8_t tal_ceil_u8(const uint8_t value, 
-      const uint8_t multiple, bool* err);
+      const uint8_t multiple, bool* const err);
   tal_fn_attr_inline inline uint16_t tal_ceil_u16(const uint16_t value, 
-      const uint16_t multiple, bool* err);
+      const uint16_t multiple, bool* const err);
   tal_fn_attr_inline inline uint32_t tal_ceil_u32(const uint32_t value, 
-      const uint32_t multiple, bool* err);
+      const uint32_t multiple, bool* const err);
   tal_fn_attr_inline inline uint64_t tal_ceil_u64(const uint64_t value, 
-      const uint64_t multiple, bool* err);
+      const uint64_t multiple, bool* const err);
   /** @} */
 
   /**
@@ -202,98 +205,110 @@
    * @brief Rounds a value to the nearest given multiple (integer only).
    * @param value (integer type denoted by suffix) The value to round.
    * @param multiple (integer type denoted by suffix) The multiple to round to.
-   * @param err (bool*) The error flag. Set if 'multiple' is less than or
-   *            equal to 0, or if the operation overflows. If set, this function
-   *            returns 0, or the nearest valid multiple and is guaranteed to
-   *            have no other side effects.
+   * @param err (bool*) The error flag. Accessed and set true if 'multiple' is 
+   *            less than or equal to 0, the operation overflows, or an internal
+   *            error occurs.
    * @returns (integer type denoted by suffix) 'value' rounded to the nearest 
-   *          multiple of 'multiple'.
+   *          in-bounds multiple of 'multiple' or 0 if an error occurs.
    * @note - If 'value' is equidistant from two multiples, the greater multiple
-   *         is always choosen (even when 'value' is negative).
+   *         is choosen (unless only one of those multiples is in bounds).
    * @{
    */
   tal_fn_attr_inline inline int8_t tal_round_i8(const int8_t value, 
-      const int8_t multiple, bool* err);
+      const int8_t multiple, bool* const err);
   tal_fn_attr_inline inline int16_t tal_round_i16(const int16_t value, 
-      const int16_t multiple, bool* err);
+      const int16_t multiple, bool* const err);
   tal_fn_attr_inline inline int32_t tal_round_i32(const int32_t value, 
-      const int32_t multiple, bool* err);
+      const int32_t multiple, bool* const err);
   tal_fn_attr_inline inline int64_t tal_round_i64(const int64_t value, 
-      const int64_t multiple, bool* err);
+      const int64_t multiple, bool* const err);
 
   tal_fn_attr_inline inline uint8_t tal_round_u8(const uint8_t value, 
-      const uint8_t multiple, bool* err);
+      const uint8_t multiple, bool* const err);
   tal_fn_attr_inline inline uint16_t tal_round_u16(const uint16_t value, 
-      const uint16_t multiple, bool* err);
+      const uint16_t multiple, bool* const err);
   tal_fn_attr_inline inline uint32_t tal_round_u32(const uint32_t value, 
-      const uint32_t multiple, bool* err);
+      const uint32_t multiple, bool* const err);
   tal_fn_attr_inline inline uint64_t tal_round_u64(const uint64_t value, 
-      const uint64_t multiple, bool* err);
+      const uint64_t multiple, bool* const err);
   /** @} */ 
 
   /**************************************************************************************************
-   * @section Miscellaneous Integer Utilities
+   * @section Miscellaneous Integer Math Utilities
    **************************************************************************************************/
 
   /**
-   * @brief Gets the greatest common divisor of two integers.
-   * @param value_a (integer type denoted by suffix) The first value.
-   * @param value_b (integer type denoted by suffix) The second value.
+   * @defgroup integer tal_gcd
+   * @brief Gets the greatest common divisor of a set of values (integer only).
+   * @param values (pointer to integer type denoted by suffix), array of values
+   *               to find the greatest common divisor of.
+   * @param n (int32_t) The number of values in the given set.
+   * @param err (bool*) The error flag. Accessed and set true if 'n' or any of 
+   *            'values' is negative, 'values' is null, or an internal error occurs.
    * @returns (integer type denoted by suffix) The greatest common divisor of
-   *          'value_a' and 'value_b'.
+   *          all values in the given set, or 0 if an error occurs.
+   * @note - Values equal to 0 are ignored when determining the GCD.
    * @{
    */
-  tal_fn_attr_inline inline int8_t tal_gcd_i8(const int8_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline int16_t tal_gcd_i16(const int16_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline int32_t tal_gcd_i32(const int32_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline int64_t tal_gcd_i64(const int64_t* values, 
-      const int32_t n, bool* err);
+  tal_fn_attr_inline inline int8_t tal_gcd_i8(const int8_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline int16_t tal_gcd_i16(const int16_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline int32_t tal_gcd_i32(const int32_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline int64_t tal_gcd_i64(const int64_t* const values, 
+      const int32_t n, bool* const err);
 
-  tal_fn_attr_inline inline uint8_t tal_gcd_u8(const uint8_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline uint16_t tal_gcd_u16(const uint16_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline uint32_t tal_gcd_u32(const uint32_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline uint64_t tal_gcd_u64(const uint64_t* values, 
-      const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint8_t tal_gcd_u8(const uint8_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline uint16_t tal_gcd_u16(const uint16_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline uint32_t tal_gcd_u32(const uint32_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline uint64_t tal_gcd_u64(const uint64_t* const values, 
+      const int32_t n, bool* const err);
   /** @} */
 
   /**
-   * @brief Gets the least common multiple of two integers.
-   * @param value_a (integer type denoted by suffix) The first value.
-   * @param value_b (integer type denoted by suffix) The second value.
-   * @returns (integer type denoted by suffix) The least common multiple of
-   *          'value_a' and 'value_b'.
+   * @defgroup integer tal_lcm
+   * @brief Gets the least common multiple of a set of values (integer only).
+   * @param values (pointer to integer type denoted by suffix), array of values
+   *               to find the least common multiple of.
+   * @param n (int32_t) The number of values in the given set.
+   * @param err (bool*) The error flag. Accessed and set true if 'n' or any of 
+   *            'values' is negative, 'values' is null, the operation overflows,
+   *            or an internal error occurs.
+   * @returns (integer type denoted by suffix) The least common multiple of all
+   *          values in the given set, the saturated result if an overflow occurs,
+   *          or 0 if a non-overflow error occurs.
+   * @note - If any value in the given set equals 0, the LCM will also be 0.
    * @{
    */
-  tal_fn_attr_inline inline int8_t tal_lcm_i8(const int8_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline int16_t tal_lcm_i16(const int16_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline int32_t tal_lcm_i32(const int32_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline int64_t tal_lcm_i64(const int64_t* values, 
-      const int32_t n, bool* err);
+  tal_fn_attr_inline inline int8_t tal_lcm_i8(const int8_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline int16_t tal_lcm_i16(const int16_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline int32_t tal_lcm_i32(const int32_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline int64_t tal_lcm_i64(const int64_t* const values, 
+      const int32_t n, bool* const err);
 
-  tal_fn_attr_inline inline uint8_t tal_lcm_u8(const uint8_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline uint16_t tal_lcm_u16(const uint16_t* values, 
-      const int32_t n, bool* err);
-  tal_fn_attr_inline inline uint32_t tal_lcm_u32(const uint32_t* values, 
-      const int32_t n, bool* err); 
-  tal_fn_attr_inline inline uint64_t tal_lcm_u64(const uint64_t* values, 
-      const int32_t n, bool* err);
+  tal_fn_attr_inline inline uint8_t tal_lcm_u8(const uint8_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline uint16_t tal_lcm_u16(const uint16_t* const values, 
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline uint32_t tal_lcm_u32(const uint32_t* const values, 
+      const int32_t n, bool* const err); 
+  tal_fn_attr_inline inline uint64_t tal_lcm_u64(const uint64_t* const values, 
+      const int32_t n, bool* const err);
   /** @} */
 
   /**************************************************************************************************
-   * @internal Implementation
+   * @internal Implementation of Exponentiation Utilities
    **************************************************************************************************/
 
-  int8_t tal_pow_i8(const int8_t base, const int32_t exp, bool* err) {
+  int8_t tal_pow_i8(const int8_t base, const int32_t exp, 
+      bool* const err) {
     if (exp < 0) { 
       if (base == 0) { *err = true; }
       return 0; 
@@ -301,12 +316,13 @@
     if (exp == 0) { return 1; }
     int8_t result = base;
     for (int32_t i = 0; i < (exp - 1); ++i) {
-      result = tal_smul_i8(result, base, err);
+      result = tal_mul_i8(result, base, err);
     }
     return result;
   }
 
-  int16_t tal_pow_i16(const int16_t base, const int32_t exp, bool* err) {
+  int16_t tal_pow_i16(const int16_t base, const int32_t exp, 
+      bool* const err) {
     if (exp < 0) { 
       if (base == 0) { *err = true; }
       return 0; 
@@ -314,12 +330,13 @@
     if (exp == 0) { return 1; }
     int16_t result = base;
     for (int32_t i = 0; i < (exp - 1); ++i) {
-      result = tal_smul_i16(result, base, err);
+      result = tal_mul_i16(result, base, err);
     }
     return result;
   }
 
-  int32_t tal_pow_i32(const int32_t base, const int32_t exp, bool* err) {
+  int32_t tal_pow_i32(const int32_t base, const int32_t exp, 
+      bool* const err) {
     if (exp < 0) { 
       if (base == 0) { *err = true; }
       return 0; 
@@ -327,12 +344,13 @@
     if (exp == 0) { return 1; }
     int32_t result = base;
     for (int32_t i = 0; i < (exp - 1); ++i) {
-      result = tal_smul_i32(result, base, err);
+      result = tal_mul_i32(result, base, err);
     }
     return result;
   }
 
-  int64_t tal_pow_i64(const int64_t base, const int32_t exp, bool* err) {
+  int64_t tal_pow_i64(const int64_t base, const int32_t exp, 
+      bool* const err) {
     if (exp < 0) { 
       if (base == 0) { *err = true; }
       return 0; 
@@ -340,70 +358,88 @@
     if (exp == 0) { return 1; }
     int64_t result = base;
     for (int32_t i = 0; i < (exp - 1); ++i) {
-      result = tal_smul_i64(result, base, err);
+      result = tal_mul_i64(result, base, err);
     }
     return result;
   }
 
-  uint8_t tal_pow_u8(const uint8_t base, const int32_t exp, bool* err) {
+  uint8_t tal_pow_u8(const uint8_t base, const int32_t exp, 
+      bool* const err) {
     if (exp == 0) { return 1u; }
     uint8_t result = base;
     for (int32_t i = 0; i < (exp - 1); ++i) {
-      result = tal_smul_u8(result, base, err);
+      result = tal_mul_u8(result, base, err);
     }
     return result;
   }
 
-  uint16_t tal_pow_u16(const uint16_t base, const int32_t exp, bool* err) {
+  uint16_t tal_pow_u16(const uint16_t base, const int32_t exp, 
+      bool* const err) {
     if (exp == 0) { return 1u; }
     uint16_t result = base;
     for (int32_t i = 0; i < (exp - 1); ++i) {
-      result = tal_smul_i8(result, base, err);
+      result = tal_mul_i8(result, base, err);
     }
     return result;
   }
 
-  uint32_t tal_pow_u32(const uint32_t base, const int32_t exp, bool* err) {
+  uint32_t tal_pow_u32(const uint32_t base, const int32_t exp, 
+      bool* const err) {
     if (exp == 0) { return 1u; }
     uint32_t result = base;
     for (int32_t i = 0; i < (exp - 1); ++i) {
-      result = tal_smul_u32(result, base, err);
+      result = tal_mul_u32(result, base, err);
     }
     return result;
   }
 
-  uint64_t tal_pow_u64(const uint64_t base, const int32_t exp, bool* err) {
+  uint64_t tal_pow_u64(const uint64_t base, const int32_t exp, 
+      bool* const err) {
     if (exp == 0) { return 1u; }
     uint64_t result = base;
     for (int32_t i = 0; i < (exp - 1); ++i) {
-      result = tal_smul_u64(result, base, err);
+      result = tal_mul_u64(result, base, err);
     }
     return result;
   }
 
-  int8_t tal_root_i8(const int8_t radicand, const int32_t index, bool* err) {
+  tal_pair_i8t tal_root_i8(const int8_t radicand, const int32_t index, 
+      bool* const err) {
     if (radicand < 0 && index % 2 == 0) {
       *err = true;
-      return 0;
+      return (tal_pair_i8t){0, 0};
     }
     if (index == 0) {
       if (radicand != 0) { *err = true; }
-      return 0;
+      return (tal_pair_i8t){0, 0};
     }
     if (index < 0) {
+      if (radicand == -1 || radicand == 1) {
+        return (tal_pair_i8t){radicand, 0};
+      }
       if (radicand == 0) { *err = true; }
-      if (radicand == -1 || radicand == 1) { return radicand; }
-      return 0;      
+      return (tal_pair_i8t){0, 0};
     }
-    if (index == 1) { return radicand; }
-    int8_t c_root = 1;
+    if (index == 1) {
+      return (tal_pair_i8t){radicand, 0};
+    }
+    if (radicand / index <= index) {
+      return (tal_pair_i8t){0, radicand};
+    }
+    int8_t c_root = 2;
     while (true) {
       int8_t c_pow = radicand > 0 ? c_root : -c_root;
       for (int32_t i = 0; i < (index - 1); ++i) {
         if (radicand > 0) {
-          if (c_pow > (radicand / c_root)) { return c_root - 1; }
+          if (c_pow > (radicand / c_root)) { 
+            const int8_t rem = radicand - ((c_root - 1) * (c_root - 1));
+            return (tal_pair_i8t){c_root - 1, rem};
+          }
         } else {
-          if (c_pow < (radicand / c_root)) { return -c_root + 1; }
+          if (c_pow < (radicand / c_root)) { 
+            const int8_t rem = radicand + ((c_root - 1) * (c_root - 1));
+            return (tal_pair_i8t){-c_root + 1, -rem}; 
+          }
         }
         c_pow *= c_root;
       }
@@ -411,7 +447,8 @@
     }
   }
 
-  int16_t tal_root_i16(const int16_t radicand, const int32_t index, bool* err) {
+  int16_t tal_root_i16(const int16_t radicand, const int32_t index, 
+      bool* const err) {
     if (radicand < 0 && index % 2 == 0) {
       *err = true;
       return 0;
@@ -441,7 +478,8 @@
     }
   }
   
-  int32_t tal_root_i32(const int32_t radicand, const int32_t index, bool* err) {
+  int32_t tal_root_i32(const int32_t radicand, const int32_t index, 
+      bool* const err) {
     if (radicand < 0 && index % 2 == 0) {
       *err = true;
       return 0;
@@ -471,7 +509,8 @@
     }
   }
 
-  int64_t tal_root_i64(const int64_t radicand, const int32_t index, bool* err) {
+  int64_t tal_root_i64(const int64_t radicand, const int32_t index, 
+      bool* const err) {
     if (radicand < 0 && index % 2 == 0) {
       *err = true;
       return 0;
@@ -501,7 +540,8 @@
     }
   }
 
-  uint8_t tal_root_u8(const uint8_t radicand, const int32_t index, bool* err) {
+  uint8_t tal_root_u8(const uint8_t radicand, const int32_t index, 
+      bool* const err) {
     if (index == 0) {
       if (radicand != 0u) { *err = true; }
       return 0u;
@@ -523,7 +563,8 @@
     }
   }
 
-  uint16_t tal_root_u16(const uint16_t radicand, const int32_t index, bool* err) {
+  uint16_t tal_root_u16(const uint16_t radicand, const int32_t index, 
+      bool* const err) {
     if (index == 0) {
       if (radicand != 0u) { *err = true; }
       return 0u;
@@ -545,7 +586,8 @@
     }
   }
 
-  uint32_t tal_root_u32(const uint32_t radicand, const int32_t index, bool* err) {
+  uint32_t tal_root_u32(const uint32_t radicand, const int32_t index, 
+      bool* const err) {
     if (index == 0) {
       if (radicand != 0u) { *err = true; }
       return 0u;
@@ -567,7 +609,8 @@
     }
   }
 
-  uint64_t tal_root_u64(const uint64_t radicand, const int32_t index, bool* err) {
+  uint64_t tal_root_u64(const uint64_t radicand, const int32_t index, 
+      bool* const err) {
     if (index == 0) {
       if (radicand != 0u) { *err = true; }
       return 0u;
@@ -589,7 +632,8 @@
     }
   }
 
-  int8_t tal_log_i8(const int8_t value, const int32_t base, bool* err) {
+  int8_t tal_log_i8(const int8_t value, const int32_t base, 
+      bool* const err) {
     if (base <= 1 || value <= 0) {
       *err = true;
       return 0;
@@ -604,7 +648,8 @@
     return pow;
   }
 
-  int16_t tal_log_i16(const int16_t value, const int32_t base, bool* err) {
+  int16_t tal_log_i16(const int16_t value, const int32_t base, 
+      bool* const err) {
     if (base <= 1 || value <= 0) {
       *err = true;
       return 0;
@@ -619,7 +664,8 @@
     return pow;
   }
 
-  int32_t tal_log_i32(const int32_t value, const int32_t base, bool* err) {
+  int32_t tal_log_i32(const int32_t value, const int32_t base, 
+      bool* const err) {
     if (base <= 1 || value <= 0) {
       *err = true;
       return 0;
@@ -634,7 +680,8 @@
     return pow;
   }
 
-  int64_t tal_log_i64(const int64_t value, const int32_t base, bool* err) {
+  int64_t tal_log_i64(const int64_t value, const int32_t base, 
+      bool* const err) {
     if (base <= 1 || value <= 0) {
       *err = true;
       return 0;
@@ -649,7 +696,8 @@
     return pow;
   }
 
-  uint8_t tal_log_u8(const uint8_t value, const int32_t base, bool* err) {
+  uint8_t tal_log_u8(const uint8_t value, const int32_t base, 
+      bool* const err) {
     if (base <= 1 || value <= 0u) {
       *err = true;
       return 0u;
@@ -664,7 +712,8 @@
     return pow;
   }
 
-  uint16_t tal_log_u16(const uint16_t value, const int32_t base, bool* err) {
+  uint16_t tal_log_u16(const uint16_t value, const int32_t base, 
+      bool* const err) {
     if (base <= 1 || value <= 0u) {
       *err = true;
       return 0u;
@@ -679,7 +728,8 @@
     return pow;
   }
 
-  uint32_t tal_log_u32(const uint32_t value, const int32_t base, bool* err) {
+  uint32_t tal_log_u32(const uint32_t value, const int32_t base, 
+      bool* const err) {
     if (base <= 1 || value <= 0u) {
       *err = true;
       return 0u;
@@ -695,7 +745,8 @@
   }
 
 
-  uint64_t tal_log_u64(const uint64_t value, const int32_t base, bool* err) {
+  uint64_t tal_log_u64(const uint64_t value, const int32_t base, 
+      bool* const err) {
     if (base <= 1 || value <= 0u) {
       *err = true;
       return 0u;
@@ -710,144 +761,165 @@
     return pow;
   }
 
-  int8_t tal_floor_i8(const int8_t value, const int8_t multiple, bool* err) {
+  /**************************************************************************************************
+   * @internal Implementation of Rounding Utilities
+   **************************************************************************************************/
+
+  int8_t tal_floor_i8(const int8_t value, const int8_t multiple, 
+      bool* const err) {
     if (multiple <= 0) {
       *err = true;
       return 0;
     }
     const int8_t diff = value % multiple + (value < 0 ? multiple : 0);
-    return tal_ssub_i8(value, diff, err);
+    return tal_sub_i8(value, diff, err);
   }
 
-  int16_t tal_floor_i16(const int16_t value, const int16_t multiple, bool* err) {
+  int16_t tal_floor_i16(const int16_t value, const int16_t multiple, 
+      bool* const err) {
     if (multiple <= 0) {
       *err = true;
       return 0;
     }
     const int16_t diff = value % multiple + (value < 0 ? multiple : 0);
-    return tal_ssub_i16(value, diff, err);
+    return tal_sub_i16(value, diff, err);
   }
 
-  int32_t tal_floor_i32(const int32_t value, const int32_t multiple, bool* err) {
+  int32_t tal_floor_i32(const int32_t value, const int32_t multiple, 
+      bool* const err) {
     if (multiple <= 0) {
       *err = true;
       return 0;
     }
     const int32_t diff = value % multiple + (value < 0 ? multiple : 0);
-    return tal_ssub_i32(value, diff, err);
+    return tal_sub_i32(value, diff, err);
   }
 
-  int64_t tal_floor_i64(const int64_t value, const int64_t multiple, bool* err) {
+  int64_t tal_floor_i64(const int64_t value, const int64_t multiple, 
+      bool* const err) {
     if (multiple <= 0) {
       *err = true;
       return 0;
     }
     const int64_t diff = value % multiple + (value < 0 ? multiple : 0);
-    return tal_ssub_i64(value, diff, err);
+    return tal_sub_i64(value, diff, err);
   }
   
-  uint8_t tal_floor_u8(const uint8_t value, const uint8_t multiple, bool* err) {
+  uint8_t tal_floor_u8(const uint8_t value, const uint8_t multiple, 
+      bool* const err) {
     if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
-    return tal_ssub_u8(value, value % multiple, err);
+    return tal_sub_u8(value, value % multiple, err);
   }
 
-  uint16_t tal_floor_u16(const uint16_t value, const uint16_t multiple, bool* err) {
+  uint16_t tal_floor_u16(const uint16_t value, const uint16_t multiple, 
+      bool* const err) {
     if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
-    return tal_ssub_u16(value, value % multiple, err);
+    return tal_sub_u16(value, value % multiple, err);
   }
   
-  uint32_t tal_floor_u32(const uint32_t value, const uint32_t multiple, bool* err) {
+  uint32_t tal_floor_u32(const uint32_t value, const uint32_t multiple, 
+      bool* const err) {
     if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
-    return tal_ssub_u32(value, value % multiple, err);
+    return tal_sub_u32(value, value % multiple, err);
   }
 
-  uint64_t tal_floor_u64(const uint64_t value, const uint64_t multiple, bool* err) {
+  uint64_t tal_floor_u64(const uint64_t value, const uint64_t multiple, 
+      bool* const err) {
     if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
-    return tal_ssub_u64(value, value % multiple, err);
+    return tal_sub_u64(value, value % multiple, err);
   }
   
-  int8_t tal_ceil_i8(const int8_t value, const int8_t multiple, bool* err) {
+  int8_t tal_ceil_i8(const int8_t value, const int8_t multiple, 
+      bool* const err) {
     if (multiple <= 0) {
       *err = true;
       return 0;
     }
     const int8_t diff = (value > 0 ? multiple : 0) - value % multiple;
-    return tal_sadd_i8(value, diff, err);
+    return tal_add_i8(value, diff, err);
   }
 
-  int16_t tal_ceil_i16(const int16_t value, const int16_t multiple, bool *err) {
+  int16_t tal_ceil_i16(const int16_t value, const int16_t multiple, 
+      bool* const err) {
     if (multiple <= 0) {
       *err = true;
       return 0;
     }
     const int16_t diff = (value > 0 ? multiple : 0) - value % multiple;
-    return tal_sadd_i16(value, diff, err);
+    return tal_add_i16(value, diff, err);
   }
 
-  int32_t tal_ceil_i32(const int32_t value, const int32_t multiple, bool* err) {
+  int32_t tal_ceil_i32(const int32_t value, const int32_t multiple, 
+      bool* const err) {
     if (multiple <= 0) {
       *err = true;
       return 0;
     }
     const int32_t diff = (value > 0 ? multiple : 0) - value % multiple;
-    return tal_sadd_i32(value, diff, err);
+    return tal_add_i32(value, diff, err);
   }
 
-  int64_t tal_ceil_i64(const int64_t value, const int64_t multiple, bool* err) {
+  int64_t tal_ceil_i64(const int64_t value, const int64_t multiple, 
+      bool* const err) {
     if (multiple <= 0) {
       *err = true;
       return 0;
     }
     const int64_t diff = (value > 0 ? multiple : 0) - value % multiple;
-    return tal_sadd_i64(value, diff, err);
+    return tal_add_i64(value, diff, err);
   }
 
-  uint8_t tal_ceil_u8(const uint8_t value, const uint8_t multiple, bool* err) {
+  uint8_t tal_ceil_u8(const uint8_t value, const uint8_t multiple, 
+      bool* const err) {
     if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
-    return tal_sadd_u8(value, multiple - (value % multiple), err);
+    return tal_add_u8(value, multiple - (value % multiple), err);
   }
 
-  uint16_t tal_ceil_u16(const uint16_t value, const uint16_t multiple, bool* err) {
+  uint16_t tal_ceil_u16(const uint16_t value, const uint16_t multiple, 
+      bool* const err) {
     if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
-    return tal_sadd_u16(value, multiple - (value % multiple), err);
+    return tal_add_u16(value, multiple - (value % multiple), err);
   }
 
-  uint32_t tal_ceil_u32(const uint32_t value, const uint32_t multiple, bool* err) {
+  uint32_t tal_ceil_u32(const uint32_t value, const uint32_t multiple, 
+      bool* const err) {
     if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
-    return tal_sadd_u32(value, multiple - (value % multiple), err);
+    return tal_add_u32(value, multiple - (value % multiple), err);
   }
 
-  uint64_t tal_ceil_u64(const uint64_t value, const uint64_t multiple, bool* err) {
+  uint64_t tal_ceil_u64(const uint64_t value, const uint64_t multiple, 
+      bool* const err) {
     if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
-    return tal_sadd_u64(value, multiple - (value % multiple), err);
+    return tal_add_u64(value, multiple - (value % multiple), err);
   }
 
-  int8_t tal_round_i8(const int8_t value, const int8_t multiple, bool* err) {
-   if (multiple <= 0) {
+  int8_t tal_round_i8(const int8_t value, const int8_t multiple, 
+      bool* const err) {
+    if (multiple <= 0) {
       *err = true;
       return 0;
     }
@@ -875,8 +947,9 @@
     }
   }
 
-  int16_t tal_round_i16(const int16_t value, const int16_t multiple, bool* err) {
-   if (multiple <= 0) {
+  int16_t tal_round_i16(const int16_t value, const int16_t multiple, 
+      bool* const err) {
+    if (multiple <= 0) {
       *err = true;
       return 0;
     }
@@ -904,8 +977,9 @@
     }
   }
 
-  int32_t tal_round_i32(const int32_t value, const int32_t multiple, bool* err) {
-   if (multiple <= 0) {
+  int32_t tal_round_i32(const int32_t value, const int32_t multiple, 
+      bool* const err) {
+    if (multiple <= 0) {
       *err = true;
       return 0;
     }
@@ -933,8 +1007,9 @@
     }
   }
 
-  int64_t tal_round_i64(const int64_t value, const int64_t multiple, bool* err) {
-   if (multiple <= 0) {
+  int64_t tal_round_i64(const int64_t value, const int64_t multiple, 
+      bool* const err) {
+    if (multiple <= 0) {
       *err = true;
       return 0;
     }
@@ -962,8 +1037,9 @@
     }
   }
 
-  uint8_t tal_round_u8(const uint8_t value, const uint8_t multiple, bool* err) {
-   if (multiple <= 0u) {
+  uint8_t tal_round_u8(const uint8_t value, const uint8_t multiple, 
+      bool* const err) {
+    if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
@@ -979,8 +1055,9 @@
     }
   }
 
-  uint16_t tal_round_u16(const uint16_t value, const uint16_t multiple, bool* err) {
-   if (multiple <= 0u) {
+  uint16_t tal_round_u16(const uint16_t value, const uint16_t multiple, 
+      bool* const err) {
+    if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
@@ -996,8 +1073,9 @@
     }
   }
 
-  uint32_t tal_round_u32(const uint32_t value, const uint32_t multiple, bool* err) {
-   if (multiple <= 0u) {
+  uint32_t tal_round_u32(const uint32_t value, const uint32_t multiple, 
+      bool* const err) {
+    if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
@@ -1013,8 +1091,9 @@
     }
   }
 
-  uint64_t tal_round_u64(const uint64_t value, const uint64_t multiple, bool* err) {
-   if (multiple <= 0u) {
+  uint64_t tal_round_u64(const uint64_t value, const uint64_t multiple, 
+      bool* const err) {
+    if (multiple <= 0u) {
       *err = true;
       return 0u;
     }
@@ -1030,220 +1109,448 @@
     }
   }
 
-  int8_t tal_gcd_i8(const int8_t value_a, const int8_t value_b, bool* err) {
-    if (value_a < 0 || value_b < 0) {
-      *err = true;
-      return 0;
-    }
-    if (value_a == 0) { return value_b; }
-    if (value_b == 0) { return value_a; }
-    int8_t gcd = value_a < value_b ? value_a : value_b;
-    while (gcd > 1) {
-      if (value_a % gcd == 0 && value_b % gcd == 0) {
-        return gcd;
-      }
-      --gcd;
-    }
-    return gcd;
-  }
+  /**************************************************************************************************
+   * @internal Implementation of Miscellaneous Integer Math Utilities
+   **************************************************************************************************/
 
-  int8_t tal_gcd_i8(const int8_t* values, const int32_t n, bool* err) {
-    if (!values || n < 0) {
+  int8_t tal_gcd_i8(const int8_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(int8_t)))) {
       *err = true;
       return 0;
     }
     int8_t gcd = tal_min_i8(values, n, err);
-    while ()
-
-  }
-
-  int16_t tal_gcd_i16(const int16_t* values, const int32_t n, bool* err) {
-
-  }
-
-  int32_t tal_gcd_i32(const int32_t* values, const int32_t n, bool* err) {
-
-  }
-
-  int64_t tal_gcd_i64(const int64_t* values, const int32_t n, bool* err) {
-
-  }
-
-  uint8_t tal_gcd_u8(const uint8_t* values, const int32_t n, bool* err) {
-
-  }
-
-  uint16_t tal_gcd_u16(const uint16_t* values, const int32_t n, bool* err) {
-
-  }
-
-  uint32_t tal_gcd_u32(const uint32_t* values, const int32_t n, bool* err) {
-
-  }
-
-  uint64_t tal_gcd_u64(const uint64_t* values, const int32_t n, bool* err) {
-
-  }
-
-
-
-  int16_t tal_gcd_i16(const int16_t value_a, const int16_t value_b, bool* err) {
-    if (value_a < 0 || value_b < 0) {
-      *err = true;
-      return 0;
-    }
-    if (value_a == 0) { return value_b; }
-    if (value_b == 0) { return value_a; }
-    int16_t gcd = value_a < value_b ? value_a : value_b;
     while (gcd > 1) {
-      if (value_a % gcd == 0 && value_b % gcd == 0) {
-        return gcd;
+      bool valid_gcd = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (values[i] < 0) {
+          *err = true;
+          return 0;
+        }
+        if (values[i] != 0 &&values[i] % gcd != 0) {
+          valid_gcd = false;
+          break;
+        }
       }
+      if (valid_gcd) { break; }
       --gcd;
     }
     return gcd;
   }
 
-  int32_t tal_gcd_i32(const int32_t value_a, const int32_t value_b, bool* err) {
-    if (value_a < 0 || value_b < 0) {
+  int16_t tal_gcd_i16(const int16_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(int16_t)))) {
       *err = true;
       return 0;
     }
-    if (value_a == 0) { return value_b; }
-    if (value_b == 0) { return value_a; }
-    int32_t gcd = value_a < value_b ? value_a : value_b;
+    int16_t gcd = tal_min_i16(values, n, err);
     while (gcd > 1) {
-      if (value_a % gcd == 0 && value_b % gcd == 0) {
-        return gcd;
+      bool valid_gcd = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (values[i] < 0) {
+          *err = true;
+          return 0;
+        }
+        if (values[i] != 0 &&values[i] % gcd != 0) {
+          valid_gcd = false;
+          break;
+        }
       }
+      if (valid_gcd) { break; }
       --gcd;
     }
     return gcd;
   }
 
-  int64_t tal_gcd_i64(const int64_t value_a, const int64_t value_b, bool* err) {
-    if (value_a < 0 || value_b < 0) {
+  int32_t tal_gcd_i32(const int32_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(int32_t)))) {
       *err = true;
       return 0;
     }
-    if (value_a == 0) { return value_b; }
-    if (value_b == 0) { return value_a; }
-    int64_t gcd = value_a < value_b ? value_a : value_b;
+    int32_t gcd = tal_min_i32(values, n, err);
     while (gcd > 1) {
-      if (value_a % gcd == 0 && value_b % gcd == 0) {
-        return gcd;
+      bool valid_gcd = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (values[i] < 0) {
+          *err = true;
+          return 0;
+        }
+        if (values[i] != 0 &&values[i] % gcd != 0) {
+          valid_gcd = false;
+          break;
+        }
       }
+      if (valid_gcd) { break; }
       --gcd;
     }
     return gcd;
   }
 
-  uint8_t tal_gcd_u8(const uint8_t value_a, const uint8_t value_b) {
-    if (value_a == 0u) { return value_b; }
-    if (value_b == 0u) { return value_a; }
-    uint8_t gcd = value_a < value_b ? value_a : value_b;
+  int64_t tal_gcd_i64(const int64_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(int64_t)))) {
+      *err = true;
+      return 0;
+    }
+    int64_t gcd = tal_min_i64(values, n, err);
     while (gcd > 1) {
-      if (value_a % gcd == 0u && value_b % gcd == 0u) {
-        return gcd;
+      bool valid_gcd = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (values[i] < 0) {
+          *err = true;
+          return 0;
+        }
+        if (values[i] != 0 && values[i] % gcd != 0) {
+          valid_gcd = false;
+          break;
+        }
       }
+      if (valid_gcd) { break; }
       --gcd;
     }
     return gcd;
   }
 
-  uint16_t tal_gcd_u16(const uint16_t value_a, const uint16_t value_b) {
-    if (value_a == 0u) { return value_b; }
-    if (value_b == 0u) { return value_a; }
-    uint16_t gcd = value_a < value_b ? value_a : value_b;
-    while (gcd > 1) {
-      if (value_a % gcd == 0u && value_b % gcd == 0u) {
-        return gcd;
+  uint8_t tal_gcd_u8(const uint8_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(uint8_t)))) {
+      *err = true;
+      return 0u;
+    }
+    uint8_t gcd = tal_min_u8(values, n, err);
+    while (gcd > 1u) {
+      bool valid_gcd = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (values[i] != 0u && values[i] % gcd != 0u) {
+          valid_gcd = false;
+          break;
+        }
       }
+      if (valid_gcd) { break; }
       --gcd;
     }
     return gcd;
   }
 
-  uint32_t tal_gcd_u32(const uint32_t value_a, const uint32_t value_b) {
-    if (value_a == 0u) { return value_b; }
-    if (value_b == 0u) { return value_a; }
-    uint32_t gcd = value_a < value_b ? value_a : value_b;
-    while (gcd > 1) {
-      if (value_a % gcd == 0u && value_b % gcd == 0u) {
-        return gcd;
+  uint16_t tal_gcd_u16(const uint16_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(uint16_t)))) {
+      *err = true;
+      return 0u;
+    }
+    uint16_t gcd = tal_min_u16(values, n, err);
+    while (gcd > 1u) {
+      bool valid_gcd = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (values[i] != 0u && values[i] % gcd != 0u) {
+          valid_gcd = false;
+          break;
+        }
       }
+      if (valid_gcd) { break; }
       --gcd;
     }
     return gcd;
   }
 
-  uint64_t tal_gcd_u64(const uint64_t value_a, const uint64_t value_b) {
-    if (value_a == 0u) { return value_b; }
-    if (value_b == 0u) { return value_a; }
-    uint64_t gcd = value_a < value_b ? value_a : value_b;
-    while (gcd > 1) {
-      if (value_a % gcd == 0u && value_b % gcd == 0u) {
-        return gcd;
+  uint32_t tal_gcd_u32(const uint32_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(uint32_t)))) {
+      *err = true;
+      return 0u;
+    }
+    uint32_t gcd = tal_min_u32(values, n, err);
+    while (gcd > 1u) {
+      bool valid_gcd = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (values[i] != 0u &&values[i] % gcd != 0u) {
+          valid_gcd = false;
+          break;
+        }
       }
+      if (valid_gcd) { break; }
       --gcd;
     }
     return gcd;
   }
 
-  int8_t tal_lcm_i8(const int8_t value_a, const int8_t value_b, bool* err) {
-    bool gcd_err = false;
-    const int8_t gcd = tal_gcd_i8(value_a, value_b, &gcd_err);
-    if (!gcd_err) {
+  uint64_t tal_gcd_u64(const uint64_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(uint64_t)))) {
+      *err = true;
+      return 0u;
+    }
+    uint64_t gcd = tal_min_u64(values, n, err);
+    while (gcd > 1u) {
+      bool valid_gcd = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (values[i] != 0u && values[i] % gcd != 0u) {
+          valid_gcd = false;
+          break;
+        }
+      }
+      if (valid_gcd) { break; }
+      --gcd;
+    }
+    return gcd;
+  }
+
+  int8_t tal_lcm_i8(const int8_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(int8_t)))) {
       *err = true;
       return 0;
     }
-    return (value_a * value_b) / gcd;
+    int8_t incr = *values;
+    int8_t lcm = *values;
+    for (int32_t i = 0; i < n; i++) {
+      if (values[i] < 0) {
+        *err = true;
+        return 0;
+      }
+      if (values[i] == 0) { return 0; }
+      if (values[i] < incr) { incr = values[i]; }
+      if (values[i] > lcm) { lcm = values[i]; }
+    }
+    while (lcm <= (INT8_MAX - incr)) {
+      bool valid_lcm = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (lcm % values[i] != 0) {
+          valid_lcm = false;
+          break;
+        }
+      }
+      if (valid_lcm) { return lcm; }
+      lcm += incr;
+    }
+    *err = true;
+    return INT8_MAX;
   }
 
-  int16_t tal_lcm_i16(const int16_t value_a, const int16_t value_b, bool* err) {
-    bool gcd_err = false;
-    const int16_t gcd = tal_gcd_i16(value_a, value_b, &gcd_err);
-    if (!gcd_err) {
+  int16_t tal_lcm_i16(const int16_t* const values, const int32_t n,
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(int16_t)))) {
       *err = true;
       return 0;
     }
-    return (value_a * value_b) / gcd;
+    int16_t incr = *values;
+    int16_t lcm = *values;
+    for (int32_t i = 0; i < n; i++) {
+      if (values[i] < 0) {
+        *err = true;
+        return 0;
+      }
+      if (values[i] == 0) { return 0; }
+      if (values[i] < incr) { incr = values[i]; }
+      if (values[i] > lcm) { lcm = values[i]; }
+    }
+    while (lcm <= (INT16_MAX - incr)) {
+      bool valid_lcm = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (lcm % values[i] != 0) {
+          valid_lcm = false;
+          break;
+        }
+      }
+      if (valid_lcm) { return lcm; }
+      lcm += incr;
+    }
+    *err = true;
+    return INT16_MAX;
   }
 
-  int32_t tal_lcm_i32(const int32_t value_a, const int32_t value_b, bool* err) {
-    bool gcd_err = false;
-    const int32_t gcd = tal_gcd_i32(value_a, value_b, &gcd_err);
-    if (!gcd_err) {
+  int32_t tal_lcm_i32(const int32_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(int32_t)))) {
       *err = true;
       return 0;
     }
-    return (value_a * value_b) / gcd;
+    int32_t incr = *values;
+    int32_t lcm = *values;
+    for (int32_t i = 0; i < n; i++) {
+      if (values[i] < 0) {
+        *err = true;
+        return 0;
+      }
+      if (values[i] == 0) { return 0; }
+      if (values[i] < incr) { incr = values[i]; }
+      if (values[i] > lcm) { lcm = values[i]; }
+    }
+    while (lcm <= (INT32_MAX - incr)) {
+      bool valid_lcm = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (lcm % values[i] != 0) {
+          valid_lcm = false;
+          break;
+        }
+      }
+      if (valid_lcm) { return lcm; }
+      lcm += incr;
+    }
+    *err = true;
+    return INT32_MAX;
   }
 
-  int64_t tal_lcm_i64(const int64_t value_a, const int64_t value_b, bool* err) {
-    bool gcd_err = false;
-    const int64_t gcd = tal_gcd(value_a, value_b, &gcd_err);
-    if (!gcd_err) {
+  int64_t tal_lcm_i64(const int64_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(int64_t)))) {
       *err = true;
       return 0;
     }
-    return (value_a * value_b) / gcd;
+    int64_t incr = *values;
+    int64_t lcm = *values;
+    for (int32_t i = 0; i < n; i++) {
+      if (values[i] < 0) {
+        *err = true;
+        return 0;
+      }
+      if (values[i] == 0) { return 0; }
+      if (values[i] < incr) { incr = values[i]; }
+      if (values[i] > lcm) { lcm = values[i]; }
+    }
+    while (lcm <= (INT64_MAX - incr)) {
+      bool valid_lcm = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (lcm % values[i] != 0) {
+          valid_lcm = false;
+          break;
+        }
+      }
+      if (valid_lcm) { return lcm; }
+      lcm += incr;
+    }
+    *err = true;
+    return INT64_MAX;
   }
 
-  uint8_t tal_lcm_u8(const uint8_t value_a, const uint8_t value_b) {
-    return (value_a * value_b) / tal_gcd_u8(value_a, value_b);
+  uint8_t tal_lcm_u8(const uint8_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(uint8_t)))) {
+      *err = true;
+      return 0u;
+    }
+    int8_t incr = *values;
+    int8_t lcm = *values;
+    for (int32_t i = 0; i < n; i++) {
+      if (values[i] == 0u) { return 0u; }
+      if (values[i] < incr) { incr = values[i]; }
+      if (values[i] > lcm) { lcm = values[i]; }
+    }
+    while (lcm <= (UINT8_MAX - incr)) {
+      bool valid_lcm = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (lcm % values[i] != 0u) {
+          valid_lcm = false;
+          break;
+        }
+      }
+      if (valid_lcm) { return lcm; }
+      lcm += incr;
+    }
+    *err = true;
+    return UINT8_MAX;
   }
 
-  uint16_t tal_lcm_u16(const uint16_t value_a, const uint16_t value_b) {
-    return (value_a * value_b) / tal_gcd_u16(value_a, value_b);
+  uint16_t tal_lcm_u16(const uint16_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(uint16_t)))) {
+      *err = true;
+      return 0u;
+    }
+    uint16_t incr = *values;
+    uint16_t lcm = *values;
+    for (int32_t i = 0; i < n; i++) {
+      if (values[i] == 0u) { return 0u; }
+      if (values[i] < incr) { incr = values[i]; }
+      if (values[i] > lcm) { lcm = values[i]; }
+    }
+    while (lcm <= (UINT16_MAX - incr)) {
+      bool valid_lcm = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (lcm % values[i] != 0u) {
+          valid_lcm = false;
+          break;
+        }
+      }
+      if (valid_lcm) { return lcm; }
+      lcm += incr;
+    }
+    *err = true;
+    return UINT16_MAX;
   }
 
-  uint32_t tal_lcm_u32(const uint32_t value_a, const uint32_t value_b) {
-    return (value_a * value_b) / tal_gcd_u32(value_a, value_b);
+  uint32_t tal_lcm_u32(const uint32_t* const values, const int32_t n,
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(uint32_t)))) {
+      *err = true;
+      return 0u;
+    }
+    uint32_t incr = *values;
+    uint32_t lcm = *values;
+    for (int32_t i = 0; i < n; i++) {
+      if (values[i] == 0u) { return 0u; }
+      if (values[i] < incr) { incr = values[i]; }
+      if (values[i] > lcm) { lcm = values[i]; }
+    }
+    while (lcm <= (UINT32_MAX - incr)) {
+      bool valid_lcm = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (lcm % values[i] != 0u) {
+          valid_lcm = false;
+          break;
+        }
+      }
+      if (valid_lcm) { return lcm; }
+      lcm += incr;
+    }
+    *err = true;
+    return UINT32_MAX;
   }
 
-  uint64_t tal_lcm_u64(const uint64_t value_a, const uint64_t value_b) {
-    return (value_a * value_b) / tal_gcd_u64(value_a, value_b);
+  uint64_t tal_lcm_u64(const uint64_t* const values, const int32_t n, 
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(uint64_t)))) {
+      *err = true;
+      return 0u;
+    }
+    uint64_t incr = *values;
+    uint64_t lcm = *values;
+    for (int32_t i = 0; i < n; i++) {
+      if (values[i] == 0u) { return 0u; }
+      if (values[i] < incr) { incr = values[i]; }
+      if (values[i] > lcm) { lcm = values[i]; }
+    }
+    while (lcm <= (UINT64_MAX - incr)) {
+      bool valid_lcm = true;
+      for (int32_t i = 0; i < n; ++i) {
+        if (lcm % values[i] != 0u) {
+          valid_lcm = false;
+          break;
+        }
+      }
+      if (valid_lcm) { return lcm; }
+      lcm += incr;
+    }
+    *err = true;
+    return UINT64_MAX;
   }
 
   /** @endinternal */

@@ -27,6 +27,16 @@
   extern "C" {
 #endif
 
+  /**************************************************************************************************
+   * @section IRQ Management Configuration
+   **************************************************************************************************/
+
+  #define default_irq_priority 128
+
+  /**************************************************************************************************
+   * @section IRQ Management Facilities
+   **************************************************************************************************/
+
   /**
    * @brief Gets the number of IRQ interrupts.
    * @returns (int32_t) The number of implemented IRQ interrupts.
@@ -35,78 +45,89 @@
   int32_t get_irq_count(void);
 
   /**
-   * @brief Determines if an IRQ interrupt is valid.
-   * @param index (int32_t) The index of the IRQ interrupt to query.
-   * @returns (bool) True if the specified IRQ interrupt is valid, or false
-   *          otherwise (IRQ interrupt with 'index' is not implemented).
+   * @brief Initializes an IRQ interrupt to it's default state.
+   * @param index (int32_t) The index of the IRQ interrupt to initialize.
+   * @param err (bool*) The error flag. Accessed and set true if 'index' is
+   *            invalid, or an internal error occurs.
+   * @note - This functions disables the IRQ interrupt, set it's pending status 
+   *         to false, and sets it's priority level to 'default_irq_priority'.
    */
-  bool valid_irq_index(const int32_t index);
+  void init_irq(const int32_t index, bool* const err);
 
   /**
    * @brief Enabled or disables an IRQ interrupt.
    * @param index (int32_t) The index of the IRQ interrupt to modify.
    * @param enabled (bool) True to enable, false to disable.
-   * @returns (bool) True if the operation was successful, or false otherwise.
-   * @note - If 'index' is invalid, this function returns false.
+   * @param err (bool*) The error flag. Accessed and set true if 'index' is 
+   *            invalid, or an internal error occurs.
    */
-  bool set_irq_enabled(const int32_t index, const bool enabled);
+  void set_irq_enabled(const int32_t index, const bool enabled, 
+      bool* const err);
 
   /**
    * @brief Gets the enabled status of an IRQ interrupt.
    * @param index (int32_t) The index of the IRQ interrupt to query.
-   * @returns (bool) True if the specified IRQ interrupt is enabled, or false
-   *          otherwise.
-   * @note - If 'index' is invalid, this function returns false.
+   * @param err (bool*) The error flag. Accessed and set true if 'index' is 
+   *            invalid, or an internal error occurs.
+   * @returns (bool) True if no error occurs and the specified IRQ interrupt
+   *          is enabled, or false otherwise.
    */
-  bool get_irq_enabled(const int32_t index);
+  bool get_irq_enabled(const int32_t index, bool* const err);
 
   /**
    * @brief Sets the priority level of an IRQ interrupt.
    * @param index (int32_t) The index of the IRQ interrupt to modify.
    * @param priority (int32_t) The priority level to set (0 - 255).
-   * @returns (bool) True if the operation was successful, or false otherwise.
-   * @note - If 'index' is invalid, or 'priority' is out of range, this
-   *         function returns false.
+   * @param err (bool*) The error flag. Accessed and set true if 'index' is 
+   *            invalid, 'priority' is out of bounds, or an internal error 
+   *            occurs.
    */
-  bool set_irq_priority(const int32_t index, const int32_t priority);
+  void set_irq_priority(const int32_t index, const int32_t priority, 
+      bool* const err);
 
   /**
    * @brief Gets the priority level of an IRQ interrupt.
    * @param index (int32_t) The index of the IRQ interrupt to query.
-   * @returns (int32_t) The priority level of the specified IRQ interrupt, or -1
-   *          if 'index' is invalid.
+   * @param err (bool*) The error flag. Accessed and set true if 'index' is 
+   *            invalid, or an internal error occurs.
+   * @returns (int32_t) The priority level of the specified IRQ interrupt, or 
+   *          -1 if an error occurs.
    */
-  int32_t get_irq_priority(const int32_t index);
+  int32_t get_irq_priority(const int32_t index, bool* const err);
 
   /**
    * @brief Sets the pending status of an IRQ interrupt.
    * @param index (int32_t) The index of the IRQ interrupt to modify.
    * @param pending (bool) True to set the IRQ interrupt's pending status, or
    *                false to clear it.
-   * @returns (bool) True if the operation was successful, or false otherwise.
-   * @note - If 'index' is invalid, this function returns false.
+   * @param err (bool*) The error flag. Accessed and set true if 'index' is 
+   *            invalid, or an internal error occurs.
+   * @note - An IRQ interrupt will remain in the pending state until it is
+   *         enabled and serviced by the NVIC.
+   * @note - Disabling an IRQ interrupt does not clear it's pending status.
    */
-  bool set_irq_pending(const int32_t index, const bool pending);
+  void set_irq_pending(const int32_t index, const bool pending, 
+      bool* const err);
 
   /**
    * @brief Gets the pending status of an IRQ interrupt.
    * @param index (int32_t) The index of the IRQ interrupt to query.
-   * @returns (bool) True if the specified IRQ interrupt is pending, or false
-   *          otherwise.
-   * @note - If 'index' is invalid, this function returns false.
+   * @param err (bool*) The error flag. Accessed and set true if 'index' is 
+   *            invalid, or an internal error occurs.
+   * @returns (bool) True if no error occurs and the specified IRQ interrupt 
+   *          is pending, or false otherwise.
    */
-  bool get_irq_pending(const int32_t index);
+  bool get_irq_pending(const int32_t index, bool* const err);
 
   /**
    * @brief Determines if an IRQ interrupt is currently active.
    * @param index (int32_t) The index of the IRQ interrupt to query.
-   * @returns (bool) True if the specified IRQ interrupt is active, or false
-   *          otherwise.
-   * @note - This function only returns true if called from the specified IRQ's
-   *         execution context.
-   * @note - If 'index' is invalid, this function returns false.
+   * @param err (bool*) The error flag. Accessed and set true if 'index' is 
+   *            invalid, or an internal error occurs.
+   * @returns (bool) True if no error occurs and the specified IRQ interrupt 
+   *          is active, or false otherwise.
    */
-  bool get_irq_active(const int32_t index);
+  bool get_irq_active(const int32_t index, bool* const err);
 
 #if defined(__cplusplus)
   }

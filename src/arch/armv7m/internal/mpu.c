@@ -20,9 +20,10 @@
  */
 
 #include "src/arch/armv7m/internal/mpu.h"
-#include "include/tal/mask.h"
 #include "include/tal/bit.h"
 #include "include/tal/numeric.h"
+#include "include/tal/tmp.h"
+#include "include/tal/math.h"
 
 #if defined(__cplusplus)
   extern "C" {
@@ -137,7 +138,7 @@
   #define unalign_trp_len 1
 
   /**************************************************************************************************
-   * @section MPU Refernece Constants
+   * @section MPU Reference Maps
    **************************************************************************************************/
 
   // Mapping from mpu_region_type_t to tex_scb regval
@@ -224,54 +225,109 @@
   };
 
   /**************************************************************************************************
-   * @section MPU Management Facilities
+   * @section Helper Functions/Macros
    **************************************************************************************************/
 
-  // Complete
-  int32_t get_mpu_region_count(void) {
-    return (int32_t)*dregion_reg;
-  }
-
-  // Complete
-  bool valid_mpu_region(const int32_t index) {
+  static bool valid_mpu_region(const int32_t index) {
     return tal_in_range_i32(index, 0, get_mpu_region_count() - 1);
   }
 
-  // Complete
-  void set_mpu_enabled(const bool enabled) {
-    if (enabled) {
-      tal_set_mask_u32v(mpu_ctrl_reg, mpu_enable_pos, mpu_enable_len);
-      tal_set_mask_u32v(mpu_ctrl_reg, hfnmiena_pos, hfnmiena_len);
-      tal_set_mask_u32v(mpu_ctrl_reg, privdefena_pos, privdefena_len);
-    } else {
-      tal_clear_mask_u32v(mpu_ctrl_reg, mpu_enable_pos, mpu_enable_len);
+  static bool valid_mpu_region(const int32_t index, 
+      const mpu_loc_t loc) {
+    tal_assert(mpu_min_region_size > 0);
+    if (!tal_in_range_i32(loc.size, mpu_min_region_size, mpu_max_region_size) ||
+        loc.size % 2 != 0 || !tal_perfect_root_i32(loc.size, 2, NULL)) {
+      return false;
     }
+    const int32_t r_size = tal_root_i32(loc.size, 2, NULL);
   }
 
-  // Complete
-  bool get_mpu_enabled(void) {
-    return tal_is_set_u32v(mpu_ctrl_reg, mpu_enable_pos, mpu_enable_len);
+  /**************************************************************************************************
+   * @section MPU Core Management Facilities
+   **************************************************************************************************/
+
+  void init_mpu() {
+    /// @todo
+      // tal_set_mask_u32v(mpu_ctrl_reg, hfnmiena_pos, hfnmiena_len);
+      // tal_set_mask_u32v(mpu_ctrl_reg, privdefena_pos, privdefena_len);
   }
-  // Complete
-  bool set_mpu_region_enabled(const int32_t index, const bool enabled) {
-    if (!valid_mpu_region(index)) { return false; }
-    *mpu_rnr_reg = (uint8_t)index;
-    if (enabled) {
-      tal_set_mask_u32v(mpu_rasr_reg, rasr_enable_pos, rasr_enable_len);
-    } else {
-      tal_clear_mask_u32v(mpu_rasr_reg, rasr_enable_pos, rasr_enable_len);
+
+  int32_t get_mpu_region_count(void) {
+    return (int32_t)(*dregion_reg);
+  }
+
+  void set_mpu_enabled(const bool enabled) {
+    *mpu_ctrl_reg = tal_set_bits_u32(enabled, *mpu_ctrl_reg, mpu_enable_pos, mpu_enable_len, NULL);
+  }
+
+  bool get_mpu_enabled(void) {
+    return tal_get_bits_u32(true, *mpu_ctrl_reg, mpu_enable_pos, mpu_enable_len, NULL);
+  }
+
+  mpu_access_t query_npriv_policy(const uint64_t addr) {
+
+  }
+
+  mpu_access_t query_priv_policy(const uint64_t addr) {
+
+  }
+
+  bool query_xn_policy(const uint64_t addr) {
+
+  }
+
+  /**************************************************************************************************
+   * @section MPU Region Management Facilities
+   **************************************************************************************************/
+
+  void set_mpu_region_enabled(const int32_t index, const bool enabled, bool* const err) {
+    if (!valid_mpu_region(index)) {
+      *err = true;
+      return;
     }
+    *mpu_rnr_reg = tal_cast_u8i(index, NULL);
+    *mpu_rasr_reg = tal_set_bits_u32(enabled, *mpu_rasr_reg, rasr_enable_pos, rasr_enable_len, NULL);
+  }
+
+  bool get_mpu_region_enabled(const int32_t index, bool* const err) {
+    if (!valid_mpu_region(index)) {
+      *err = true;
+      return false;
+    }
+    *mpu_rnr_reg = tal_cast_u8i(index, NULL);
+    return tal_get_bits_u32(true, *mpu_rasr_reg, rasr_enable_pos, rasr_enable_len, NULL);
+  }
+
+  void set_mpu_region_location(const int32_t index, const mpu_loc_t loc, bool* const err) {
+    if (!valid_mpu_region(index) || loc.size <= 0 || 
+        !tal_perfect_root_i32(loc.size, 2, NULL)) {
+      *err = true;
+      return;
+    }
+    const uint32_t size_pow = 
+    const uint32_t size_pow = tal_ctz_u32((uint32_t)loc.size) + 1;
+    *mpu_rnr_reg = (uint8_t)index;
+    tal_write_mask_u32v((uint32_t)loc.addr, mpu_rbar_reg, addr_pos, addr_len);
+    tal_write_mask_u32v(size_pow, mpu_rasr_reg, size_pos, size_len);
     return true;
   }
 
-  // Complete
-  bool get_mpu_region_enabled(const int32_t index) {
-    if (!valid_mpu_region(index)) { return false; }
-    *mpu_rnr_reg = (uint8_t)index;
-    const bool enabled = tal_is_set_u32v(
-        mpu_rasr_reg, rasr_enable_pos, rasr_enable_len);
-    return enabled;
+  mpu_loc_t get_mpu_region_loc(const int32_t index) {
+    mpu_loc_t loc = {.addr = 0, .size = -1};
+    if (valid_mpu_region(index)) {
+      *mpu_rnr_reg = (uint8_t)index;
+      const uint32_t size_pow = tal_read_mask_u32v(mpu_rasr_reg, size_pos, size_len);
+      loc.size = 
+      loc.addr = tal_read_mask_u32v(mpu_rbar_reg, addr_pos, addr_len);
+    }
+    return loc;
   }
+  
+
+  /**************************************************************************************************
+   * @section MPU Management Facilities
+   **************************************************************************************************/
+
 
   // Complete
   bool set_mpu_subregion_enabled(const int32_t index, 
@@ -312,31 +368,7 @@
     return tal_is_set_u32v(mpu_rasr_reg, srd_pos + sub_index, 1);
   }
 
-  // Complete
-  bool set_mpu_region_loc(const int32_t index, const mpu_loc_t loc) {
-    if (!valid_mpu_region(index) || loc.size < 0 ||
-        !tal_single_bit_u32((uint32_t)loc.size)) {
-      return false;
-    }
-    const uint32_t size_pow = tal_ctz_u32((uint32_t)loc.size) + 1;
-    *mpu_rnr_reg = (uint8_t)index;
-    tal_write_mask_u32v((uint32_t)loc.addr, mpu_rbar_reg, addr_pos, addr_len);
-    tal_write_mask_u32v(size_pow, mpu_rasr_reg, size_pos, size_len);
-    return true;
-  }
 
-
-  // Complete
-  mpu_loc_t get_mpu_region_loc(const int32_t index) {
-    mpu_loc_t loc = {.addr = 0, .size = -1};
-    if (valid_mpu_region(index)) {
-      *mpu_rnr_reg = (uint8_t)index;
-      const uint32_t size_pow = tal_read_mask_u32v(mpu_rasr_reg, size_pos, size_len);
-      loc.size = 
-      loc.addr = tal_read_mask_u32v(mpu_rbar_reg, addr_pos, addr_len);
-    }
-    return loc;
-  }
 
   // Complete
   mpu_loc_t get_mpu_subregion_loc(const int32_t index, 

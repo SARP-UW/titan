@@ -23,9 +23,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <string.h>
 
-#include "tal/mask.h"
+#include "include/tal/bit.h"
 
 #if defined(__cplusplus)
   extern "C" {
@@ -131,9 +130,9 @@ void tal_set_mode(int pin, int mode)
   volatile int32_t* output_type_reg = port_registers[port] + MODER_OFFSET;
 
   if(mode == 1){ // todo verify write_mask does what I think
-    tal_write_mask_u32(1, output_type_reg, index * 2, 2);
+    *output_type_reg = tal_write_bits_u32(1, *output_type_reg, index * 2, 2, NULL);
   }else if(mode == -1){
-    tal_write_mask_u32(0, output_type_reg, index * 2, 2);
+    *output_type_reg = tal_write_bits_u32(0, *output_type_reg, index * 2, 2, NULL);
   }
 }
 
@@ -146,26 +145,23 @@ void tal_pull_pin(int pin, int pull)
   int port = v / 100;
   int index = v - 100 * port;
 
-  int32_t* pull_register = port_registers[port] + PUPDR_OFFSET;
+  volatile int32_t* pull_register = port_registers[port] + PUPDR_OFFSET;
 
   switch (pull)
   {
-    case 1:{
-      tal_write_mask_u32(1, pull_register, index * 2, 2);
+    case 1: {
+      *pull_register = tal_write_bits_u32(1, *pull_register, index * 2, 2, NULL);
       break;
     }
-    case 0:{
-      tal_write_mask_u32(0, pull_register, index * 2, 2);
+    case 0: {
+      *pull_register = tal_write_bits_u32(0, *pull_register, index * 2, 2, NULL);
       break;
     }
-    case -1:{
-      tal_write_mask_u32(2, pull_register, index * 2, 2);
+    case -1: {
+      *pull_register = tal_write_bits_u32(2, *pull_register, index * 2, 2, NULL);
       break;
     }
-    
-    default:{
-      break;
-    }
+    default: { break; }
   }
 }
 
@@ -178,21 +174,18 @@ void tal_set_pin(int pin, int value)
   int port = v / 100;
   int index = v - 100 * port;
 
-  int32_t* set_register = port_registers[port] + ODR_OFFSET;
+  volatile int32_t* set_register = port_registers[port] + ODR_OFFSET;
 
   switch (value){
-    case 0:{
-      tal_write_mask_u32(0, set_register, index, 1);
+    case 0: {
+      *set_register = tal_write_bits_u32(0, *set_register, index, 1, NULL);
       break;
     }
-    case 1:{
-      tal_write_mask_u32(1, set_register, index, 1);
+    case 1: {
+      *set_register = tal_write_mask_u32(1, *set_register, index, 1, NULL);
       break;
     }
-
-    default:{
-      break;
-    }
+    default: { break; }
   }
 }
 
@@ -205,8 +198,8 @@ bool tal_read_pin(int pin)
   int port = v / 100;
   int index = v - 100 * port;
 
-  int32_t* input_register = port_registers[port] + IDR_OFFSET;
-  uint32_t read_val = tal_read_mask_u32(input_register, index, 1);
+  volatile int32_t* input_register = port_registers[port] + IDR_OFFSET;
+  uint32_t read_val = tal_read_bits_u32(*input_register, index, 1, NULL);
   
   return read_val == 1;
 }

@@ -27,28 +27,14 @@
   extern "C" {
 #endif
 
-  /**************************************************************************************************
-   * @section Systick Utility Functions
-   **************************************************************************************************/
-
-  /**
-   * @brief Determines the duration that corresponds with a given systick value.
-   * @param systick_value (int64_t) The systick value to convert.
-   * @returns (int64_t) The duration in microseconds that corresponds to the 
-   *          given systick value.
-   */
-  int64_t systick_value_to_duration(const int64_t systick_value);
-
-  /**
-   * @brief Determines the systick value that corresponds to a given duration.
-   * @param micros (int64_t) The duration in microseconds to convert.
-   * @returns (int64_t) The systick value that corresponds to the given duration.
-   */
-  int64_t duration_to_systick_value(const int64_t micros);
+  #define default_systick_period 1000
+  #define default_systick_interrupt_priority 128
 
   /**************************************************************************************************
    * @section Systick Management Facilities
    **************************************************************************************************/
+
+  void init_systick();
 
   /**
    * @brief Enables or disables the systick counter.
@@ -56,7 +42,7 @@
    * @warning - Enabling the systick counter when the reload value is set to 0
    *            will cause the system to lock up.
    */
-  void set_systick_enabled(const bool enabled);
+  void set_systick_enabled(const bool enabled, bool* const err);
 
   /**
    * @brief Gets the enabled status of the systick counter.
@@ -75,7 +61,7 @@
    * @warning - Setting the reload value to 0 when the systick counter is enabled
    *            will cause the system to lock up.
    */
-  bool set_systick_reload_value(const int64_t value);
+  void set_systick_period(const int32_t ns, bool* const err);
 
   /**
    * @brief Gets the reload value of the systick counter.
@@ -84,7 +70,7 @@
    * @note - The reload value is the value loaded into the systick counter each
    *         time it counts down to zero.
    */
-  int64_t get_systick_reload_value();
+  int32_t get_systick_period(void);
 
   /**
    * @brief Sets the current value of the systick counter.
@@ -92,22 +78,26 @@
    * @returns (bool) True if the operation was successful, or false otherwise.
    * @note - If 'value' is out of range, this function will return false.
    */
-  bool set_systick_value(const int64_t value);
+  void set_systick_duration(const int32_t ns, bool* const err);
 
   /**
    * @brief Gets the current value of the systick counter.
    * @returns (int64_t) The current value of the systick counter.
    */
-  int64_t get_systick_value(void);
+  int32_t get_systick_duration(void);
 
   /**
    * @brief Sets the value of the systick counter to it's "reload" value.
    */
-  void reload_systick(void);
+  void restart_systick(void);
 
   /**************************************************************************************************
    * @section Interrupt Management Facilities
    **************************************************************************************************/
+
+  void set_systick_interrupt_enabled(const bool enabled);
+
+  bool get_systick_interrupt_enabled(void);
 
   /**
    * @brief Sets the priority level of the systick interrupt.
@@ -115,26 +105,26 @@
    * @returns (bool) True if the operation was successful, or false otherwise.
    * @note - If 'priority' is out of range, this function will return false.
    */
-  bool set_systick_int_priority(const int32_t priority);
+  void set_systick_interrupt_priority(const int32_t priority, bool* const err);
 
   /**
    * @brief Gets the priority level of the systick interrupt.
    * @returns (int32_t) The priority level of the systick interrupt.
    */
-  int32_t get_systick_int_priority(void);
+  int32_t get_systick_interrupt_priority(void);
 
   /**
    * @brief Sets the pending status of the systick interrupt.
    * @param pending (bool) True to set the systick interrupt's pending status, or
    *                false to clear it.
    */
-  void set_systick_int_pending(const bool pending);
+  void set_systick_interrupt_pending(const bool pending);
 
   /**
    * @brief Gets the pending status of the systick interrupt.
    * @returns (bool) True if the systick interrupt is pending, or false otherwise.
    */
-  bool get_systick_int_pending(void);
+  bool get_systick_interrupt_pending(void);
 
   /**
    * @brief Determines if the systick interrupt is currently active.
@@ -142,7 +132,7 @@
    * @note - This function only returns true if called from the systick's
    *         interrupt context.
    */
-  bool get_systick_int_active(void);
+  bool get_systick_interrupt_active(void);
 
 #if defined(__cplusplus)
   }

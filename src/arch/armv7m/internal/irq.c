@@ -21,9 +21,9 @@
 
 #include "src/arch/armv7m/internal/irq.h"
 #include "src/arch/armv7m/internal/vtable.h"
-#include "include/tal/mask.h"
 #include "include/tal/bit.h"
 #include "include/tal/numeric.h"
+#include "include/tal/tmp.h"
 
 #if defined(__cplusplus)
   extern "C" {
@@ -58,84 +58,115 @@
   #define intlinesum_len 4
 
   /**************************************************************************************************
+   * @section Helper Functions/Macros
+   **************************************************************************************************/
+
+  // Determines if the given IRQ index is valid.
+  static bool valid_irq_index(const int32_t index) {
+    const int32_t irq_count = get_irq_count();
+    tal_assert(irq_count > 0);
+    return tal_in_range_i32(index, 0, irq_count);
+  }
+
+  /**************************************************************************************************
    * @section Function Implementations
    **************************************************************************************************/
 
-  // Complete
+  void init_irq(const int32_t index, bool* const err) {
+    set_irq_enabled(index, false, err);
+    set_irq_pending(index, false, err);
+    set_irq_priority(index, default_irq_priority, err);
+  }
+
   int32_t get_irq_count(void) {
-    const uint32_t intlinesum_val = tal_read_mask_u32v(
-        ictr_reg, intlinesum_pos, intlinesum_len);
-    return tal_max_i32((int32_t)intlinesum_val + 1, vtable_irq_count);    
+    const uint32_t reg_val = tal_read_bits_u32(*ictr_reg, intlinesum_pos, intlinesum_len, NULL);
+    const int32_t raw_cnt = tal_cast_i32u(reg_val, NULL) + 1;
+    return tal_min2_i32(raw_cnt, vtable_irq_count);
   }
 
-  // Complete
-  bool valid_irq_index(const int32_t index) {
-    return tal_in_range_i32(index, 0, get_irq_count());
-  }
 
-  // Complete
-  bool set_irq_enabled(const int32_t index, const bool enabled) {
-    if (!valid_irq_index(index)) { return false; }
+  void set_irq_enabled(const int32_t index, const bool enabled, bool* const err) {
+    if (!valid_irq_index(index)) { 
+      *err = true;
+      return;
+    }
+    const int32_t index_pos = index % nvic_idx_div;
     if (enabled) {
-      tal_set_mask_u32v(iser_reg(index / nvic_idx_div),
-          index % nvic_idx_div, nvic_idx_len);
+      volatile uint32_t* const reg = iser_reg(index / nvic_idx_div);
+      *reg = tal_set_bits_u32(true, *reg, index_pos, nvic_idx_len, err);
     } else {
-      tal_set_mask_u32v(icer_reg(index / nvic_idx_div),
-          index % nvic_idx_div, nvic_idx_len);
+      volatile uint32_t* const reg = icer_reg(index / nvic_idx_div);
+      *reg = tal_set_bits_u32(true, *reg, index_pos, nvic_idx_len, err);
     }
-    return true;
   }
 
-  // Complete
-  bool get_irq_enabled(const int32_t index) {
-    if (!valid_irq_index(index)) { return false; }
-    return tal_is_set_u32v(iser_reg(index / nvic_idx_div),
-        index % nvic_idx_div, nvic_idx_len);
-  }
-
-  // Complete
-  bool set_irq_priority(const int32_t index, const int32_t priority) {
-    if (!valid_irq_index(index) || priority < 0 || 
-        tal_bit_width_u32((uint32_t)priority) > ipr_pri_n_len) {
-      return false; 
+  bool get_irq_enabled(const int32_t index, bool* const err) {
+    if (!valid_irq_index(index)) {
+      *err = true;
+      return false;
     }
-    tal_write_mask_u32v((uint32_t)priority, ipr_reg(index / ipr_pri_n_div),
-        index % ipr_pri_n_div, ipr_pri_n_len); 
-    return true;
+    const volatile uint32_t* const reg = iser_reg(index / nvic_idx_div);
+    const int32_t index_pos = index % nvic_idx_div;
+    return tal_get_bits_u32(true, *reg, index_pos, nvic_idx_len, err);
   }
 
-  // Complete
-  int32_t get_irq_priority(const int32_t index) {
-    if (!valid_irq_index(index)) { return -1; }
-    return (int32_t)tal_read_mask_u32v(ipr_reg(index / ipr_pri_n_div),
-        index % ipr_pri_n_div, ipr_pri_n_len); 
+  void set_irq_priority(const int32_t index, const int32_t priority, bool* const err) {
+    if (!valid_irq_index(index)) {
+      *err = true;
+      return;
+    }
+    volatile uint32_t* const reg = ipr_reg(index / ipr_pri_n_div);
+    const int32_t index_pos = index % ipr_pri_n_div;
+    const uint32_t ipr_val = tal_cast_u32i(priority, err);
+    *reg = tal_write_bits_u32(ipr_val, *reg, index_pos, ipr_pri_n_len, err);
   }
 
-  // Complete
-  bool set_irq_pending(const int32_t index, const bool pending) {
-    if (!valid_irq_index(index)) { return false; }
+  int32_t get_irq_priority(const int32_t index, bool* const err) {
+    if (!valid_irq_index(index)) { 
+      *err = true;
+      return 0; 
+    }
+    volatile uint32_t* const reg = ipr_reg(index / ipr_pri_n_div);
+    const int32_t index_pos = index % ipr_pri_n_div;
+    const uint32_t priority = tal_read_bits_u32(*reg, index_pos, ipr_pri_n_len, err);
+    tal_assert(priority <= INT32_MAX);
+    return (int32_t)priority;
+  }
+
+  void set_irq_pending(const int32_t index, const bool pending, 
+      bool* const err) {
+    if (!valid_irq_index(index)) { 
+      *err = true;
+      return;
+    }
+    const int32_t index_pos = index % nvic_idx_div;
     if (pending) {
-      tal_set_mask_u32v(ispr_reg(index / nvic_idx_div),
-          index % nvic_idx_div, nvic_idx_len);
+      volatile uint32_t* const reg = ispr_reg(index / nvic_idx_div);
+      *reg = tal_set_bits_u32(true, *reg, index_pos, nvic_idx_len, err);
     } else {
-      tal_set_mask_u32v(icpr_reg(index / nvic_idx_div),
-          index % nvic_idx_div, nvic_idx_len);
+      volatile uint32_t* const reg = icpr_reg(index / nvic_idx_div);
+      *reg = tal_set_bits_u32(true, *reg, index_pos, nvic_idx_len, err);
     }
-    return true;
   }
 
-  // Complete
-  bool get_irq_pending(const int32_t index) {
-    if (!valid_irq_index) { return false; }
-    return tal_is_set_u32v(ispr_reg(index / nvic_idx_div),
-        index % nvic_idx_div, nvic_idx_len);
+  bool get_irq_pending(const int32_t index, bool* const err) {
+    if (!valid_irq_index(index)) {
+      *err = true;
+      return false;
+    }
+    const volatile uint32_t* const reg = ispr_reg(index / nvic_idx_div);
+    const int32_t index_pos = index % nvic_idx_div;
+    return tal_get_bits_u32(true, *reg, index_pos, nvic_idx_len, err);
   }
 
-  // Complete
-  bool get_irq_active(const int32_t index) {
-    if (!valid_irq_index(index)) { return false; }
-    return tal_is_set_u32v(iabr_reg(index / nvic_idx_div),
-        index % nvic_idx_div, nvic_idx_len);
+  bool get_irq_active(const int32_t index, bool* const err) {
+    if (!valid_irq_index(index)) {
+      *err = true;
+      return false;
+    }
+    const volatile uint32_t* const reg = iabr_reg(index / nvic_idx_div);
+    const int32_t index_pos = index % nvic_idx_div;
+    return tal_get_bits_u32(true, *reg, index_pos, nvic_idx_len, err);
   }
 
 #if defined(__cplusplus)
