@@ -200,7 +200,7 @@ bool tal_read_pin(int pin)
 {
   int v = port_index_from_pin[pin];
   if(v == -1){ 
-    return;  // throw error
+    return false;  // throw error
   }
   int port = v / 100;
   int index = v - 100 * port;
