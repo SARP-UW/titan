@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <float.h>
 #include "src/common/attributes.h"
 #include "src/common/env_info.h"
 
@@ -32,8 +33,110 @@
 #endif
 
   /**************************************************************************************************
+   * @section Floating-Point Classification Utilities
+   **************************************************************************************************/
+
+  /**
+   * @defgroup fp tal_is_inf
+   * @brief Determines if a floating point value is infinite.
+   * @param value (floating point type denoted by suffix) The value to query.
+   * @returns (bool) True if 'value' is infinite, or false otherwise.
+   * @{
+   */
+  tal_fn_attr_inline inline bool tal_is_inf_f(const float value);
+  tal_fn_attr_inline inline bool tal_is_inf_d(const double value);
+  /** @} */
+
+  /**
+   * @defgroup fp tal_is_nan
+   * @brief Determines if a floating point value is NaN.
+   * @param value (floating point type denoted by suffix) The value to query.
+   * @returns (bool) True if 'value' is NaN, or false otherwise.
+   * @{
+   */
+  tal_fn_attr_inline inline bool tal_is_nan_f(const float value);
+  tal_fn_attr_inline inline bool tal_is_nan_d(const double value);
+  /** @} */
+
+  /**
+   * @defgroup fp tal_is_finite
+   * @brief Determines if a floating point value is finite.
+   * @param value (floating point type denoted by suffix) The value to query.
+   * @returns (bool) True if 'value' is finite, or false otherwise.
+   * @note - A floating-point value is finite if it is not infinite or NaN.
+   * @{
+   */
+  tal_fn_attr_inline inline bool tal_is_finite_f(const float value);
+  tal_fn_attr_inline inline bool tal_is_finite_d(const double value);
+  /** @} */
+
+  /**
+   * @defgroup fp tal_is_denorm
+   * @brief Determines if a floating point value is denormal (not normalized).
+   * @param value (floating point type denoted by suffix) The value to query.
+   * @returns (bool) True if 'value' is a "denormal" number (not zero, NaN, or
+   *          infinity), or false otherwise.
+   * @note - A denormal number is a floating-point value that is a value too
+   *         small to be represented in the normalized format.
+   * @{
+   */
+  tal_fn_attr_inline inline bool tal_is_denorm_f(const float value);
+  tal_fn_attr_inline inline bool tal_is_denorm_d(const double value);
+  /** @} */
+
+  /**
+   * @defgroup fp tal_isnorm
+   * @brief Determines if a floating point value is normal (not denormalized).
+   * @param value (floating point type denoted by suffix) The value to query.
+   * @returns True if 'value' is a "normal" number (not zero, NaN or infinity), 
+   *          or false otherwise.
+   * @{
+   */
+  tal_fn_attr_inline inline bool tal_is_norm_f(const float value);
+  tal_fn_attr_inline inline bool tal_is_norm_d(const double value);
+  /** @} */
+
+  /**
+   * @defgroup fp tal_sign_bit
+   * @brief Determines if a floating-point value is signed (negative).
+   * @param value (floating point type denoted by suffix) The value to query.
+   * @returns (bool) True if 'value' is signed (negative), or false otherwise.
+   * @{
+   */
+  tal_fn_attr_inline inline bool tal_sign_bit_f(const float value);
+  tal_fn_attr_inline inline bool tal_sign_bit_d(const double value);
+  /** @} */
+
+  /**
+   * @defgroup fp tal_ulp
+   * @brief Gets the unit of least percision for a floating-point value.
+   * @param value (floating point type denoted by suffix) The value to query.
+   * @returns (floating point type denoted by suffix) The difference between
+   *          'value' and the nearest distinct value of the same type.
+   * @note - Epsilon is the ULP of 1.0.
+   * @{
+   */
+  tal_fn_attr_inline inline float tal_ulp_f(const float value);
+  tal_fn_attr_inline inline double tal_ulp_d(const double value);
+  /** @} */
+
+  /**************************************************************************************************
    * @section Core Numeric Utilities
    **************************************************************************************************/
+
+  tal_fn_attr_inline inline int8_t tal_copy_sign_i8(const int8_t mag,
+      const int8_t sign, bool* const err);
+  tal_fn_attr_inline inline int16_t tal_copy_sign_i16(const int16_t mag,
+      const int16_t sign, bool* const err);
+  tal_fn_attr_inline inline int32_t tal_copy_sign_i32(const int32_t mag,
+      const int32_t sign, bool* const err);
+  tal_fn_attr_inline inline int64_t tal_copy_sign_i64(const int64_t mag,
+      const int64_t sign, bool* const err);
+
+  tal_fn_attr_inline inline float tal_copy_sign_f(const float mag,
+      const float sign);
+  tal_fn_attr_inline inline double tal_copy_sign_d(const double mag,
+      const double sign);
 
   /**
    * @defgroup integer tal_abs
@@ -54,6 +157,9 @@
   tal_fn_attr_inline inline int64_t tal_abs_i64(const int64_t value, 
       bool* const err);
   /** @} */
+
+  tal_fn_attr_inline inline float tal_abs_f(const float value);
+  tal_fn_attr_inline inline double tal_abs_d(const double value);
 
   /**
    * @defgroup integer tal_min
@@ -86,6 +192,11 @@
       const int32_t n, bool* const err);
   /** @} */
 
+  tal_fn_attr_inline inline float tal_min_f(const float* const values,
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline double tal_min_d(const double* const values,
+      const int32_t n, bool* const err);
+
   /**
    * @defgroup integer tal_min2
    * @brief Gets the minimum of two values.
@@ -112,6 +223,11 @@
   tal_fn_attr_inline inline uint64_t tal_min2_u64(const uint64_t value_a, 
       const uint64_t value_b);
   /** @} */
+
+  tal_fn_attr_inline inline float tal_min2_f(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline double tal_min2_d(const double value_a,
+      const double value_b, bool* const err);
 
   /**
    * @defgroup integer tal_max
@@ -144,6 +260,11 @@
       const int32_t n, bool* const err);
   /** @} */
 
+  tal_fn_attr_inline inline float tal_max_f(const float* const values,
+      const int32_t n, bool* const err);
+  tal_fn_attr_inline inline double tal_max_d(const double* const values,
+      const int32_t n, bool* const err);
+
   /**
    * @defgroup integer tal_max2
    * @brief Gets the maximum of two values.
@@ -170,6 +291,11 @@
   tal_fn_attr_inline inline uint64_t tal_max2_u64(const uint64_t value_a, 
       const uint64_t value_b);
   /** @} */
+
+  tal_fn_attr_inline inline float tal_max2_f(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline double tal_max2_d(const double value_a,
+      const double value_b, bool* const err);
 
   /**
    * @defgroup integer tal_clamp
@@ -201,6 +327,11 @@
       const uint64_t bound_a, const uint64_t bound_b);
   /** @} */
 
+  tal_fn_attr_inline inline float tal_clamp_f(const float value, 
+      const float bound_a, const float bound_b, bool* const err);
+  tal_fn_attr_inline inline double tal_clamp_d(const double value,
+      const double bound_a, const double bound_b, bool* const err);
+
   /**
    * @defgroup integer tal_in_range
    * @brief Determines if a value is within a given range.
@@ -231,6 +362,11 @@
       const uint64_t bound_a, const uint64_t bound_b);
   /** @} */
 
+  tal_fn_attr_inline inline bool tal_in_range_f(const float value, 
+      const float bound_a, const float bound_b, bool* const err);
+  tal_fn_attr_inline inline bool tal_in_range_d(const double value,
+      const double bound_a, const double bound_b, bool* const err);
+
   /**************************************************************************************************
    * @section Safe Numeric Comparison Utilities
    **************************************************************************************************/
@@ -244,6 +380,38 @@
    */
   tal_fn_attr_inline inline bool tal_cmpe_iu(const int64_t i_value, 
       const uint64_t u_value);
+  tal_fn_attr_inline inline bool tal_cmpe_iu(const int64_t i_value, 
+      const uint64_t u_value);
+
+  tal_fn_attr_inline inline bool tal_cmpe_fu(const float f_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_uf(const uint64_t u_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpe_du(const double d_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_ud(const uint64_t u_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpe_fi(const float f_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_if(const int64_t i_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpe_di(const double d_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_id(const int64_t i_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpe_fd(const float f_value,
+      const double d_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_df(const double d_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpe_ff(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_dd(const double value_a,
+      const double value_b, bool* const err);
 
   /**
    * @brief Determines if a signed integer is less than an unsigned integer.
@@ -254,6 +422,38 @@
    */
   tal_fn_attr_inline inline bool tal_cmpl_iu(const int64_t i_value, 
       const uint64_t u_value);
+  tal_fn_attr_inline inline bool tal_cmpl_ui(const uint64_t u_value,
+      const int64_t i_value);
+
+  tal_fn_attr_inline inline bool tal_cmpl_fu(const float f_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpl_uf(const uint64_t u_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpl_du(const double d_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpl_ud(const uint64_t u_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpl_fi(const float f_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpl_if(const int64_t i_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpl_di(const double d_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpl_id(const int64_t i_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpl_fd(const float f_value,
+      const double d_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpl_df(const double d_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpl_ff(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpl_dd(const double value_a,
+      const double value_b, bool* const err);
 
   /**
    * @brief Determines if a signed integer is greater than an unsigned integer.
@@ -264,6 +464,38 @@
    */
   tal_fn_attr_inline inline bool tal_cmpg_iu(const int64_t i_value, 
       const uint64_t u_value);
+  tal_fn_attr_inline inline bool tal_cmpg_ui(const uint64_t u_value,
+      const int64_t i_value);
+
+  tal_fn_attr_inline inline bool tal_cmpg_fu(const float f_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpg_uf(const uint64_t u_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpg_du(const double d_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpg_ud(const float f_value,
+      const int64_t i_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpg_fi(const float f_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpg_if(const int64_t i_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpg_di(const double d_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpg_id(const int64_t i_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpg_fd(const float f_value,
+      const double d_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpg_df(const double d_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpg_ff(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpg_dd(const double value_a,
+      const double value_b, bool* const err);
 
   /**
    * @brief Determines if a signed integer is less than or equal to an unsigned 
@@ -276,6 +508,38 @@
    */
   tal_fn_attr_inline inline bool tal_cmple_iu(const int64_t i_value, 
       const uint64_t u_value);
+  tal_fn_attr_inline inline bool tal_cmple_ui(const uint64_t u_value,
+      const int64_t i_value);
+  
+  tal_fn_attr_inline inline bool tal_cmple_fu(const float f_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmple_uf(const uint64_t u_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmple_du(const double d_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmple_ud(const uint64_t u_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmple_fi(const float f_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmple_if(const int64_t i_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmple_di(const double d_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmple_id(const int64_t i_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmple_fd(const float f_value,
+      const double d_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmple_df(const double d_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmple_ff(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmple_dd(const double value_a,
+      const double value_b, bool* const err);
 
   /**
    * @brief Determines if a signed integer is greater than or equal to an 
@@ -288,6 +552,39 @@
    */
   tal_fn_attr_inline inline bool tal_cmpge_iu(const int64_t i_value, 
       const uint64_t u_value);
+
+  tal_fn_attr_inline inline bool tal_cmpge_ui(const uint64_t u_value,
+      const int64_t i_value);
+
+  tal_fn_attr_inline inline bool tal_cmpge_fu(const float f_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpge_uf(const uint64_t u_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpge_du(const double d_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpge_ud(const uint64_t u_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpge_fi(const float f_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpge_if(const int64_t i_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpge_di(const double d_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpge_id(const int64_t i_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpge_fd(const float f_value,
+      const double d_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpge_df(const double d_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpge_ff(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpge_dd(const double value_a,
+      const double value_b, bool* const err);
 
   /**************************************************************************************************
    * @section Checked/Saturating Arithmetic Operations
@@ -611,37 +908,176 @@
   /** @} */
 
   /**************************************************************************************************
-   * @internal Implementation of Checked Numeric Operations
+   * @section Miscellaneous Floating-Point Utilities
    **************************************************************************************************/
 
-  bool tal_cmpe_iu(const int64_t i_value, const uint64_t u_value) {
-    if (i_value < 0) { return false; }
-    return (uint64_t)i_value == u_value;
-  }
+  tal_fn_attr_inline inline float tal_nan_f(void);
+  tal_fn_attr_inline inline double tal_nan_d(void);
 
-  bool tal_cmpl_iu(const int64_t i_value, const uint64_t u_value) {
-    if (i_value < 0) { return true; }
-    return (uint64_t)i_value < u_value;
-  }
+  tal_fn_attr_inline inline float tal_inf_f(void);
+  tal_fn_attr_inline inline double tal_inf_d(void);
 
-  bool tal_cmpg_iu(const int64_t i_value, const uint64_t u_value) {
-    if (i_value < 0) { return false; }
-    return (uint64_t)i_value > u_value;
-  }
+  /**************************************************************************************************
+   * @internal Implementation of Core Floating Point Utilities
+   **************************************************************************************************/
 
-  bool tal_cmple_iu(const int64_t i_value, const uint64_t u_value) {
-    if (i_value < 0) { return true; }
-    return (uint64_t)i_value <= u_value;
-  }
+  #if (tal_env_floatrep == tal_floatrep_ieee754_v)
 
-  bool tal_cmpge_iu(const int64_t i_value, const uint64_t u_value) {
-    if (i_value < 0) { return false; }
-    return (uint64_t)i_value >= u_value;
-  }
+    // float ieee754 (single prec) constants
+    static const int32_t flt_mant_bits = (FLT_MANT_DIG) - 1;
+    static const int32_t flt_exp_bits = (sizeof(float) * CHAR_BIT) - flt_mant_bits - 1;
+    static const uint32_t flt_exp_mask = ((1ull << flt_exp_bits) - 1ull) << flt_mant_bits;
+    static const uint32_t flt_mant_mask = (1ull << flt_mant_bits) - 1ull;
+    static const uint32_t flt_sign_mask = 1u << ((sizeof(float) * CHAR_BIT) - 1);
+
+    // double ieee754 (double prec) constants
+    static const int32_t dbl_mant_bits = (DBL_MANT_DIG) - 1;
+    static const int32_t dbl_exp_bits = (sizeof(double) * CHAR_BIT) - dbl_mant_bits - 1;
+    static const uint64_t dbl_exp_mask = ((1ull << dbl_exp_bits) - 1ull) << dbl_mant_bits;
+    static const uint64_t dbl_mant_mask = (1ull << dbl_mant_bits) - 1ull;
+    static const uint64_t dbl_sign_mask = 1ull << ((sizeof(double) * CHAR_BIT) - 1);  
+
+
+    bool tal_is_inf_f(const float value) {
+      union { float f; uint32_t u32; } uni = {.u32 = value};
+      return (uni.u32 & flt_exp_mask) == flt_exp_mask && 
+          (uni.u32 & flt_mant_mask) == 0u;
+    }
+
+    bool tal_is_inf_d(const double value) {
+      union { double d; uint64_t u64; } uni = {.u64 = value};
+      return (uni.u64 & dbl_exp_mask) == dbl_exp_mask && 
+          (uni.u64 & dbl_mant_mask) == 0u;
+    }
+
+    bool tal_is_nan_f(const float value) {
+      union { float f; uint32_t u32; } uni = {.u32 = value};
+      return (uni.u32 & flt_exp_mask) == flt_exp_mask && 
+          (uni.u32 & flt_mant_mask) != 0u;
+    }
+
+    bool tal_is_nan_d(const double value) {
+      union { double d; uint64_t u64; } uni = {.u64 = value};
+      return (uni.u64 & dbl_exp_mask) == dbl_exp_mask && 
+          (uni.u64 & dbl_mant_mask) != 0u;
+    }
+
+    bool tal_is_finite_f(const float value) {
+      union { float f; uint32_t u32; } uni = {.u32 = value};
+      return (uni.u32 & flt_exp_mask) != flt_exp_mask;
+    }
+
+    bool tal_is_finite_d(const double value) {
+      union { double d; uint64_t u64; } uni = {.u64 = value};
+      return (uni.u64 & dbl_exp_mask) != dbl_exp_mask;
+    }
+
+    bool tal_is_denorm_f(const float value) {
+      union { float f; uint32_t u32; } uni = {.u32 = value};
+      return uni.u32 & flt_exp_mask == 0u && uni.u32 & flt_mant_mask != 0u;
+    }
+
+    bool tal_is_denorm_d(const double value) {
+      union { double d; uint64_t u64; } uni = {.u64 = value};
+      return uni.u64 & dbl_exp_mask == 0u && uni.u64 & dbl_mant_mask != 0u;
+    }
+
+    bool tal_is_norm_f(const float value) {
+      union { float f; uint32_t u32; } uni = {.u32 = value};
+      return uni.u32 & flt_exp_mask != 0u && 
+          uni.u32 & flt_exp_mask != flt_exp_mask;
+    }
+
+    bool tal_is_norm_d(const double value) {
+      union { double d; uint64_t u64; } uni = {.u64 = value};
+      return uni.u64 & dbl_exp_mask != 0u && 
+          uni.u64 & dbl_exp_mask != dbl_exp_mask;
+    }
+
+    bool tal_sign_bit_f(const float value) {
+      union { float f; uint32_t u32; } uni = {.u32 = value};
+      return (uni.u32 & flt_sign_mask) != 0u;
+    }
+
+    bool tal_sign_bit_d(const double value) {
+      union { double d; uint64_t u64; } uni = {.u64 = value};
+      return (uni.u64 & dbl_sign_mask) != 0u;
+    }
+
+    float tal_ulp_f(const float value) {
+      union { float f; uint32_t u32; } uni = {.u32 = value};
+      ++uni.u32;
+      return uni.f - value;
+    }
+
+    double tal_ulp_d(const double value) {
+      union { double d; uint64_t u64; } uni = {.u64 = value};
+      ++uni.u64;
+      return uni.d - value;
+    }
+
+  #else
+
+    #warning "Floating point utilities are not implemented for current floating point representation."
+
+    bool tal_is_inf_f(const float value) { return false; }
+    bool tal_is_inf_d(const double value) { return false; }
+
+    bool tal_is_nan_f(const float value) { return false; }
+    bool tal_is_nan_d(const double value) { return false; }
+
+    bool tal_is_finite_f(const float value) { return false; }
+    bool tal_is_finite_d(const double value) { return false; }
+
+    bool tal_is_denorm_f(const float value) { return false; }
+    bool tal_is_denorm_d(const double value) { return false; }
+
+    bool tal_is_norm_f(const float value) { return false; }
+    bool tal_is_norm_d(const double value) { return false; }
+
+    bool tal_sign_bit_f(const float value) { return false; }
+    bool tal_sign_bit_d(const double value) { return false; }
+
+    float tal_ulp_f(const float value) { return FLT_EPSILON; }
+    double tal_ulp_d(const double value) { return DBL_EPSILON; }
+
+  #endif
 
   /**************************************************************************************************
    * @internal Implementation of Core Numeric Utilities
    **************************************************************************************************/
+
+  int8_t tal_copy_sign_i8(const int8_t mag, const int8_t sign,
+      bool* const err) {
+    return sign < 0 != mag < 0 ? tal_neg_i8(mag, err) : mag;
+  }
+
+  int16_t tal_copy_sign_i16(const int16_t mag, const int16_t sign,
+      bool* const err) {
+    return sign < 0 != mag < 0 ? tal_neg_i16(mag, err) : mag;
+  }
+
+  int32_t tal_copy_sign_i32(const int32_t mag, const int32_t sign,
+      bool* const err) {
+    return sign < 0 != mag < 0 ? tal_neg_i32(mag, err) : mag;
+  }
+
+  int64_t tal_copy_sign_i64(const int64_t mag, const int64_t sign,
+      bool* const err) {
+    return sign < 0 != mag < 0 ? tal_neg_i64(mag, err) : mag;
+  }
+
+  float tal_copy_sign_f(const float mag, const float sign) {
+    const bool sign_sign = tal_sign_bit_f(sign);
+    const bool mag_sign = tal_sign_bit_f(mag);
+    return sign_sign != mag_sign ? tal_neg_f(mag) : mag;
+  }
+
+  double tal_copy_sign_d(const double mag, const double sign) {
+    const bool sign_sign = tal_sign_bit_d(sign);
+    const bool mag_sign = tal_sign_bit_d(mag);
+    return sign_sign != mag_sign ? tal_neg_d(mag) : mag; 
+  }
 
   int8_t tal_abs_i8(const int8_t value, bool* const err) {    
     return value < 0 ? tal_neg_i8(value, err) : value;
@@ -657,6 +1093,14 @@
 
   int64_t tal_abs_i64(const int64_t value, bool* const err) { 
     return value < 0 ? tal_neg_i64(value, err) : value;
+  }
+
+  float tal_abs_f(const float value) {
+    return tal_sign_bit_f(value) ? tal_neg_f(value) : value;
+  }
+
+  double tal_abs_d(const double value) {
+    return tal_sign_bit_d(value) ? tal_neg_d(value) : value;
   }
 
   int8_t tal_min_i8(const int8_t* const values, const int32_t n, 
@@ -771,6 +1215,48 @@
     return min;
   }
 
+  float tal_min_f(const float* const values, const int32_t n,
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(float)))) {
+      *err = true;
+      return tal_nan_f();
+    }
+    float min = tal_nan_f();
+    for (int32_t i = 0; i < n; ++i) {
+      if (!tal_is_nan_f(values[i])) {
+        if (tal_is_nan_f(min)) {
+          min = values[i];
+        } else if (tal_cmpl_ff(values[i], min, NULL)) {
+          min = values[i];
+        }
+      }
+    }
+    if (tal_is_nan_f(min)) { *err = true; }
+    return min;
+  }
+
+  double tal_min_d(const double* const values, const int32_t n,
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(float)))) {
+      *err = true;
+      return tal_nan_d();
+    }
+    double min = tal_nan_d();
+    for (int32_t i = 0; i < n; ++i) {
+      if (!tal_is_nan_d(values[i])) {
+        if (tal_is_nan_d(min)) {
+          min = values[i];
+        } else if (tal_cmpl_dd(values[i], min, NULL)) {
+          min = values[i];
+        }
+      }
+    }
+    if (tal_is_nan_d(min)) { *err = true; }
+    return min;
+  }
+
   int8_t tal_min2_i8(const int8_t value_a, const int8_t value_b) {
     return value_a < value_b ? value_a : value_b;
   }
@@ -801,6 +1287,38 @@
 
   uint64_t tal_min2_u64(const uint64_t value_a, const uint64_t value_b) {
     return value_a < value_b ? value_a : value_b;
+  }
+
+  float tal_min2_f(const float value_a, const float value_b,
+      bool* const err) {
+    const bool a_nan = tal_is_nan_f(value_a);
+    const bool b_nan = tal_is_nan_f(value_b);
+    if (a_nan && b_nan) {
+      *err = true;
+      return tal_sign_bit_f(value_a) ? value_a : value_b;
+    } else if (a_nan) {
+      return value_b;
+    } else if (b_nan) {
+      return value_a;
+    } else {
+      return tal_cmpl_ff(value_a, value_b, NULL) ? value_a : value_b;
+    }
+  }
+
+  double tal_min2_d(const double value_a, const double value_b,
+      bool* const err) {
+    const bool a_nan = tal_is_nan_d(value_a);
+    const bool b_nan = tal_is_nan_d(value_b);
+    if (a_nan && b_nan) {
+      *err = true;
+      return tal_sign_bit_d(value_a) ? value_a : value_b;
+    } else if (a_nan) {
+      return value_b;
+    } else if (b_nan) {
+      return value_a;
+    } else {
+      return tal_cmpl_dd(value_a, value_b, NULL) ? value_a : value_b;
+    }
   }
 
   int8_t tal_max_i8(const int8_t* const values, const int32_t n, 
@@ -915,6 +1433,48 @@
     return max;
   }
 
+  float tal_max_f(const float* const values, const int32_t n,
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(float)))) {
+      *err = true;
+      return tal_nan_f();
+    }
+    float max = tal_nan_f();
+    for (int32_t i = 0; i < n; ++i) {
+      if (!tal_is_nan_f(values[i])) {
+        if (tal_is_nan_f(max)) {
+          max = values[i];
+        } else if (tal_cmpg_ff(values[i], max, NULL)) {
+          max = values[i];
+        }
+      }
+    }
+    if (tal_is_nan_f(max)) { *err = true; }
+    return max;
+  }
+
+  double tal_max_d(const double* const values, const int32_t n,
+      bool* const err) {
+    if (!values || n < 0 || (uintptr_t)values > (UINTPTR_MAX - 
+        ((uint32_t)n * sizeof(double)))) {
+      *err = true;
+      return tal_nan_d();
+    }
+    double max = tal_nan_d();
+    for (int32_t i = 0; i < n; ++i) {
+      if (!tal_is_nan_d(values[i])) {
+        if (tal_is_nan_d(max)) {
+          max = values[i];
+        } else if (tal_cmpg_dd(values[i], max, NULL)) {
+          max = values[i];
+        }
+      }
+    }
+    if (tal_is_nan_d(max)) { *err = true; }
+    return max;
+  }
+
   int8_t tal_max2_i8(const int8_t value_a, const int8_t value_b) {
     return value_a > value_b ? value_a : value_b;
   }
@@ -947,6 +1507,37 @@
     return value_a > value_b ? value_a : value_b;
   }
 
+  float tal_max2_f(const float value_a, const float value_b,
+      bool* const err) {
+    const bool a_nan = tal_is_nan_f(value_a);
+    const bool b_nan = tal_is_nan_f(value_b);
+    if (a_nan && b_nan) {
+      *err = true;
+      return tal_sign_bit_f(value_a) ? value_a : value_b;
+    } else if (a_nan) {
+      return value_b;
+    } else if (b_nan) {
+      return value_a;
+    } else {
+      return tal_cmpg_ff(value_a, value_b, NULL) ? value_a : value_b;
+    }
+  }
+
+  double tal_max2_d(const double value_a, const double value_b,
+      bool* const err) {
+    const bool a_nan = tal_is_nan_d(value_a);
+    const bool b_nan = tal_is_nan_d(value_b);
+    if (a_nan && b_nan) {
+      *err = true;
+      return tal_sign_bit_d(value_a) ? value_a : value_b;
+    } else if (a_nan) {
+      return value_b;
+    } else if (b_nan) {
+      return value_a;
+    } else {
+      return tal_cmpg_dd(value_a, value_b, NULL) ? value_a : value_b;
+    }
+  }
 
   int8_t tal_clamp_i8(const int8_t value, const int8_t bound_a, 
       const int8_t bound_b) {
@@ -1044,6 +1635,44 @@
     return value;
   }
 
+  float tal_clamp_f(const float value, const float bound_a,
+      const float bound_b, bool* const err) {
+    if (tal_is_nan_f(bound_a) || tal_is_nan_f(bound_b) ||
+        tal_is_nan_f(value)) {
+      *err = true;
+      const bool a_sign = tal_sign_bit_f(bound_a);
+      const bool b_sign = tal_sign_bit_f(bound_b);
+      return a_sign == b_sign ? bound_a : tal_nan_f();
+    }
+    if (tal_cmpl_ff(bound_a, bound_b, NULL)) {
+      if (tal_cmpl_ff(value, bound_a, NULL)) { return bound_a; }
+      if (tal_cmpg_ff(value, bound_b, NULL)) { return bound_b; }
+    } else {
+      if (tal_cmpl_ff(value, bound_b, NULL)) { return bound_b; }
+      if (tal_cmpg_ff(value, bound_a, NULL)) { return bound_a; }
+    }
+    return value;
+  }
+
+  double tal_clamp_d(const double value, const double bound_a,
+      const double bound_b, bool* const err) {
+    if (tal_is_nan_d(bound_a) || tal_is_nan_d(bound_b) ||
+        tal_is_nan_d(value)) {
+      *err = true;
+      const bool a_sign = tal_sign_bit_d(bound_a);
+      const bool b_sign = tal_sign_bit_d(bound_b);
+      return a_sign == b_sign ? bound_a : tal_nan_d();
+    }
+    if (tal_cmpl_dd(bound_a, bound_b, NULL)) {
+      if (tal_cmpl_dd(value, bound_a, NULL)) { return bound_a; }
+      if (tal_cmpg_dd(value, bound_b, NULL)) { return bound_b; }
+    } else {
+      if (tal_cmpl_dd(value, bound_b, NULL)) { return bound_b; }
+      if (tal_cmpg_dd(value, bound_a, NULL)) { return bound_a; }
+    }
+    return value;
+  }
+
   bool tal_in_range_i8(const int8_t value, const int8_t bound_a, 
       const int8_t bound_b) {
     if (bound_a > bound_b) {
@@ -1116,17 +1745,129 @@
     }
   }
 
+  bool tal_in_range_f(const float value, const float bound_a, 
+      const float bound_b, bool* const err) {
+    if (tal_is_nan_f(value) || tal_is_nan_f(bound_a) || 
+        tal_is_nan_f(bound_b)) {
+      *err = true;
+      return false;
+    }
+    if (tal_cmpl_ff(bound_a, bound_b, NULL)) {
+      return tal_cmpl_ff(value, bound_a, NULL) && 
+          tal_cmpg_ff(value, bound_b, NULL);
+    } else {
+      return tal_cmpl_ff(value, bound_b, NULL) && 
+          tal_cmpg_ff(value, bound_a, NULL);
+    }
+  }
+
+  bool tal_in_range_d(const double value, const double bound_a, 
+      const double bound_b, bool* const err) {
+    if (tal_is_nan_d(value) || tal_is_nan_d(bound_a) || 
+        tal_is_nan_d(bound_b)) {
+      *err = true;
+      return false;
+    }
+    if (tal_cmpl_dd(bound_a, bound_b, NULL)) {
+      return tal_cmpl_dd(value, bound_a, NULL) && 
+          tal_cmpg_dd(value, bound_b, NULL);
+    } else {
+      return tal_cmpl_dd(value, bound_b, NULL) && 
+          tal_cmpg_dd(value, bound_a, NULL);
+    }
+  }
+
+  /**************************************************************************************************
+   * @internal Implementation of Safe Numeric Comparison Utilities
+   **************************************************************************************************/
+
+  #define tal_cmp_max_ulp (1)
+
+  bool tal_cmpe_iu(const int64_t i_value, const uint64_t u_value) {
+    if (i_value < 0) { return false; }
+    return (uint64_t)i_value == u_value;
+  }
+  bool tal_cmpe_ui(const uint64_t u_value, const int64_t i_value) {
+    return tal_cmpe_iu(i_value, u_value);
+  }
+
+  tal_fn_attr_inline inline bool tal_cmpe_fu(const float f_value,
+      const uint64_t u_value, bool* const err) {
+    if (tal_is_nan_f(f_value)) { 
+      *err = true;
+      return false; 
+    }
+    if (tal_is_inf_f(f_value)) { 
+      return false; 
+    }
+    if (tal_sign_bit_f(f_value)) {
+      return u_value == 0 && f_value == 0.0f;
+    }
+    const float f_u_value = (float)u_value;
+    const float tot_ulp = tal_ulp_f(f_u_value) + tal_ulp_f(f_value);
+    return tal_abs_f(f_value - f_u_value) <= 
+        (tot_ulp * (float)tal_cmp_max_ulp);
+  }
+
+  tal_fn_attr_inline inline bool tal_cmpe_uf(const uint64_t u_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpe_du(const double d_value,
+      const uint64_t u_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_ud(const uint64_t u_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpe_fi(const float f_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_if(const int64_t i_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpe_di(const double d_value,
+      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_id(const int64_t i_value,
+      const double d_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpe_fd(const float f_value,
+      const double d_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_df(const double d_value,
+      const float f_value, bool* const err);
+
+  tal_fn_attr_inline inline bool tal_cmpe_ff(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpe_dd(const double value_a,
+      const double value_b, bool* const err);
+
+  bool tal_cmpl_iu(const int64_t i_value, const uint64_t u_value) {
+    if (i_value < 0) { return true; }
+    return (uint64_t)i_value < u_value;
+  }
+
+  bool tal_cmpg_iu(const int64_t i_value, const uint64_t u_value) {
+    if (i_value < 0) { return false; }
+    return (uint64_t)i_value > u_value;
+  }
+
+  bool tal_cmple_iu(const int64_t i_value, const uint64_t u_value) {
+    if (i_value < 0) { return true; }
+    return (uint64_t)i_value <= u_value;
+  }
+
+  bool tal_cmpge_iu(const int64_t i_value, const uint64_t u_value) {
+    if (i_value < 0) { return false; }
+    return (uint64_t)i_value >= u_value;
+  }
+
   /**************************************************************************************************
    * @internal Implementation of Checked/Saturating Arithmetic Operations
    **************************************************************************************************/
 
   int8_t tal_neg_i8(const int8_t value, bool* const err) {
-    #if (tal_sys_signrep == tal_signrep_two_compl_v)
+    #if (tal_env_signrep == tal_signrep_2compl_v)
       if (value == INT8_MIN) {
         *err = true;
         return INT8_MIN;
       }
-    #elif (tal_sys_signrep == tal_signrep_two_compl_v)
+    #elif (tal_env_signrep == tal_signrep_2compl_v)
       if (value == INT8_MAX) {
         *err = true;
         return INT8_MAX;
@@ -1136,12 +1877,12 @@
   }
 
   int16_t tal_neg_i16(const int16_t value, bool* const err) {
-    #if (tal_sys_signrep == tal_signrep_two_compl_v)
+    #if (tal_env_signrep == tal_signrep_2compl_v)
       if (value == INT16_MIN) {
         *err = true;
         return INT16_MIN;
       }
-    #elif (tal_sys_signrep == tal_signrep_two_compl_v)
+    #elif (tal_env_signrep == tal_signrep_2compl_v)
       if (value == INT16_MAX) {
         *err = true;
         return INT16_MAX;
@@ -1151,12 +1892,12 @@
   }
 
   int32_t tal_neg_i32(const int32_t value, bool* const err) {
-    #if (tal_sys_signrep == tal_signrep_two_compl_v)
+    #if (tal_env_signrep == tal_signrep_2compl_v)
       if (value == INT32_MIN) {
         *err = true;
         return INT32_MIN;
       }
-    #elif (tal_sys_signrep == tal_signrep_two_compl_v)
+    #elif (tal_env_signrep == tal_signrep_2compl_v)
       if (value == INT32_MAX) {
         *err = true;
         return INT32_MAX;
@@ -1166,12 +1907,12 @@
   }
 
   int64_t tal_neg_i64(const int64_t value, bool* const err) {
-    #if (tal_sys_signrep == tal_signrep_two_compl_v)
+    #if (tal_env_signrep == tal_signrep_2compl_v)
       if (value == INT64_MIN) {
         *err = true;
         return INT64_MIN;
       }
-    #elif (tal_sys_signrep == tal_signrep_two_compl_v)
+    #elif (tal_env_signrep == tal_signrep_2compl_v)
       if (value == INT64_MAX) {
         *err = true;
         return INT64_MAX;
@@ -1398,7 +2139,7 @@
         return INT8_MIN;
       }
     } else {
-      #if (tal_sys_signrep == tal_signrep_two_compl_v)
+      #if (tal_env_signrep == tal_signrep_2compl_v)
         if (value_b == -1) {
           if (value_a == INT8_MIN) {
             *err = true;
@@ -1434,7 +2175,7 @@
         return INT16_MIN;
       }
     } else {
-      #if (tal_sys_signrep == tal_signrep_two_compl_v)
+      #if (tal_env_signrep == tal_signrep_2compl_v)
         if (value_b == -1) {
           if (value_a == INT16_MIN) {
             *err = true;
@@ -1470,7 +2211,7 @@
         return INT32_MIN;
       }
     } else {
-      #if (tal_sys_signrep == tal_signrep_two_compl_v)
+      #if (tal_env_signrep == tal_signrep_2compl_v)
         if (value_b == -1) {
           if (value_a == INT32_MIN) {
             *err = true;
@@ -1506,7 +2247,7 @@
         return INT64_MIN;
       }
     } else {
-      #if (tal_sys_signrep == tal_signrep_two_compl_v)
+      #if (tal_env_signrep == tal_signrep_2compl_v)
         if (value_b == -1) {
           if (value_a == INT64_MIN) {
             *err = true;
@@ -2268,6 +3009,49 @@
     }
     return product;
   }
+
+  /**************************************************************************************************
+   * @section Implementation of Miscellaneous Floating-Point Utilities
+   **************************************************************************************************/
+
+  #if (tal_env_floatrep == tal_floatrep_ieee754_v)
+
+    float tal_nan_f(void) {
+      static const union { float f; uint32_t u32; } 
+          uni = {.u32 = 0x7FC00000};
+      return uni.f;
+    }
+
+    double tal_nan_d(void) {
+      static const union { double d; uint64_t u64; } 
+          uni = {.u64 = 0x7FF8000000000000};
+      return uni.d;
+    }
+
+    float tal_inf_f(void) {
+      static const union { float f; uint32_t u32; } 
+          uni = {.u32 = 0x7F800000};
+      return uni.f;
+    }
+
+    double tal_inf_d(void) {
+      static const union { double d; uint64_t u64; } 
+          uni = {.u64 = 0x7FF0000000000000};
+      return uni.d;
+    }
+
+  #else
+
+    #warning "Miscellaneous floating-point utilities are not implemented \
+              for the current floating-point representation type."
+
+    float tal_nan_f(void) { return 0.0f; }
+    double tal_nan_d(void) { return 0.0f; }
+
+    float tal_inf_f(void) { return 0.0f; }
+    double tal_inf_d(void) { return 0.0f; }
+    
+  #endif
 
   /** @endinternal */
 

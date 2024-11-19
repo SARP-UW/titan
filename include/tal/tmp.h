@@ -5,6 +5,8 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
+#include <float.h>
+#include <math.h>
 
 #if defined(__cplusplus)
   extern "C" {

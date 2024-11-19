@@ -423,10 +423,30 @@
     if (index == 1) {
       return (tal_pair_i8t){radicand, 0};
     }
-    if (radicand / index <= index) {
-      return (tal_pair_i8t){0, radicand};
+
+    int8_t best_root = 0;
+    int8_t best_pow = 0;
+    int8_t c_root = radicand > 0 ? 1 : -1;
+    while (true) {
+      int8_t c_pow = c_root;
+      for (int32_t i = 0; i < (index - 1); ++i) {
+        if (radicand > 0) {
+          if (c_pow > (INT8_MAX / c_root)) { goto exit; }
+          if (tal_abs_i8(radicand - c_pow, NULL) < best_pow) {
+            best_pow
+          }
+
+        } else {
+
+        }
+
+      }
     }
-    int8_t c_root = 2;
+    exit:
+
+
+
+    int8_t c_root = 1;
     while (true) {
       int8_t c_pow = radicand > 0 ? c_root : -c_root;
       for (int32_t i = 0; i < (index - 1); ++i) {
