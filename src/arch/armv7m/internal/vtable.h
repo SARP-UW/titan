@@ -352,6 +352,12 @@
     }
   };
 
+  
+
+  void irq_1_handler() {
+
+  }
+
 #if defined(__cplusplus)
   }
 #endif

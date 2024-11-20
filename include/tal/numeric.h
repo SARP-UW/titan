@@ -474,8 +474,8 @@
 
   tal_fn_attr_inline inline bool tal_cmpg_du(const double d_value,
       const uint64_t u_value, bool* const err);
-  tal_fn_attr_inline inline bool tal_cmpg_ud(const float f_value,
-      const int64_t i_value, bool* const err);
+  tal_fn_attr_inline inline bool tal_cmpg_ud(const uint64_t u_value,
+      const double d_value, bool* const err);
 
   tal_fn_attr_inline inline bool tal_cmpg_fi(const float f_value,
       const int64_t i_value, bool* const err);
@@ -552,7 +552,6 @@
    */
   tal_fn_attr_inline inline bool tal_cmpge_iu(const int64_t i_value, 
       const uint64_t u_value);
-
   tal_fn_attr_inline inline bool tal_cmpge_ui(const uint64_t u_value,
       const int64_t i_value);
 
@@ -610,6 +609,9 @@
       bool* const err);
   /** @} */
 
+  tal_fn_attr_inline inline float tal_neg_f(const float value);
+  tal_fn_attr_inline inline double tal_neg_d(const double value);
+
   /**
    * @defgroup integer tal_add
    * @brief Checked/saturating addition operation.
@@ -639,6 +641,11 @@
   tal_fn_attr_inline inline uint64_t tal_add_u64(const uint64_t value_a, 
       const uint64_t value_b, bool* const err);
   /** @} */
+
+  tal_fn_attr_inline inline float tal_add_f(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline double tal_add_d(const double value_a,
+      const double value_b, bool* const err);
 
   /**
    * @defgroup integer tal_sub
@@ -670,6 +677,11 @@
       const uint64_t value_b, bool* const err);
   /** @} */
 
+  tal_fn_attr_inline inline tal_sub_f(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline tal_sub_d(const double value_a,
+      const double value_b, bool* const err);
+
   /**
    * @defgroup integer tal_mul
    * @brief Checked/saturating multiplication operation.
@@ -700,6 +712,11 @@
       const uint64_t value_b, bool* const err);
   /** @} */
 
+  tal_fn_attr_inline inline float tal_mul_f(const float value_a,
+      const float value_b, bool* const err);
+  tal_fn_attr_inline inline double tal_mul_d(const double value_a,
+      const double value_b, bool* const err);
+
   /**
    * @defgroup integer tal_div
    * @brief Checked/saturating division operation.
@@ -729,6 +746,11 @@
   tal_fn_attr_inline inline uint64_t tal_div_u64(const uint64_t num, 
       const uint64_t div, bool* const err);
   /** @} */
+
+  tal_fn_attr_inline inline float tal_div_f(const float num,
+      const float div, bool* const err);
+  tal_fn_attr_inline inline double tal_div_d(const double num,
+      const double div, bool* const err);
 
   /**
    * @defgroup integer tal_lshift
@@ -839,6 +861,43 @@
   tal_fn_attr_inline inline uint32_t tal_cast_u32u(const uint64_t value, 
       bool* const err);
   /** @} */
+
+  tal_fn_attr_inline inline uint8_t tal_cast_u8f(const float value, 
+      bool* const err);
+  tal_fn_attr_inline inline uint16_t tal_cast_u16f(const float value,
+      bool* const err);
+  tal_fn_attr_inline inline uint32_t tal_cast_u32f(const float value,
+      bool* const err);
+  tal_fn_attr_inline inline uint64_t tal_cast_u64f(const float value,
+      bool* const err);
+  
+  tal_fn_attr_inline inline int8_t tal_cast_i8f(const float value, 
+      bool* const err);
+  tal_fn_attr_inline inline int16_t tal_cast_i16f(const float value,
+      bool* const err);
+  tal_fn_attr_inline inline int32_t tal_cast_i32f(const float value,
+      bool* const err);
+  tal_fn_attr_inline inline int64_t tal_cast_i64f(const float value,
+      bool* const err);
+  
+  tal_fn_attr_inline inline uint8_t tal_cast_u8d(const double value,
+      bool* const err);
+  tal_fn_attr_inline inline uint16_t tal_cast_u16d(const double value,
+      bool* const err);
+  tal_fn_attr_inline inline uint32_t tal_cast_u32d(const double value,
+      bool* const err);
+  tal_fn_attr_inline inline uint64_t tal_cast_u64d(const double value,
+      bool* const err);
+
+  tal_fn_attr_inline inline float tal_cast_fu(const uint64_t value,
+      bool* const err);
+  tal_fn_attr_inline inline float tal_cast_fi(const int64_t value,
+      bool* const err);
+
+  tal_fn_attr_inline inline double tal_cast_du(const uint64_t value,
+      bool* const err);
+  tal_fn_attr_inline inline double tal_cast_di(const int64_t value,
+      bool* const err);
 
   /**************************************************************************************************
    * @section Aggregate Arithmetic Operations
@@ -1781,18 +1840,17 @@
    * @internal Implementation of Safe Numeric Comparison Utilities
    **************************************************************************************************/
 
-  #define tal_cmp_max_ulp (1)
-
   bool tal_cmpe_iu(const int64_t i_value, const uint64_t u_value) {
     if (i_value < 0) { return false; }
     return (uint64_t)i_value == u_value;
   }
+  
   bool tal_cmpe_ui(const uint64_t u_value, const int64_t i_value) {
     return tal_cmpe_iu(i_value, u_value);
   }
 
-  tal_fn_attr_inline inline bool tal_cmpe_fu(const float f_value,
-      const uint64_t u_value, bool* const err) {
+  bool tal_cmpe_fu(const float f_value, const uint64_t u_value, 
+      bool* const err) {
     if (tal_is_nan_f(f_value)) { 
       *err = true;
       return false; 
@@ -1805,56 +1863,549 @@
     }
     const float f_u_value = (float)u_value;
     const float tot_ulp = tal_ulp_f(f_u_value) + tal_ulp_f(f_value);
-    return tal_abs_f(f_value - f_u_value) <= 
-        (tot_ulp * (float)tal_cmp_max_ulp);
+    return tal_abs_f(f_value - f_u_value) <= tot_ulp;
   }
 
-  tal_fn_attr_inline inline bool tal_cmpe_uf(const uint64_t u_value,
-      const float f_value, bool* const err);
+  bool tal_cmpe_uf(const uint64_t u_value, const float f_value, 
+      bool* const err) {
+    return tal_cmpe_fu(f_value, u_value, err);
+  }
 
-  tal_fn_attr_inline inline bool tal_cmpe_du(const double d_value,
-      const uint64_t u_value, bool* const err);
-  tal_fn_attr_inline inline bool tal_cmpe_ud(const uint64_t u_value,
-      const double d_value, bool* const err);
+  bool tal_cmpe_du(const double d_value, const uint64_t u_value, 
+      bool* const err) {
+    if (tal_is_nan_d(d_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_d(d_value)) {
+      return false;
+    }
+    if (tal_sign_bit_d(d_value)) {
+      return u_value == 0 && d_value == 0.0f;
+    }
+    const double d_u_value = (double)u_value;
+    const double tot_ulp = tal_ulp_d(d_u_value) + tal_ulp_d(d_value);
+    return tal_abs_d(d_value - d_u_value) <= tot_ulp;
+  }
 
-  tal_fn_attr_inline inline bool tal_cmpe_fi(const float f_value,
-      const int64_t i_value, bool* const err);
-  tal_fn_attr_inline inline bool tal_cmpe_if(const int64_t i_value,
-      const float f_value, bool* const err);
+  bool tal_cmpe_ud(const uint64_t u_value, const double d_value, 
+      bool* const err) {
+    return tal_cmpe_du(d_value, u_value, err);
+  }
 
-  tal_fn_attr_inline inline bool tal_cmpe_di(const double d_value,
-      const int64_t i_value, bool* const err);
-  tal_fn_attr_inline inline bool tal_cmpe_id(const int64_t i_value,
-      const double d_value, bool* const err);
+  bool tal_cmpe_fi(const float f_value, const int64_t i_value, 
+      bool* const err) {
+    if (tal_is_nan_f(f_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_f(f_value)) {
+      return false;
+    }
+    if (tal_sign_bit(i_value) != (i_value < 0)) {
+      return false;
+    }
+    const float f_i_value = (float)i_value;
+    const float tot_ulp = tal_ulp_f(f_i_value) + tal_ulp_f(f_value);
+    return tal_abs_f(f_value - f_i_value) <= tot_ulp;
+  }
 
-  tal_fn_attr_inline inline bool tal_cmpe_fd(const float f_value,
-      const double d_value, bool* const err);
-  tal_fn_attr_inline inline bool tal_cmpe_df(const double d_value,
-      const float f_value, bool* const err);
+  bool tal_cmpe_if(const int64_t i_value, const float f_value, 
+      bool* const err) {
+    return tal_cmpe_fi(f_value, i_value, err);
+  }
 
-  tal_fn_attr_inline inline bool tal_cmpe_ff(const float value_a,
-      const float value_b, bool* const err);
-  tal_fn_attr_inline inline bool tal_cmpe_dd(const double value_a,
-      const double value_b, bool* const err);
+  bool tal_cmpe_di(const double d_value, const int64_t i_value, 
+      bool* const err) {
+    if (tal_is_nan_d(d_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_d(d_value)) {
+      return false;
+    }
+    if (tal_sign_bit(i_value) != (i_value < 0)) {
+      return false;
+    }
+    const double d_i_value = (double)i_value;
+    const double tot_ulp = tal_ulp_d(d_i_value) + tal_ulp_d(d_value);
+    return tal_abs_d(d_value - d_i_value) <= tot_ulp;
+  }
+
+  bool tal_cmpe_id(const int64_t i_value, const double d_value, 
+      bool* const err) {
+    return tal_cmpe_di(d_value, i_value, err);
+  }
+
+  bool tal_cmpe_fd(const float f_value, const double d_value, 
+      bool* const err) {
+    if (tal_is_nan_f(f_value) || tal_is_nan_d(d_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_f(f_value) || tal_is_inf_d(d_value)) {
+      return f_value == d_value;
+    }
+    if (tal_sign_bit_f(f_value) != tal_sign_bit_d(d_value)) {
+      return false;
+    }
+    const double d_f_value = (double)f_value;
+    const double tot_ulp = tal_ulp_d(d_f_value) + tal_ulp_d(d_value);
+    return tal_abs_d(d_value - d_f_value) <= tot_ulp;
+  }
+
+  bool tal_cmpe_df(const double d_value, const float f_value, 
+      bool* const err) {
+    return tal_cmpe_fd(f_value, d_value, err);
+  }
+
+  bool tal_cmpe_ff(const float value_a, const float value_b, 
+      bool* const err) {
+    if (tal_is_nan_f(value_a) || tal_is_nan_f(value_b)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_f(value_a) || tal_is_inf_f(value_b)) {
+      return value_a == value_b;
+    }
+    if (tal_sign_bit_f(value_a) != tal_sign_bit_f(value_b)) {
+      return false;
+    }
+    const float tot_ulp = tal_ulp_f(value_a) + tal_ulp_f(value_b);
+    return tal_abs_f(value_a - value_b) <= tot_ulp;
+  }
+
+  bool tal_cmpe_dd(const double value_a, const double value_b, 
+      bool* const err) {
+    if (tal_is_nan_d(value_a) || tal_is_nan_d(value_b)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_d(value_a) || tal_is_inf_d(value_b)) {
+      return value_a == value_b;
+    }
+    if (tal_sign_bit_d(value_a) != tal_sign_bit_d(value_b)) {
+      return false;
+    }
+    const double tot_ulp = tal_ulp_d(value_a) + tal_ulp_d(value_b);
+    return tal_abs_d(value_a - value_b) <= tot_ulp;
+  }
 
   bool tal_cmpl_iu(const int64_t i_value, const uint64_t u_value) {
     if (i_value < 0) { return true; }
     return (uint64_t)i_value < u_value;
   }
 
-  bool tal_cmpg_iu(const int64_t i_value, const uint64_t u_value) {
+  bool tal_cmpl_ui(const uint64_t u_value, const int64_t i_value) {
     if (i_value < 0) { return false; }
-    return (uint64_t)i_value > u_value;
+    return u_value < (uint64_t)i_value;
+  }
+
+  bool tal_cmpl_fu(const float f_value, const uint64_t u_value, 
+      bool* const err) {
+    if (tal_is_nan_f(f_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_f(f_value)) {
+      return tal_sign_bit_f(f_value);
+    }
+    if (tal_sign_bit_f(f_value)) {
+      return false;
+    }
+    const float f_u_value = (float)u_value;
+    const float tot_ulp = tal_ulp_f(f_u_value) + tal_ulp_f(f_value);
+    return tal_abs_f(f_u_value - f_value) >= tot_ulp;
+    
+  }
+
+  bool tal_cmpl_uf(const uint64_t u_value, const float f_value, 
+      bool* const err) {
+    if (tal_is_nan_f(f_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_f(f_value)) {
+      return !tal_sign_bit_f(f_value);
+    }
+    if (tal_sign_bit_f(f_value)) {
+      return true;
+    }
+    const float f_u_value = (float)u_value;
+    const float tot_ulp = tal_ulp_f(f_u_value) + tal_ulp_f(f_value);
+    return tal_abs_f(f_value - f_u_value) >= tot_ulp;
+  }
+
+  bool tal_cmpl_du(const double d_value, const uint64_t u_value, 
+      bool* const err) {
+    if (tal_is_nan_d(d_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_d(d_value)) {
+      return tal_sign_bit(d_value);
+    }
+    if (tal_sign_bit_d(d_value)) {
+      return false;
+    }
+    const double d_u_value = (double)u_value;
+    const double tot_ulp = tal_ulp_d(d_u_value) + tal_ulp_d(d_value);
+    return tal_abs_d(d_u_value - d_value) >= tot_ulp;
+  }
+
+  bool tal_cmpl_ud(const uint64_t u_value, const double d_value, 
+      bool* const err) {
+    if (tal_is_nan_d(d_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_d(d_value)) {
+      return !tal_sign_bit_d(d_value);
+    }
+    if (tal_sign_bit_d(d_value)) {
+      return true;
+    }
+    const double d_u_value = (double)u_value;
+    const double tot_ulp = tal_ulp_d(d_u_value) + tal_ulp_d(d_value);
+    return tal_abs_d(d_value - d_u_value) >= tot_ulp;
+  }
+
+  bool tal_cmpl_fi(const float f_value, const int64_t i_value, 
+      bool* const err) {
+    if (tal_is_nan_f(f_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_f(f_value)) {
+      return tal_sign_bit_f(f_value);
+    }
+    if (tal_sign_bit_f(f_value) != (i_value < 0)) {
+      return tal_sign_bit_f(f_value);
+    }
+    const float f_i_value = (float)i_value;
+    const float tot_ulp = tal_ulp_f(f_i_value) + tal_ulp_f(f_value);
+    return tal_abs_f(f_i_value - f_value) >= tot_ulp;
+  }
+
+  bool tal_cmpl_if(const int64_t i_value, const float f_value, 
+      bool* const err) {
+    if (tal_is_nan_f(f_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_f(f_value)) {
+      return !tal_sign_bit_f(f_value);
+    }
+    if (tal_sign_bit_f(f_value) != (i_value < 0)) {
+      return !tal_sign_bit_f(f_value);
+    }
+    const float f_i_value = (float)i_value;
+    const float tot_ulp = tal_ulp_f(f_i_value) + tal_ulp_f(f_value);
+    return tal_abs_f(f_value - f_i_value) >= tot_ulp;
+  }
+
+  bool tal_cmpl_di(const double d_value, const int64_t i_value, 
+      bool* const err) {
+    if (tal_is_nan_d(d_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_d(d_value)) {
+      return tal_sign_bit_d(d_value);
+    }
+    if (tal_sign_bit_d(d_value) != (i_value < 0)) {
+      return tal_sign_bit_d(d_value);
+    }
+    const double d_i_value = (double)i_value;
+    const double tot_ulp = tal_ulp_d(d_i_value) + tal_ulp_d(d_value);
+    return tal_abs_d(d_i_value - d_value) >= tot_ulp;
+  }
+
+  bool tal_cmpl_id(const int64_t i_value, const double d_value, 
+      bool* const err) {
+    if (tal_is_nan_d(d_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_d(d_value)) {
+      return !tal_sign_bit_d(d_value);
+    }
+    if (tal_sign_bit_d(d_value) != (i_value < 0)) {
+      return !tal_sign_bit_d(d_value);
+    }
+    const double d_i_value = (double)i_value;
+    const double tot_ulp = tal_ulp_d(d_i_value) + tal_ulp_d(d_value);
+    return tal_abs_d(d_value - d_i_value) >= tot_ulp;
+  }
+
+  bool tal_cmpl_fd(const float f_value, const double d_value, 
+      bool* const err) {
+    if (tal_is_nan_f(f_value) || tal_is_nan_d(d_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_f(f_value) || tal_is_inf_d(d_value)) {
+      return f_value < d_value;
+    }
+    if (tal_sign_bit_f(f_value) != tal_sign_bit_d(d_value)) {
+      return tal_sign_bit_f(f_value);
+    }
+    const double d_f_value = (double)f_value;
+    const double tot_ulp = tal_ulp_d(d_f_value) + tal_ulp_d(d_value);
+    return tal_abs_d(d_f_value - d_value) >= tot_ulp;
+  }
+
+  bool tal_cmpl_df(const double d_value, const float f_value, 
+      bool* const err) {
+    if (tal_is_nan_f(f_value) || tal_is_nan_d(d_value)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_f(f_value) || tal_is_inf_d(d_value)) {
+      return d_value < f_value;
+    }
+    if (tal_sign_bit_f(f_value) != tal_sign_bit_d(d_value)) {
+      return tal_sign_bit_d(d_value);
+    }
+    const double d_f_value = (double)f_value;
+    const double tot_ulp = tal_ulp_d(d_f_value) + tal_ulp_d(d_value);
+    return tal_abs_d(d_value - d_f_value) >= tot_ulp;
+  }
+
+  bool tal_cmpl_ff(const float value_a, const float value_b, 
+      bool* const err) {
+    if (tal_is_nan_f(value_a) || tal_is_nan_f(value_b)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_f(value_a) || tal_is_inf_f(value_b)) {
+      return value_a < value_b;
+    }
+    if (tal_sign_bit_f(value_a) != tal_sign_bit_f(value_b)) {
+      return tal_sign_bit_f(value_a);
+    }
+    const double tot_ulp = tal_ulp_f(value_a) + tal_ulp_f(value_b);
+    return tal_abs_f(value_a - value_b) >= tot_ulp;
+  }
+
+  bool tal_cmpl_dd(const double value_a, const double value_b, 
+      bool* const err) {
+    if (tal_is_nan_d(value_a) || tal_is_nan_d(value_b)) {
+      *err = true;
+      return false;
+    }
+    if (tal_is_inf_d(value_a) || tal_is_inf_d(value_b)) {
+      return value_a < value_b;
+    }
+    if (tal_sign_bit_d(value_a) != tal_sign_bit_d(value_b)) {
+      return tal_sign_bit_d(value_a);
+    }
+    const double tot_ulp = tal_ulp_d(value_a) + tal_ulp_d(value_b);
+    return tal_abs_d(value_a - value_b) >= tot_ulp;
+  }
+
+  bool tal_cmpg_iu(const int64_t i_value, const uint64_t u_value) {
+    return tal_cmpl_ui(u_value, i_value);
+  }
+
+  bool tal_cmpg_ui(const uint64_t u_value, const int64_t i_value) {
+    return tal_cmpl_iu(i_value, u_value);
+  }
+
+  bool tal_cmpg_fu(const float f_value, const uint64_t u_value, 
+      bool* const err) {
+    return tal_cmpl_uf(u_value, f_value, err);
+  }
+
+  bool tal_cmpg_uf(const uint64_t u_value, const float f_value, 
+      bool* const err) {
+    return tal_cmpl_fu(f_value, u_value, err);
+  }
+
+  bool tal_cmpg_du(const double d_value, const uint64_t u_value, 
+      bool* const err) {
+    return tal_cmpl_ud(u_value, d_value, err);
+  }
+
+  bool tal_cmpg_ud(const uint64_t u_value, const double d_value, 
+      bool* const err) {
+    return tal_cmpl_du(d_value, u_value, err);
+  }
+
+  bool tal_cmpg_fi(const float f_value, const int64_t i_value, 
+      bool* const err) {
+    return tal_cmpl_if(i_value, f_value, err);
+  }
+
+  bool tal_cmpg_if(const int64_t i_value, const float f_value, 
+      bool* const err) {
+    return tal_cmpl_fi(f_value, i_value, err);
+  }
+
+  bool tal_cmpg_di(const double d_value, const int64_t i_value, 
+      bool* const err) {
+    return tal_cmpg_id(i_value, d_value, err);
+  }
+
+  bool tal_cmpg_id(const int64_t i_value, const double d_value, 
+      bool* const err) {
+    return tal_cmpg_di(d_value, i_value, err);
+  }
+
+  bool tal_cmpg_fd(const float f_value, const double d_value, 
+      bool* const err) {
+    return tal_cmpg_df(d_value, f_value, err);
+  }
+
+  bool tal_cmpg_df(const double d_value, const float f_value, 
+      bool* const err) {
+    return tal_cmpl_fd(f_value, d_value, err);
+  }
+
+  bool tal_cmpg_ff(const float value_a, const float value_b, 
+      bool* const err) {
+    return tal_cmpg_ff(value_b, value_a, err);
+  }
+
+  bool tal_cmpg_dd(const double value_a, const double value_b, 
+      bool* const err) {
+    return tal_cmpg_dd(value_b, value_a, err);
   }
 
   bool tal_cmple_iu(const int64_t i_value, const uint64_t u_value) {
-    if (i_value < 0) { return true; }
-    return (uint64_t)i_value <= u_value;
+    return !tal_cmpl_ui(u_value, i_value);
+  }
+
+  bool tal_cmple_ui(const uint64_t u_value, const int64_t i_value) {
+    return !tal_cmpl_iu(i_value, u_value);
+  } 
+  
+  bool tal_cmple_fu(const float f_value, const uint64_t u_value, 
+      bool* const err) {
+    return !tal_cmpl_uf(u_value, f_value, err);
+  }
+
+  bool tal_cmple_uf(const uint64_t u_value, const float f_value, 
+      bool* const err) {
+    return !tal_cmpl_fu(f_value, u_value, err);
+  }
+
+  bool tal_cmple_du(const double d_value, const uint64_t u_value, 
+      bool* const err) {
+    return !tal_cmpl_ud(u_value, d_value, err);
+  }
+
+  bool tal_cmple_ud(const uint64_t u_value, const double d_value, 
+      bool* const err) {
+    return !tal_cmpl_du(d_value, u_value, err);
+  }
+
+  bool tal_cmple_fi(const float f_value, const int64_t i_value, 
+      bool* const err) {
+    return !tal_cmpl_if(i_value, f_value, err);
+  }
+
+  bool tal_cmple_if(const int64_t i_value, const float f_value, 
+      bool* const err) {
+    return !tal_cmpl_fi(f_value, i_value, err);
+  }
+
+  bool tal_cmple_di(const double d_value, const int64_t i_value, 
+      bool* const err) {
+    return !tal_cmpl_id(i_value, d_value, err);
+  }
+
+  bool tal_cmple_id(const int64_t i_value, const double d_value, 
+      bool* const err) {
+    return !tal_cmpl_di(d_value, i_value, err);
+  }
+
+  bool tal_cmple_fd(const float f_value, const double d_value, 
+      bool* const err) {
+    return !tal_cmpl_df(d_value, f_value, err);
+  }
+
+  bool tal_cmple_df(const double d_value, const float f_value, 
+      bool* const err) {
+    return !tal_cmpl_fd(f_value, d_value, err);
+  }
+
+  bool tal_cmple_ff(const float value_a, const float value_b, 
+      bool* const err) {
+    return !tal_cmpg_ff(value_b, value_a, err);
+  }
+
+  bool tal_cmple_dd(const double value_a, const double value_b, 
+      bool* const err) {
+    return !tal_cmpg_dd(value_b, value_a, err);
   }
 
   bool tal_cmpge_iu(const int64_t i_value, const uint64_t u_value) {
-    if (i_value < 0) { return false; }
-    return (uint64_t)i_value >= u_value;
+    return !tal_cmpl_iu(i_value, u_value);
+  }
+
+  bool tal_cmpge_ui(const uint64_t u_value, const int64_t i_value) {
+    return !tal_cmpl_ui(u_value, i_value);
+  }
+
+  bool tal_cmpge_fu(const float f_value, const uint64_t u_value, 
+      bool* const err) {
+    return !tal_cmpl_fu(f_value, u_value, err);        
+  }
+
+  bool tal_cmpge_uf(const uint64_t u_value, const float f_value, 
+      bool* const err) {
+    return !tal_cmpl_uf(u_value, f_value, err);
+  }
+
+  bool tal_cmpge_du(const double d_value, const uint64_t u_value, 
+      bool* const err) {
+    return !tal_cmpl_du(d_value, u_value, err);
+  }
+
+  bool tal_cmpge_ud(const uint64_t u_value, const double d_value, 
+      bool* const err) {
+    return !tal_cmpl_ud(u_value, d_value, err);
+  }
+
+  bool tal_cmpge_fi(const float f_value, const int64_t i_value, 
+      bool* const err) {
+    return !tal_cmpl_fi(f_value, i_value, err);
+  }
+
+  bool tal_cmpge_if(const int64_t i_value, const float f_value, 
+      bool* const err) {
+    return !tal_cmpl_if(i_value, f_value, err);
+  }
+
+  bool tal_cmpge_di(const double d_value, const int64_t i_value, 
+      bool* const err) {
+    return !tal_cmpl_di(d_value, i_value, err);
+  }
+
+  bool tal_cmpge_id(const int64_t i_value, const double d_value, 
+      bool* const err) {
+    return !tal_cmpl_id(i_value, d_value, err);
+  }
+
+  bool tal_cmpge_fd(const float f_value, const double d_value, 
+      bool* const err) {
+    return !tal_cmpl_fd(f_value, d_value, err);
+  }
+
+  bool tal_cmpge_df(const double d_value, const float f_value, 
+      bool* const err) {
+    return !tal_cmpl_df(d_value, f_value, err);
+  }
+
+  bool tal_cmpge_ff(const float value_a, const float value_b, 
+      bool* const err) {
+    return !tal_cmpl_ff(value_a, value_b, err);
+  }
+
+  bool tal_cmpge_dd(const double value_a, const double value_b, 
+      bool* const err) {
+    return !tal_cmpl_dd(value_a, value_b, err);
   }
 
   /**************************************************************************************************
@@ -1921,6 +2472,14 @@
     return -value;
   }
 
+  float tal_neg_f(const float value) {
+    return -value;
+  }
+
+  double tal_neg_d(const double value) {
+    return -value;
+  }
+  
   int8_t tal_add_i8(const int8_t value_a, const int8_t value_b, 
       bool* const err) {
     if (value_a > 0 && value_b > 0) {
@@ -2019,6 +2578,14 @@
       return UINT64_MAX;
     }
     return value_a + value_b;
+  }
+
+  float tal_add_f(const float value_a, const float value_b,
+      bool* const err) {
+    if (tal_is_nan_f(value_a) || tal_is_nan_f(value_b)) {
+      *err = true;
+      return tal_sign_bit_f(value_a) ? -NAN;
+    }
   }
 
   int8_t tal_sub_i8(const int8_t value_a, const int8_t value_b, 
