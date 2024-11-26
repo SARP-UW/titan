@@ -12,6 +12,7 @@
     "utility": "c",
     "limits": "c",
     "optional": "c",
-    "system_error": "c"
+    "system_error": "c",
+    "*.txt": "cpp"
   }
 }
