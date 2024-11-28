@@ -87,16 +87,35 @@ volatile int32_t* port_registers[8] = {
 };
 
 
-int32_t MODER_OFFSET = 0;
-int32_t PUPDR_OFFSET = 12;
-int32_t IDR_OFFSET   = 16;
-int32_t ODR_OFFSET   = 20;
+int32_t MODER_OFFSET  = 0;
+int32_t OTYPER_OFFSET = 4;
+int32_t OSPEEDR_OFFSET= 8;
+int32_t PUPDR_OFFSET  = 12;
+int32_t IDR_OFFSET    = 16;
+int32_t ODR_OFFSET    = 20;
+int32_t AFRL_OFFSET   = 32;
+int32_t AFRH_OFFSET   = 36;
 
 /**
  * @param pin: The single integer value of the pin, found in specific docs page 60
- * @param mode: -1 for in, 1 for out
+ * @param mode: 0 for in, 1 for general purpose output, 2 for alternate function, 3 for analog
 */
 void tal_set_mode(int pin, int mode);
+
+/**
+ * @param pin: The single integer value of the pin, found in specific docs page 60
+ * @param mode: 0 for push pull, 1 for open drain
+ */ 
+void tal_set_drain(int pin, int drain);
+
+/**
+ * @param pin: The single integer value of the pin, found in specific docs page 60
+ * @param mode: 0 : Low speed
+ *              1 : Medium speed
+ *              2 : Fast speed
+ *              3 : High speed
+ */ 
+void tal_set_speed(int pin, int speed);
 
 /**
  * @param pin: The single integer value of the pin, found in specific docs page 60
@@ -110,6 +129,27 @@ void tal_pull_pin(int pin, int pull);
 */
 void tal_set_pin(int pin, int value);
 
+/**
+ * Used to configure the alternate mode of the pin if set in alternate modeby #tal_set_mode
+ * @param pin: The single integer value of the pin, found in specific docs page 60
+ * @param value: 0000b: AF0
+                 0001b: AF1
+                 0010b: AF2
+                 0011b: AF3
+                 0100b: AF4
+                 0101b: AF5
+                 0110b: AF6
+                 0111b: AF7
+                 1000b: AF8
+                 1001b: AF9
+                 1010b: AF10
+                 1011b: AF11
+                 1100b: AF12
+                 1101b: AF13
+                 1110b: AF14
+                 1111b: AF15
+*/
+void tal_alternate_mode(int pin, int value);
 
 /**
  * @param pin: The single integer value of the pin, found in specific docs page 60
@@ -130,12 +170,37 @@ void tal_set_mode(int pin, int mode)
 
   volatile int32_t* output_type_reg = port_registers[port] + MODER_OFFSET;
 
-  if(mode == 1){ // todo verify write_mask does what I think
-    tal_write_mask_u32(1, output_type_reg, index * 2, 2);
-  }else if(mode == -1){
-    tal_write_mask_u32(0, output_type_reg, index * 2, 2);
-  }
+  tal_write_mask_u32(mode, output_type_reg, index * 2, 2);
 }
+
+void tal_set_drain(int pin, int drain)
+{
+  int v = port_index_from_pin[pin];
+  if(v == -1){ // This means this pin number isn't on the board
+    return; 
+  }
+  int port = v / 100;
+  int index = v - 100 * port;
+
+  volatile int32_t* drain_register = port_registers[port] + OTYPER_OFFSET;
+
+  tal_write_mask_u32(drain, drain_register, index, 1);
+}
+
+void tal_set_speed(int pin, int speed)
+{
+  int v = port_index_from_pin[pin];
+  if(v == -1){ // This means this pin number isn't on the board
+    return; 
+  }
+  int port = v / 100;
+  int index = v - 100 * port;
+
+  volatile int32_t* speed_register = port_registers[port] + OSPEEDR_OFFSET;
+
+  tal_write_mask_u32(speed, speed_register, index * 2, 2);
+}
+
 
 void tal_pull_pin(int pin, int pull)
 {
@@ -146,7 +211,7 @@ void tal_pull_pin(int pin, int pull)
   int port = v / 100;
   int index = v - 100 * port;
 
-  int32_t* pull_register = port_registers[port] + PUPDR_OFFSET;
+  volatile int32_t* pull_register = port_registers[port] + PUPDR_OFFSET;
 
   switch (pull)
   {
@@ -193,6 +258,27 @@ void tal_set_pin(int pin, int value)
     default:{
       break;
     }
+  }
+}
+
+void tal_alternate_mode(int pin, int value)
+{
+  int v = port_index_from_pin[pin];
+  if(v == -1){ 
+    return; 
+  }
+  int port = v / 100;
+  int index = v - 100 * port;
+
+  if(index <= 7){
+    // use AFRL
+    int32_t* reg = port_registers[port] + AFRL_OFFSET;
+    tal_write_mask_u32(value, reg, index, 4);
+
+  }else{
+    // use AFRH
+    int32_t* reg = port_registers[port] + AFRH_OFFSET;
+    tal_write_mask_u32(value, reg, index - 8, 4); // subtract 8 from index for offset
   }
 }
 

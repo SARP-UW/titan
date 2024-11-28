@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include "tal/mask.h"
+#include "gpio.h"
 
 #if defined(__cplusplus)
   extern "C" {
@@ -36,11 +37,29 @@ volatile int32_t* I2C_1_Base = 0x40005400;
 int32_t I2C_TIMINGR_OFFSET = 16;
 
 
-void enable_I2C();
+void tal_enable_I2C();
 
-void enable_I2C()
+static void tal_start_condition();
+void tal_transmit_I2C();
+
+void tal_enable_I2C()
 {
-    // TODO enable clock
+    // TODO enable I2C and GPIO clocks
+
+    tal_set_mode(133, 2); // alternate function mode
+    tal_set_mode(134, 2);
+
+    tal_set_drain(133, 1); // set open drain
+    tal_set_drain(134, 1);
+
+    tal_set_speed(133, 2); // set high speed, maybe needs to be 3 for very high speed
+    tal_set_speed(134, 2);
+
+    tal_pull_pin(133, 1); // set pull up
+    tal_pull_pin(134, 1);
+
+    tal_alternate_mode(133, 4); // set alternate mode to I2C
+    tal_alternate_mode(134, 4);
     
     tal_write_mask_u32(0, I2C_1_Base, 0, 1); // clear PE bit
     
@@ -52,6 +71,11 @@ void enable_I2C()
     tal_write_mask_u32(timing, I2C_1_Base + I2C_TIMINGR_OFFSET, 0, 32);
 
     tal_write_mask_u32(1, I2C_1_Base, 0, 1); // set PE bit to 1 enabling I2C
+}
+
+static void tal_start_condition()
+{
+    
 }
 
 
