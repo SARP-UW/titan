@@ -33,13 +33,15 @@
 #endif
 
 volatile int32_t* I2C_1_Base = 0x40005400;
+
 // I2C_CR1 offset = 0
+int32_t I2C_CR2_OFFSET = 4;
 int32_t I2C_TIMINGR_OFFSET = 16;
 
 
 void tal_enable_I2C();
 
-static void tal_start_condition();
+void tal_transmit(uint8_t addr, void* data, uint32_t size);
 void tal_transmit_I2C();
 
 void tal_enable_I2C()
@@ -73,9 +75,19 @@ void tal_enable_I2C()
     tal_write_mask_u32(1, I2C_1_Base, 0, 1); // set PE bit to 1 enabling I2C
 }
 
-static void tal_start_condition()
+void tal_transmit(uint8_t addr, void* d, uint32_t size)
 {
-    
+    uint8_t* data = (uint8_t*)d;
+
+    // set addr mode, default 7 bit, so do nothing
+
+
+
+    if(size <= 255){
+
+    }else{
+
+    }
 }
 
 
