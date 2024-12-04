@@ -13,6 +13,7 @@
     "limits": "c",
     "optional": "c",
     "system_error": "c",
-    "*.txt": "cpp"
+    "*.txt": "cpp",
+    "typeinfo": "c"
   }
 }
