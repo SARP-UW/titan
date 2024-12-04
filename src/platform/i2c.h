@@ -75,18 +75,22 @@ void tal_enable_I2C()
     tal_write_mask_u32(1, I2C_1_Base, 0, 1); // set PE bit to 1 enabling I2C
 }
 
+
 void tal_transmit(uint8_t addr, void* d, uint32_t size)
 {
     uint8_t* data = (uint8_t*)d;
 
     // set addr mode, default 7 bit, so do nothing
-
-
+    
+    tal_write_mask_u32(addr, I2C_1_Base + I2C_CR2_OFFSET, 1, 7);
+    tal_write_mask_u32(0, I2C_1_Base + I2C_CR2_OFFSET, 10, 1); // write 0 because transmit (yes, seems backwards)
 
     if(size <= 255){
-
+        tal_write_mask_u32(size, I2C_1_Base + I2C_CR2_OFFSET, 16, 8);
+        
     }else{
-
+        tal_write_mask_u32(255, I2C_1_Base + I2C_CR2_OFFSET, 16, 8);
+        size -= 255; // update size to remaining bytes for later
     }
 }
 
