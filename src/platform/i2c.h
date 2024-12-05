@@ -35,14 +35,15 @@
 volatile int32_t* I2C_1_Base = 0x40005400;
 
 // I2C_CR1 offset = 0
-int32_t I2C_CR2_OFFSET = 4;
-int32_t I2C_TIMINGR_OFFSET = 16;
+uint32_t I2C_CR2_OFFSET = 4;
+uint32_t I2C_TIMINGR_OFFSET = 16;
+uint32_t I2C_ISR_OFFSET = 24;
+uint32_t I2C_TXDR_OFFSET = 40;
 
 
 void tal_enable_I2C();
 
 void tal_transmit(uint8_t addr, void* data, uint32_t size);
-void tal_transmit_I2C();
 
 void tal_enable_I2C()
 {
@@ -78,20 +79,54 @@ void tal_enable_I2C()
 
 void tal_transmit(uint8_t addr, void* d, uint32_t size)
 {
+    tal_transmit_r(addr, d, size, true);
+}
+
+
+static void tal_transmit_r(uint8_t addr, void* d, uint32_t size, bool first_call)
+{
+    if(size == 0){ // no data left to send
+        return;
+    }
+
     uint8_t* data = (uint8_t*)d;
 
     // set addr mode, default 7 bit, so do nothing
+    if(first_call){
+        tal_write_mask_u32(addr, I2C_1_Base + I2C_CR2_OFFSET, 1, 7); // set address of chip
+        tal_write_mask_u32(0, I2C_1_Base + I2C_CR2_OFFSET, 10, 1); // write 0 because transmit (yes, seems backwards)
+        tal_write_mask_u32(1, I2C_1_Base + I2C_CR2_OFFSET, 25, 1); // autoend 
+    }
     
-    tal_write_mask_u32(addr, I2C_1_Base + I2C_CR2_OFFSET, 1, 7);
-    tal_write_mask_u32(0, I2C_1_Base + I2C_CR2_OFFSET, 10, 1); // write 0 because transmit (yes, seems backwards)
+
+    int data_size; // size of data to be sent on this call, either size or 255
 
     if(size <= 255){
-        tal_write_mask_u32(size, I2C_1_Base + I2C_CR2_OFFSET, 16, 8);
-        
+        tal_write_mask_u32(size, I2C_1_Base + I2C_CR2_OFFSET, 16, 8); // NBYTES
+        tal_write_mask_u32(1, I2C_1_Base + I2C_CR2_OFFSET, 13, 1); // Send start condition
+        data_size = size;
     }else{
-        tal_write_mask_u32(255, I2C_1_Base + I2C_CR2_OFFSET, 16, 8);
-        size -= 255; // update size to remaining bytes for later
+        tal_write_mask_u32(255, I2C_1_Base + I2C_CR2_OFFSET, 16, 8); // NBYTES
+        tal_write_mask_u32(1, I2C_1_Base + I2C_CR2_OFFSET, 24, 1); // reload = 1
+        data_size = 255;
     }
+
+    uint32_t timeout = 100000; // TODO tune parameter to "work" in testing
+
+    while(data_size > 0){
+        uint32_t count = 0;
+        while(tal_read_mask_u32(I2C_1_Base + I2C_ISR_OFFSET, 1, 1) != 1 && 
+        count++ < timeout); // wait until TXIS is set
+        
+        tal_write_mask_u32(data, I2C_1_Base + I2C_TXDR_OFFSET, 0, 8);
+        
+        data++;
+        data_size--; // sent one byte
+        size--; // keep track of size
+    }
+
+    
+    tal_transmit_r(addr, data, size, false); // call again, with updated (less) data to send
 }
 
 
