@@ -91,24 +91,24 @@ static void tal_transmit_r(uint8_t addr, void* d, uint32_t size, bool first_call
 
     uint8_t* data = (uint8_t*)d;
 
-    // set addr mode, default 7 bit, so do nothing
-    if(first_call){
-        tal_write_mask_u32(addr, I2C_1_Base + I2C_CR2_OFFSET, 1, 7); // set address of chip
-        tal_write_mask_u32(0, I2C_1_Base + I2C_CR2_OFFSET, 10, 1); // write 0 because transmit (yes, seems backwards)
-        tal_write_mask_u32(1, I2C_1_Base + I2C_CR2_OFFSET, 25, 1); // autoend 
-    }
-    
-
     int data_size; // size of data to be sent on this call, either size or 255
 
     if(size <= 255){
         tal_write_mask_u32(size, I2C_1_Base + I2C_CR2_OFFSET, 16, 8); // NBYTES
-        tal_write_mask_u32(1, I2C_1_Base + I2C_CR2_OFFSET, 13, 1); // Send start condition
         data_size = size;
     }else{
         tal_write_mask_u32(255, I2C_1_Base + I2C_CR2_OFFSET, 16, 8); // NBYTES
         tal_write_mask_u32(1, I2C_1_Base + I2C_CR2_OFFSET, 24, 1); // reload = 1
         data_size = 255;
+    }
+
+    if(first_call){
+        // set addr mode, default 7 bit, so do nothing
+        tal_write_mask_u32(addr, I2C_1_Base + I2C_CR2_OFFSET, 1, 7); // set address of chip
+        tal_write_mask_u32(0, I2C_1_Base + I2C_CR2_OFFSET, 10, 1); // write 0 because transmit (yes, seems backwards)
+        tal_write_mask_u32(1, I2C_1_Base + I2C_CR2_OFFSET, 25, 1); // autoend 
+        
+        tal_write_mask_u32(1, I2C_1_Base + I2C_CR2_OFFSET, 13, 1); // Send start condition
     }
 
     uint32_t timeout = 100000; // TODO tune parameter to "work" in testing
