@@ -85,7 +85,7 @@ void tal_transmit(uint8_t addr, void* d, uint32_t size)
 
 static void tal_transmit_r(uint8_t addr, void* d, uint32_t size, bool first_call)
 {
-    if(size == 0){ // no data left to send
+    if(size <= 0){ // no data left to send
         return;
     }
 
@@ -107,7 +107,7 @@ static void tal_transmit_r(uint8_t addr, void* d, uint32_t size, bool first_call
         tal_write_mask_u32(addr, I2C_1_Base + I2C_CR2_OFFSET, 1, 7); // set address of chip
         tal_write_mask_u32(0, I2C_1_Base + I2C_CR2_OFFSET, 10, 1); // write 0 because transmit (yes, seems backwards)
         tal_write_mask_u32(1, I2C_1_Base + I2C_CR2_OFFSET, 25, 1); // autoend 
-        
+
         tal_write_mask_u32(1, I2C_1_Base + I2C_CR2_OFFSET, 13, 1); // Send start condition
     }
 
