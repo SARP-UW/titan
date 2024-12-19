@@ -14,9 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file include/tal/bit.h
+ * @file include/tal/alloc.h
  * @authors Aaron McBride
- * @brief Bit manipulation/inspection utilities.
+ * @brief Dynamic allocation facilities.
  */
 
 #pragma once
@@ -28,6 +28,48 @@
   extern "C" {
 #endif
 
+  /**
+   * @brief TODO
+   * @param size (int32_t)
+   * @returns void*
+   */
+  void* malloc(int32_t size);
+
+  /**
+   * @brief TODO
+   * @param ptr (void*)
+   * @param new_size (int32_t)
+   * @returns (void*)
+   */
+  void* realloc(void* ptr, int32_t new_size);
+
+  /**
+   * @brief TODO
+   * @param ptr (void*)
+   * @returns (void*)
+   */
+  void* alloca(int32_t size);
+
+  /**
+   * @brief TODO
+   * @param ptr (void*)
+   * @returns (void*)
+   */
+  bool free(void* ptr);
+
+  /**
+   * @brief TODO
+   * @param ptr (void*)
+   * @returns (int32_t)
+   */
+  int32_t alloc_size(void* ptr);
+
+  /**
+   * @brief TODO
+   * @param ptr (void*)
+   * @returns (bool)
+   */
+  bool is_alloc(void* ptr);
   
 #if defined(__cplusplus)
   } // extern "C"

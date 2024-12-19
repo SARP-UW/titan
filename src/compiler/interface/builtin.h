@@ -14,21 +14,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file include/tal/bit.h
+ * @file src/compiler/interface/builtin.h
  * @authors Aaron McBride
- * @brief Bit manipulation/inspection utilities.
+ * @brief Compiler-agnostic built-in function interface.
  */
-
-#pragma once
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
-  
+  /// @todo - Define interface for built-in functions.
+
 #if defined(__cplusplus)
   } // extern "C"
 #endif

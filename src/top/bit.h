@@ -14,9 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file include/tal/bit.h
+ * @file src/top/bit.c
  * @authors Aaron McBride
- * @brief Bit manipulation/inspection utilities.
+ * @brief Implementation of manipulation/inspection utilities.
  */
 
 #pragma once

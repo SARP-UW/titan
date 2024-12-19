@@ -14,21 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file include/tal/bit.h
- * @authors Aaron McBride
- * @brief Bit manipulation/inspection utilities.
+ * @file
+ * @authors
+ * @brief
  */
-
-#pragma once
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
-  
+  /************************************************************************************************
+   * @section
+   ************************************************************************************************/
+
 #if defined(__cplusplus)
   } // extern "C"
 #endif

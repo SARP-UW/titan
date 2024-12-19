@@ -14,21 +14,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file include/tal/bit.h
+ * @file src/compiler/interface/attr.h
  * @authors Aaron McBride
- * @brief Bit manipulation/inspection utilities.
+ * @brief Interface for diagnostic control.
  */
-
-#pragma once
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
-  
+  /// @todo Define interface for diagnostic control.
+
 #if defined(__cplusplus)
   } // extern "C"
 #endif

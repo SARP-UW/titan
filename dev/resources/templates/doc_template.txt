@@ -1,7 +1,0 @@
-/**
- * @brief <SUMMARY>
- * @param <NAME> <INFO>
- * @returns <INFO>
- * @note - <OTHER INFO>
- * @warning - <IMPORTANT INFO>
- */
