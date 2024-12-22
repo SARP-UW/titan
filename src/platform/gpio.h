@@ -87,14 +87,14 @@ volatile int32_t* port_registers[8] = {
 };
 
 
-int32_t MODER_OFFSET  = 0;
-int32_t OTYPER_OFFSET = 4;
-int32_t OSPEEDR_OFFSET= 8;
-int32_t PUPDR_OFFSET  = 12;
-int32_t IDR_OFFSET    = 16;
-int32_t ODR_OFFSET    = 20;
-int32_t AFRL_OFFSET   = 32;
-int32_t AFRH_OFFSET   = 36;
+int32_t MODER_OFFSET  = 0x0;
+int32_t OTYPER_OFFSET = 0x1;
+int32_t OSPEEDR_OFFSET= 0x2;
+int32_t PUPDR_OFFSET  = 0x3;
+int32_t IDR_OFFSET    = 0x4; 
+int32_t ODR_OFFSET    = 0x5;
+int32_t AFRL_OFFSET   = 0x8;
+int32_t AFRH_OFFSET   = 0x9;
 
 /**
  * @param pin: The single integer value of the pin, found in specific docs page 60
