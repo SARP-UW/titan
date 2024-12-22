@@ -35,11 +35,11 @@
 volatile int32_t* I2C_1_Base = 0x40005400;
 
 // I2C_CR1 offset = 0
-uint32_t I2C_CR2_OFFSET     = 4;
-uint32_t I2C_TIMINGR_OFFSET = 16;
-uint32_t I2C_ISR_OFFSET     = 24;
-uint32_t I2C_RXDR_OFFSET    = 36;
-uint32_t I2C_TXDR_OFFSET    = 40;
+uint32_t I2C_CR2_OFFSET     = 0x1;
+uint32_t I2C_TIMINGR_OFFSET = 0x4;
+uint32_t I2C_ISR_OFFSET     = 0x6;
+uint32_t I2C_RXDR_OFFSET    = 0x9;
+uint32_t I2C_TXDR_OFFSET    = 0xA;
 
 
 void tal_enable_I2C();
