@@ -13,15 +13,13 @@
         "-Wextra"
       ],
       "includePath": [
-        "${workspaceFolder}",
+        "${workspaceFolder}"
       ],
       "compilerPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gcc",
       "defines": [
         "TAL_DEBUG",
-        "TAL_ARCH_ARMV7M",
-        "TAL_ARCH_FPU",
-        "TAL_PLATFORM_STMH7X5",
-        "TAL_PACK_144"
+        "TAL_TARGET_GCC_ARM_STM32H745_CM7",
+        "TAL_PORT_DIR = gcc_arm_stm32h745_cm7"
       ]
     }
   ],

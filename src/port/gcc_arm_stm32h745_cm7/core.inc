@@ -14,21 +14,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file src/top/bit.c
+ * @file src/port/gcc_arm_stm32h745_cm7/core.h
  * @authors Aaron McBride
- * @brief Implementation of manipulation/inspection utilities.
+ * @brief Implementation of core language facilities for the gcc_arm_stm32h745_cm7 port.
  */
 
-#pragma once
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+#ifndef SRC_PORT_GCC_ARM_STM32H745_CM7_CORE_INC
+#define SRC_PORT_GCC_ARM_STM32H745_CM7_CORE_INC
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
-  
+  /************************************************************************************************
+   * @section 
+   ************************************************************************************************/
+
 #if defined(__cplusplus)
-  } // extern "C"
+  } /* extern "C" */
 #endif
+
+#endif /* SRC_PORT_GCC_ARM_STM32H745_CM7_CORE_INC */

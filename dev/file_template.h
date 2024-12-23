@@ -14,19 +14,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file
- * @authors
- * @brief
+ * @file $path$
+ * @authors $name$
+ * @brief $summary$
  */
+
+#ifndef $path$
+#define $path$
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
   /************************************************************************************************
-   * @section
+   * @section $name$
    ************************************************************************************************/
 
 #if defined(__cplusplus)
-  } // extern "C"
+  } /* extern "C" */
 #endif
+
+#endif /* $path$ */
