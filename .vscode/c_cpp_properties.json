@@ -13,8 +13,7 @@
                 "-Wextra"
             ],
             "includePath": [
-                "${workspaceFolder}",
-                "${workspaceFolder}/include"
+                "${workspaceFolder}"
             ],
             "compilerPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gcc",
             "defines": [

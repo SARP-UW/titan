@@ -4,6 +4,7 @@
 ###################################################################################################
 
 # Configure cmake compilers
+set(CMAKE_EXECUTABLE_SUFFIX ".exe")
 set(TC_BIN_PATH $ENV{ARM_GNU_TOOLCHAIN}/bin)
 set(CMAKE_C_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc${CMAKE_EXECUTABLE_SUFFIX})
 set(CMAKE_ASM_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc${CMAKE_EXECUTABLE_SUFFIX})
@@ -36,15 +37,13 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 # Add executable to be built
 set(EXECUTABLE ${PROJECT_NAME}.elf)
-add_executable(${EXECUTABLE} 
-  test/devboard_startup.S 
+add_executable(${EXECUTABLE}
   test/main.c
 )
 
 # Set include directory
 target_include_directories(${EXECUTABLE} PRIVATE
-  ${CMAKE_SOURCE_DIR}/include
-  ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}
 )
 
 # Set compiler defines
