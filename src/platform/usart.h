@@ -59,6 +59,9 @@ void usart_init(void) {
     // If oversampling by 16, write value = usart_ker_ck/required baud rate
     // If oversampling by 8, write value = 2 * usart_ker_ck/required baud rate
 
+    // FIFO enabled? (buffer to prevent overrun)
+    USART_1_CR1 |= (1 << 29);
+
     // Set data length (7 - M10, 8 - M00 or 9 - M01) M0: bit 12 and M1: bit 28 in USART_CR1
     USART_1_CR1 &= ~((1 << 12) | (1 << 28));
     // Set stop bit length (0.5, 1(default), 1.5, 2), USART_CR2, bits 13,12 
@@ -71,25 +74,75 @@ void usart_init(void) {
     // Write to RE (search for starting bit, prepared to receive data)
     USART_1_CR1 |= (1 << 2);
 
-    // FIFO enabled? (buffer to prevent overrun)
+    
     // parity control?
     // auto baud rate detection?
     // USART synchronous mode (Master/slave mode)?
     // Flow control
 }
 
-void usart_write(uint8_t data) {
-    // Write the data to send in USART_TDR. 
+// For test only
+uint32_t TIMEOUT = 100000;
+bool read_timeout = false;
 
-    // If multiple frames are sent, wait for TXE flag = 1 to write the next one to USART_TDR
+bool usart_write(int8_t* data, uint32_t length) {
+    for (uint32_t i = 0; i < length; i++) {
+        bool write_timeout = usart_write_byte(data[i]);
+        if (!write_timeout) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool usart_write_byte(int8_t data) {
+    // for test only
+    uint32_t count = 0;
+
+    // Write the data to send in USART_TDR. 
+    // TXFNF is set when TXFIFO is not full meaning that data can be written in the USART_TDR
+    while ((USART_1_ISR & (1 << 7)) >> 7 != 1) {
+        if (count == TIMEOUT) {
+            return false;
+        }
+        count++;
+    }
+
+    USART_1_TDR = data;
+    return true;
+    // FIFO disabled: If multiple frames are sent, wait for TXE flag = 1 to write the next one to USART_TDR
     // When the last data is written to the USART_TDR register, wait until TC = 1.
 
     // break character?
 }
 
-uint8_t usart_read(void) {
-    
-    // Read data from USART_RDR. 
+void usart_read(uint8_t* data_array, uint32_t size) { 
+    for (uint32_t i = 0; i < size; i++) {
+        int8_t result = usart_read_byte();
+        if (read_timeout = true) {
+            return;
+        }
+        data_array[i] = result;
+    }
+}
 
+int8_t usart_read_byte(void) {
+    // for test only
+    uint32_t count = 0;
+
+    // Read data from USART_RDR. 
+    // When FIFO is enabled, RXFNE bit is set when RXFIFO not empty, data can be read from USART_RDR
+    
+    while ((USART_1_ISR & (1 << 5)) >> 5 != 1) {
+        if (count == TIMEOUT) {
+            read_timeout = true;
+            // Check
+            return 0;
+        }
+        count++;
+    }
+    
+    int8_t *data = (int8_t *)USART_1_RDR;
+    return *data;
 }
 
