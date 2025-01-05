@@ -14,24 +14,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file src/port/gcc_arm_stm32h745_cm7/core.h
+ * @file src/port/GCC_STM32H745ZI_CM7/spi.c
  * @authors Aaron McBride
- * @brief Implementation of core language facilities for the gcc_arm_stm32h745_cm7 port.
+ * @brief SPI driver implementation.
  */
 
-#ifndef SRC_PORT_GCC_ARM_STM32H745_CM7_CORE_INC
-#define SRC_PORT_GCC_ARM_STM32H745_CM7_CORE_INC
+#include "include/tal/spi.h" /* header */
+#include "src/port/GCC_STM32H745ZI_CM7/internal/vtable.h"
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
-  /************************************************************************************************
-   * @section 
-   ************************************************************************************************/
+  bool set_spi_config(const int32_t index, const spi_config_t config) {
+
+  }
+
+  spi_config_t get_spi_config(const int32_t index) {
+
+  }
+
+  bool spi_transmit(const int32_t index, const void* const src, const int32_t size) {
+
+  }
+
+  bool spi_receive(const int32_t index, void* const dst, const int32_t size) {
+
+  }
 
 #if defined(__cplusplus)
   } /* extern "C" */
 #endif
-
-#endif /* SRC_PORT_GCC_ARM_STM32H745_CM7_CORE_INC */
