@@ -38,23 +38,23 @@ void tal_pwm_init(int pin, int frequency, uint8_t dutyCycle, bool* const err);
  * @param pin: The integer value of the pin
  * @param frequency: The PWM frequency of the pin
 */
-void tal_pwm_set_freq(int pin, int frequency, bool* const err);
+void tal_pwm_pin_set_channel_freq(int pin, int frequency, bool* const err);
 
 /**
  * @param pin: The integer value of the pin
  * @param dutyCycle: The duty cycle of the pwm signal on a scale of 0 to 255
 */
-void tal_pwm_set_duty_cycle(int pin, uint8_t dutyCycle, bool* const err);
+void tal_pwm_pin_set_channel_duty_cycle(int pin, uint8_t dutyCycle, bool* const err);
 
 /**
  * @param pin: The pin to enable PWM on
 */
-void tal_pwm_enable(int pin, bool* const err);
+void tal_pwm_pin_enable(int pin, bool* const err);
 
 /**
  * @param pin: The pin to disable PWM on
 */
-void tal_pwm_disable(int pin, bool* const err);
+void tal_pwm_pin_disable(int pin, bool* const err);
 
 /**
  * @param pin: The pin which is to be checked if it is running
@@ -76,6 +76,21 @@ enum {
   TIM3_Base = 1073742848, // hex 0x40000400  
   TIM4_Base = 1073743872, // hex 0x40000800   
   TIM5_Base = 1073744896 // hex 0x40000C00
+};
+
+// GPIO Base Addresses
+enum {
+  GPIOA_BASE = 1476526080, // hex 0x58020000 
+  GPIOB_BASE = 1476527104, // hex 0x58020400
+  GPIOC_BASE = 1476528128, // hex 0x58020800
+  GPIOD_BASE = 1476529152, // hex 0x58020C00
+  GPIOE_BASE = 1476530176, // hex 0x58021000
+  GPIOF_BASE = 1476531200, // hex 0x58021400
+  GPIOG_BASE = 1476532224, // hex 0x58021800
+  GPIOH_BASE = 1476533248, // hex 0x58021C00
+  GPIOI_BASE = 1476534272, // hex 0x58022000
+  GPIOJ_BASE = 1476535296, // hex 0x58022400
+  GPIOK_BASE = 1476536320 // hex 0x58022800
 };
 
 int32_t TIM_CR1_OFFSET = 0;
@@ -110,9 +125,9 @@ int32_t TIM_TISEL_OFFSET = 104;
 // #define TIM1_CH4_2 122
 
 // TIM2 channels and their corresponding pins
-#define TIM2_CH1_1 40
-#define TIM2_CH1_2 51
-#define TIM2_CH1_3 138
+#define TIM2_CH1_1 40 // PA0
+#define TIM2_CH1_2 51 // PA5
+#define TIM2_CH1_3 138 // PA15
 // #define TIM2_CH2_1 41
 // #define TIM2_CH2_2 161
 // #define TIM2_CH3_1 42
@@ -124,17 +139,17 @@ int32_t TIM_TISEL_OFFSET = 104;
 // #define TIM3_CH1_1 52
 // #define TIM3_CH1_2 115
 // #define TIM3_CH1_3 162
-#define TIM3_CH2_1 53
-#define TIM3_CH2_2 116
-#define TIM3_CH2_3 163
+#define TIM3_CH2_1 53 // PA7
+#define TIM3_CH2_2 116 // PC7
+#define TIM3_CH2_3 163 // PB5
 // #define TIM3_CH3_1 56
 // #define TIM3_CH3_2 117
 // #define TIM3_CH4_1 57
 // #define TIM3_CH4_2 118
 
 // TIM4 channels and their corresponding pins
-#define TIM4_CH1_1 100
-#define TIM4_CH1_2 164
+#define TIM4_CH1_1 100 // PD12
+#define TIM4_CH1_2 164 // PB6
 // #define TIM4_CH2_1 101
 // #define TIM4_CH2_2 165
 // #define TIM4_CH3_1 104
@@ -145,8 +160,8 @@ int32_t TIM_TISEL_OFFSET = 104;
 // TIM5 channels and their corresponding pins
 // #define TIM5_CH1_1 40
 // #define TIM5_CH1_2 87
-#define TIM5_CH2_1 41
-#define TIM5_CH2_2 88
+#define TIM5_CH2_1 41 // PA1
+#define TIM5_CH2_2 88 // PH11
 // #define TIM5_CH3_1 42
 // #define TIM5_CH3_2 89
 // #define TIM5_CH4_1 47
@@ -154,6 +169,8 @@ int32_t TIM_TISEL_OFFSET = 104;
 
 typedef struct {
   int pin;
+  int32_t* pinreg;
+  int num_in_group;
   int channel;
   int32_t* base;
   int frequency;
@@ -162,26 +179,27 @@ typedef struct {
 } pwm_pin_t;
 
 pwm_pin_t valid_pins[] = {
-  {TIM2_CH1_1, 1, (int32_t*) TIM2_Base, 0, 0, false},
-  {TIM2_CH1_2, 1, (int32_t*) TIM2_Base, 0, 0, false},
-  {TIM2_CH1_3, 1, (int32_t*) TIM2_Base, 0, 0, false},
-  {TIM3_CH2_1, 2, (int32_t*) TIM3_Base, 0, 0, false},
-  {TIM3_CH2_2, 2, (int32_t*) TIM3_Base, 0, 0, false},
-  {TIM3_CH2_3, 2, (int32_t*) TIM3_Base, 0, 0, false},
-  {TIM4_CH1_1, 1, (int32_t*) TIM4_Base, 0, 0, false},
-  {TIM4_CH1_2, 1, (int32_t*) TIM4_Base, 0, 0, false},
-  {TIM5_CH2_1, 2, (int32_t*) TIM5_Base, 0, 0, false},
-  {TIM5_CH2_2, 2, (int32_t*) TIM5_Base, 0, 0, false}
+  {TIM2_CH1_1, GPIOA_BASE, 0, 1, (int32_t*) TIM2_Base, 0, 0, false},
+  {TIM2_CH1_2, GPIOA_BASE, 5, 1, (int32_t*) TIM2_Base, 0, 0, false},
+  {TIM2_CH1_3, GPIOA_BASE, 15, 1, (int32_t*) TIM2_Base, 0, 0, false},
+  {TIM3_CH2_1, GPIOA_BASE, 7, 2, (int32_t*) TIM3_Base, 0, 0, false},
+  {TIM3_CH2_2, GPIOC_BASE, 7, 2, (int32_t*) TIM3_Base, 0, 0, false},
+  {TIM3_CH2_3, GPIOB_BASE, 5, 2, (int32_t*) TIM3_Base, 0, 0, false},
+  {TIM4_CH1_1, GPIOD_BASE, 12, 1, (int32_t*) TIM4_Base, 0, 0, false},
+  {TIM4_CH1_2, GPIOB_BASE, 6, 1, (int32_t*) TIM4_Base, 0, 0, false},
+  {TIM5_CH2_1, GPIOA_BASE, 1, 2, (int32_t*) TIM5_Base, 0, 0, false},
+  {TIM5_CH2_2, GPIOH_BASE, 11, 2, (int32_t*) TIM5_Base, 0, 0, false}
 };
 
-void tal_pwm_channel_init(int pin, int frequency, uint8_t dutyCycle, bool* const err) {
+void tal_pwm_pin_init(int pin, int frequency, uint8_t dutyCycle, bool* const err) {
   pwm_pin_t pin_struct;
   if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
+  
+  (*(pin_struct.pinreg + (2 * pin_struct.num_in_group))) &= ~0x3; // Clear function mode
+  (*(pin_struct.pinreg + (2 * pin_struct.num_in_group))) |= 0x2; // Set pin to alternate function mode
 
   (*(pin_struct.base + TIM_CR1_OFFSET)) &= ~0x1; // Disable timer channel 
   (*(pin_struct.base + TIM_CR1_OFFSET)) &= ~(4 << 1); // Set counter to upcounting
-
-  (*(pin_struct.base + TIM_CR1_OFFSET)) &= ~0x1; 
 
   switch(pin_struct.channel){
     case 1:
@@ -203,39 +221,83 @@ void tal_pwm_channel_init(int pin, int frequency, uint8_t dutyCycle, bool* const
   }
 
   (*(pin_struct.base + TIM_ARR_OFFSET)) = 1000000 / frequency; // Set the period of the timer
-  (*(pin_struct.base + TIM_CCR1_OFFSET)) = (1000000 / frequency) * dutyCycle / 255; // Set the duty cycle of the timer
+
+  // Set the duty cycle of the timer
+  if (pin_struct.channel == 1) {
+    (*(pin_struct.base + TIM_CCR1_OFFSET)) = (1000000 / frequency) * dutyCycle / 255;
+  } else if (pin_struct.channel == 2) {
+      (*(pin_struct.base + TIM_CCR2_OFFSET)) = (1000000 / frequency) * dutyCycle / 255;
+  } else if (pin_struct.channel == 3) {
+      (*(pin_struct.base + TIM_CCR3_OFFSET)) = (1000000 / frequency) * dutyCycle / 255;
+  } else if (pin_struct.channel == 4) {
+      (*(pin_struct.base + TIM_CCR4_OFFSET)) = (1000000 / frequency) * dutyCycle / 255;
+  }
 
   (*(pin_struct.base + TIM_CR1_OFFSET)) |= 1; // Enable timer channel 
+
+  pin_struct.frequency = frequency;
+  pin_struct.dutyCycle = dutyCycle;
+  pin_struct.running = true;
 }
 
-void tal_pwm_channel_set_freq(int pin, int frequency, bool* const err) {
+void tal_pwm_pin_set_channel_freq(int pin, int frequency, bool* const err) {
   pwm_pin_t pin_struct;
   if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
 
+  (*(pin_struct.base + TIM_ARR_OFFSET)) = 1000000 / frequency; // Set the period of the timer
+
+    // Set the duty cycle of the timer
+  if (pin_struct.channel == 1) {
+    (*(pin_struct.base + TIM_CCR1_OFFSET)) = (1000000 / frequency) * pin_struct.dutyCycle / 255;
+  } else if (pin_struct.channel == 2) {
+      (*(pin_struct.base + TIM_CCR2_OFFSET)) = (1000000 / frequency) * pin_struct.dutyCycle / 255;
+  } else if (pin_struct.channel == 3) {
+      (*(pin_struct.base + TIM_CCR3_OFFSET)) = (1000000 / frequency) * pin_struct.dutyCycle / 255;
+  } else if (pin_struct.channel == 4) {
+      (*(pin_struct.base + TIM_CCR4_OFFSET)) = (1000000 / frequency) * pin_struct.dutyCycle / 255;
+  }
+
+  pin_struct.frequency = frequency;
 }
 
-void tal_pwm_channel_set_duty_cycle(int pin, uint8_t dutyCycle, bool* const err) {
+void tal_pwm_pin_set_channel_duty_cycle(int pin, uint8_t dutyCycle, bool* const err) {
+  pwm_pin_t pin_struct;
+  if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
+  
+  // Set the duty cycle of the timer
+  if (pin_struct.channel == 1) {
+    (*(pin_struct.base + TIM_CCR1_OFFSET)) = (1000000 / pin_struct.frequency) * dutyCycle / 255;
+  } else if (pin_struct.channel == 2) {
+      (*(pin_struct.base + TIM_CCR2_OFFSET)) = (1000000 / pin_struct.frequency) * dutyCycle / 255;
+  } else if (pin_struct.channel == 3) {
+      (*(pin_struct.base + TIM_CCR3_OFFSET)) = (1000000 / pin_struct.frequency) * dutyCycle / 255;
+  } else if (pin_struct.channel == 4) {
+      (*(pin_struct.base + TIM_CCR4_OFFSET)) = (1000000 / pin_struct.frequency) * dutyCycle / 255;
+  }
+  pin_struct.dutyCycle = dutyCycle;
+}
+
+void tal_pwm_pin_enable(int pin, bool* const err) {
+  pwm_pin_t pin_struct;
+  if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
+  
+  (*(pin_struct.pinreg + (2 * pin_struct.num_in_group))) &= ~0x3; // Clear function mode
+  (*(pin_struct.pinreg + (2 * pin_struct.num_in_group))) |= 0x2; // Set pin to alternate function mode
+  pin_struct.running = true;
+}
+
+void tal_pwm_pin_disable(int pin, bool* const err) {
   pwm_pin_t pin_struct;
   if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
 
-}
-
-void tal_pwm_enable(int pin, bool* const err) {
-  pwm_pin_t pin_struct;
-  if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
-
-}
-
-void tal_pwm_disable(int pin, bool* const err) {
-  pwm_pin_t pin_struct;
-  if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
-
+  (*(pin_struct.pinreg + (2 * pin_struct.num_in_group))) &= 0x3; // Set function mode to analog mode
+  pin_struct.running = false;
 }
 
 bool tal_pwm_is_running(int pin, bool* const err) {
   pwm_pin_t pin_struct;
   if(!get_pin_info(pin, &pin_struct)){ *err = true; return false; }
-
+  return pin_struct.running;
 }
 
 bool get_pin_info(int pin, pwm_pin_t* pin_info) {
