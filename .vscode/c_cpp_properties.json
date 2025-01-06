@@ -18,8 +18,7 @@
       "compilerPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gcc",
       "defines": [
         "TAL_DEBUG",
-        "TAL_TARGET_GCC_STM32H745_CM7",
-        "TAL_PRIMARY_PROCESSOR"
+        "TAL_TARGET_GCC_STM32H745ZI"
       ]
     }
   ],

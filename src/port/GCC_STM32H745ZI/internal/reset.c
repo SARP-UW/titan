@@ -14,99 +14,115 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file src/port/GCC_STM32H745ZI_CM7/internal/reset.c
+ * @file src/port/GCC_STM32H745ZI/internal/reset.c
  * @authors Aaron McBride
  * @brief Reset handler implementation.
  */
 
 #include <stdint.h>
-#include "src/port/GCC_STM32H745ZI_CM7/internal/ref.h"
-#include "src/port/GCC_STM32H745ZI_CM7/internal/vtable.h"
+#include "src/port/GCC_STM32H745ZI/internal/interrupt.h"
+#include "src/port/GCC_STM32H745ZI/internal/register.h"
 
 #if defined(__cplusplus)
   extern "C" {
 #endif
 
   /************************************************************************************************
-   * @section Program Initialization
+   * @section Program Initialization Functions
    ************************************************************************************************/
 
-  /* initializes stack pointer */
-  static void init_stack(void) {
-    asm ("lsr sp, =__stack_end");
-  }
+  extern uint32_t _rodata_start_table; /* addresses of start of .rodata sections */
+  extern uint32_t _data_start_table;   /* addresses of start of .data sections */
+  extern uint32_t _data_end_table;     /* addresses of end of .data sections */
+  extern uint32_t _data_table_size;    /* number of .data sections */
 
-  /* initializes .data section */
-  static void init_data(void) {
-    uint32_t* src = &__rodata_start;
-    uint32_t* dst = &__data_start;
-    while (dst < &__data_end) {
-      *dst++ = *src++;
+  /* initializes .data sections */
+  static void __init_data(void) {
+    uint32_t data_table_size = (uint32_t)&_data_table_size;
+    for (uint32_t i = 0U; i < data_table_size; ++i) {
+      const uint32_t* src = (uint32_t*)((&_rodata_start_table)[i]);
+      uint32_t* dst = (uint32_t*)((&_data_start_table)[i]);
+      uint32_t* const dst_end = (uint32_t*)((&_data_end_table)[i]);
+      while (dst < dst_end) {
+        *dst++ = *src++;
+      }
     }
   }
 
-  /* initializes the .bss section */
-  static void init_bss(void) {
-    uint32_t* bss = &__bss_start;
-    while (bss < &__bss_end) {
-      *bss++ = UINT32_C(0);
+  extern uint32_t _bss_start_table; /* addresses of start of .bss sections */
+  extern uint32_t _bss_end_table;   /* addresses of end of .bss sections */
+  extern uint32_t _bss_table_size;  /* number of .bss sections */
+
+  /* initializes .bss sections */
+  static void __init_bss(void) {
+    uint32_t bss_table_size = (uint32_t)&_bss_table_size;
+    for (uint32_t i = 0U; i < bss_table_size; ++i) {
+      uint32_t* bss = (uint32_t*)((&_bss_start_table)[i]);
+      uint32_t* const bss_end = (uint32_t*)((&_bss_end_table)[i]);
+      while (bss < bss_end) {
+        *bss++ = 0U;
+      }
     }
   }
 
   /************************************************************************************************
-   * @section Clock Initialization 
-   ************************************************************************************************/
-
-  // RCC base address -> 0x58024400
-
-  // LSI   -> 32    khz 
-  // CSI   -> 4     mhz
-  // HSI48 -> 48    mhz
-  // HSI   -> 64    mhz 
-  // PLL1  -> 480   mhz
-  // PLL2  -> 400   mhz
-  // PLL3  -> 78.64 mhz
+   * @section Peripheral Initialization Functions
+   ************************************************************************************************/  
  
-  /* initializes the MCU clock system */
-  static void init_clocks(void) {
-
-    /* RCC registers */
-    static volatile uint32_t* const rcc_cr_reg = (uint32_t*)0x58024400;
-
-    
-
-    /* initialize CSI clock */
-    static const uint32_t csion_mask = UINT32_C(1) << 7;
-    static const uint32_t csirdy_mask = UINT32_C(1) << 8;
-
-
-    /* initialize HSI48 clock */
-    static const uint32_t hsi48on_mask = UINT32_C(1) << 12;
-    static const uint32_t hsi48rdy_mask = UINT32_C(1) << 13;
-
-    /* initialize PLL1 */
-    static const uint32_t pll1on_mask = UINT32_C(1) << 24;
-    static const uint32_t pll1rdy_mask = UINT32_C(1) << 25;
-
-    /* initialize PLL2 */
-    static const uint32_t pll2on_mask = UINT32_C(1) << 26;
-    static const uint32_t pll2rdy_mask = UINT32_C(1) << 27;
-
-    /* initialize PLL3 */
-    static const uint32_t pll3on_mask = UINT32_C(1) << 28;
-    static const uint32_t pll3rdy_mask = UINT32_C(1) << 29;
+  /* initializes MCU power system */
+  static void __init_power_sys(void) {
 
   }
 
+  /* initializes the clock system */
+  static void __init_clock_sys(void) {
+
+    /* configure CSI clock */
+    _SET(RCC, CR, CSION);              /* turn clock on */
+    while (!_IS_SET(RCC, CR, CSIRDY)); /* wait for clock ready */
+
+    /* configure HSI48 clock */
+    _SET(RCC, CR, HSI48ON);            /* turn clock on */
+    while (!_IS_SET(RCC, CR, HSIRDY)); /* wait for clock ready */
+
+    /* configure PLL #1 - 480Mhz */
+    _WRITE(RCC, PLLCKSELR, DIVM1, 4);    /* set pre-divider to 4 */
+    _WRITE(RCC, PLL1DIVR, DIVN1, 30);    /* set integer multiplier to 30 */
+    _WRITE(RCC, PLL1DIVR, DIVP1, 0);     /* set post-divider "P" to 0 */
+    _WRITE(RCC, PLLCFGR, PLL1RGE, 0b11); /* set input freq range to 8-16Mhz */
+    _SET(RCC, CR, PLL1ON);               /* turn on PLL */
+    while (!_IS_SET(RCC, CR, PLL1RDY));  /* wait for PLL ready */
+
+    /* configure system clocks */
+    _WRITE(RCC, D1CFGR, HPRE, 0b1000);     /* set AHB divider to 2 (480->240Mhz) */
+    _WRITE(RCC, D1CFGR, D1PPRE, 0b111);    /* set APB3 divider to 16 (240->15Mhz) */
+    _WRITE(RCC, D2CFGR, D2PPRE1, 0b100);   /* set APB1 divider to 2 (240->120Mhz) */
+    _WRITE(RCC, D2CFGR, D2PPRE2, 0b100);   /* set APB2 divider to 2 (240->120Mhz) */
+    _WRITE(RCC, D3CFGR, D3PPRE, 0b100);    /* set APB4 divider to 2 (240->120Mhz) */
+    _SET(RCC, CFGR, HRTIMSEL);             /* set HR timers to use the CPU1 clk (480Mhz) */
+    _WRITE(RCC, CFGR, SW, 0b11);           /* switch system clock to PLL1 (480Mhz) */
+    while (_READ(RCC, CFGR, SWS) != 0b11); /* wait for system clock switch */ 
+  }
+
   /************************************************************************************************
-   * @section Reset Handler
+   * @section Reset Handler - CM7 Core
    ************************************************************************************************/
 
-  void reset_exc_handler(void) {
-    init_stack();
-    init_data();
-    init_bss();
+  void _cm7_reset_exc(void) {
+    __init_data();
+    __init_bss();
+    __init_power_sys();
+    __init_clock_sys();
+    __init_dma();
     main();
+    for (;;);
+  }
+
+  /************************************************************************************************
+   * @section Reset Handler - CM4 Core
+   ************************************************************************************************/
+
+  void _cm4_reset_exc(void) {
     for (;;);
   }
 
