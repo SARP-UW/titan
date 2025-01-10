@@ -116,57 +116,52 @@ int32_t TIM_AF1_OFFSET = 96;
 int32_t TIM_TISEL_OFFSET = 104;
 
 // TIM1 channels and their corresponding pins
-// #define TIM1_CH1_1 70
-// #define TIM1_CH1_2 119
-// #define TIM1_CH2_1 74
-// #define TIM1_CH2_2 120
-// #define TIM1_CH3_1 76
-// #define TIM1_CH3_2 121
-// #define TIM1_CH4_1 77
-// #define TIM1_CH4_2 122
+// #define TIM1_CH1_1 60
+// #define TIM1_CH2_1 64
+// #define TIM1_CH2_2 101
+// #define TIM1_CH3_1 66
+// #define TIM1_CH3_2 102
+// #define TIM1_CH4_1 67
+// #define TIM1_CH4_2 103
 
 // TIM2 channels and their corresponding pins
-#define TIM2_CH1_1 40 // PA0
-#define TIM2_CH1_2 51 // PA5
-#define TIM2_CH1_3 138 // PA15
-// #define TIM2_CH2_1 41
-// #define TIM2_CH2_2 161
-// #define TIM2_CH3_1 42
-// #define TIM2_CH3_2 79
-// #define TIM2_CH4_1 47
-// #define TIM2_CH4_2 80
+#define TIM2_CH1_1 34 // PA0
+#define TIM2_CH1_2 41 // PA5
+#define TIM2_CH1_3 110 // PA15
+// #define TIM2_CH2_1 35
+// #define TIM2_CH2_2 133
+// #define TIM2_CH3_1 36
+// #define TIM2_CH3_2 69
+// #define TIM2_CH4_1 37
+// #define TIM2_CH4_2 70
 
 // TIM3 channels and their corresponding pins
-// #define TIM3_CH1_1 52
-// #define TIM3_CH1_2 115
-// #define TIM3_CH1_3 162
-#define TIM3_CH2_1 53 // PA7
-#define TIM3_CH2_2 116 // PC7
-#define TIM3_CH2_3 163 // PB5
-// #define TIM3_CH3_1 56
-// #define TIM3_CH3_2 117
-// #define TIM3_CH4_1 57
-// #define TIM3_CH4_2 118
+// #define TIM3_CH1_1 42
+// #define TIM3_CH1_2 96
+// #define TIM3_CH1_3 134
+#define TIM3_CH2_1 43 // PA7
+#define TIM3_CH2_2 97 // PC7
+#define TIM3_CH2_3 135 // PB5
+// #define TIM3_CH3_1 46
+// #define TIM3_CH3_2 98
+// #define TIM3_CH4_1 47
+// #define TIM3_CH4_2 99
 
 // TIM4 channels and their corresponding pins
-#define TIM4_CH1_1 100 // PD12
-#define TIM4_CH1_2 164 // PB6
-// #define TIM4_CH2_1 101
-// #define TIM4_CH2_2 165
-// #define TIM4_CH3_1 104
-// #define TIM4_CH3_2 167
-// #define TIM4_CH4_1 105
-// #define TIM4_CH4_2 168
+#define TIM4_CH1_1 81 // PD12
+#define TIM4_CH1_2 136 // PB6
+// #define TIM4_CH2_1 82
+// #define TIM4_CH2_2 137
+// #define TIM4_CH3_1 85
+// #define TIM4_CH3_2 139
+// #define TIM4_CH4_1 86
+// #define TIM4_CH4_2 140
 
 // TIM5 channels and their corresponding pins
-// #define TIM5_CH1_1 40
-// #define TIM5_CH1_2 87
-#define TIM5_CH2_1 41 // PA1
-#define TIM5_CH2_2 88 // PH11
-// #define TIM5_CH3_1 42
-// #define TIM5_CH3_2 89
-// #define TIM5_CH4_1 47
-// #define TIM5_CH4_2 131
+// #define TIM5_CH1_1 34
+#define TIM5_CH2_1 35 // PA1
+// #define TIM5_CH3_1 36
+// #define TIM5_CH4_1 37
 
 typedef struct {
   int pin;
@@ -189,7 +184,6 @@ pwm_pin_t valid_pins[] = {
   {TIM4_CH1_1, GPIOD_BASE, 12, 1, (int32_t*) TIM4_Base, 0, 0, false},
   {TIM4_CH1_2, GPIOB_BASE, 6, 1, (int32_t*) TIM4_Base, 0, 0, false},
   {TIM5_CH2_1, GPIOA_BASE, 1, 2, (int32_t*) TIM5_Base, 0, 0, false},
-  {TIM5_CH2_2, GPIOH_BASE, 11, 2, (int32_t*) TIM5_Base, 0, 0, false}
 };
 
 void tal_pwm_pin_init(int pin, uint32_t frequency, uint8_t dutyCycle, bool* const err) {
