@@ -96149,7 +96149,7 @@ Minimum value is 16</description>
       </interrupt>
       <interrupt>
         <name>TIM8_TRG_COM_TIM14</name>
-        <description>TIM8 and 14 trigger /commutation and
+        <description>TIM8 and 14 trigger / commutation and
         global</description>
         <value>45</value>
       </interrupt>
