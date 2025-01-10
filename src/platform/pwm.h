@@ -22,6 +22,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #if defined(__cplusplus)
   extern "C" {
@@ -191,48 +192,63 @@ pwm_pin_t valid_pins[] = {
   {TIM5_CH2_2, GPIOH_BASE, 11, 2, (int32_t*) TIM5_Base, 0, 0, false}
 };
 
-void tal_pwm_pin_init(int pin, int frequency, uint8_t dutyCycle, bool* const err) {
+void tal_pwm_pin_init(int pin, uint32_t frequency, uint8_t dutyCycle, bool* const err) {
   pwm_pin_t pin_struct;
   if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
   
-  (*(pin_struct.pinreg + (2 * pin_struct.num_in_group))) &= ~0x3; // Clear function mode
-  (*(pin_struct.pinreg + (2 * pin_struct.num_in_group))) |= 0x2; // Set pin to alternate function mode
+  (*(pin_struct.pinreg + (2 * pin_struct.num_in_group))) &= ~0x3; // Clear pin function mode
+  (*(pin_struct.pinreg + (2 * pin_struct.num_in_group))) |= 0x2; // Set pin to alternate function mode for PWM
+  // enable pin clock
 
   (*(pin_struct.base + TIM_CR1_OFFSET)) &= ~0x1; // Disable timer channel 
   (*(pin_struct.base + TIM_CR1_OFFSET)) &= ~(4 << 1); // Set counter to upcounting
+  
+  uint32_t f_timer = frequency * 65536; // Max ARR assumed as 65535 for flexibility
+  uint32_t prescaler = (16000000 / f_timer) - 1; // TODO: determine system clock frequency
+
+  if (prescaler > 65535) {
+    prescaler = 65535;
+    f_timer = 16000000 / (prescaler + 1);
+  }
+
+  (*(pin_struct.base + TIM_PSC_OFFSET)) = prescaler; // Set the prescaler of the timer
+
+  uint32_t arr = (f_timer / frequency) - 1;
+  uint32_t ccr = ((dutyCycle / 256) / 100) * (arr + 1);
 
   switch(pin_struct.channel){
     case 1:
-      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x7; // Set channel 1 to output
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x3; // Set channel 1 to output
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x6; // Clear
       (*(pin_struct.base + TIM_CCMR1_OFFSET)) |= 0x6; // Set channel 1 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR1_OFFSET)) = ccr; // Set CCR value
       break;
     case 2:
-      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x70; // Set channel 2 to output
-      (*(pin_struct.base + TIM_CCMR1_OFFSET)) |= 0x60; // Set channel 2 to PWM mode 1
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x30; // Set channel 2 to output
+      (*(pin_struct.base + TIM_CCMR1_OFFSET + 8)) &= ~0x6; // Clear
+      (*(pin_struct.base + TIM_CCMR1_OFFSET + 8)) |= 0x6; // Set channel 2 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR2_OFFSET)) = ccr; // Set CCR value
       break;
     case 3:
-      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x7; // Set channel 3 to output
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x3; // Set channel 3 to output
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x6; // Clear
       (*(pin_struct.base + TIM_CCMR2_OFFSET)) |= 0x6; // Set channel 3 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR3_OFFSET)) = ccr; // Set CCR value
       break;
     case 4:
-      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x70; // Set channel 4 to output
-      (*(pin_struct.base + TIM_CCMR2_OFFSET)) |= 0x60; // Set channel 4 to PWM mode 1
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x30; // Set channel 4 to output
+      (*(pin_struct.base + TIM_CCMR2_OFFSET + 8)) &= ~0x6; // Clear
+      (*(pin_struct.base + TIM_CCMR2_OFFSET + 8)) |= 0x6; // Set channel 4 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR4_OFFSET)) = ccr; // Set CCR value
       break;
   }
 
-  (*(pin_struct.base + TIM_ARR_OFFSET)) = 1000000 / frequency; // Set the period of the timer
+  (*(pin_struct.base + TIM_ARR_OFFSET)) = arr; // Set the period of the timer
 
-  // Set the duty cycle of the timer
-  if (pin_struct.channel == 1) {
-    (*(pin_struct.base + TIM_CCR1_OFFSET)) = (1000000 / frequency) * dutyCycle / 255;
-  } else if (pin_struct.channel == 2) {
-      (*(pin_struct.base + TIM_CCR2_OFFSET)) = (1000000 / frequency) * dutyCycle / 255;
-  } else if (pin_struct.channel == 3) {
-      (*(pin_struct.base + TIM_CCR3_OFFSET)) = (1000000 / frequency) * dutyCycle / 255;
-  } else if (pin_struct.channel == 4) {
-      (*(pin_struct.base + TIM_CCR4_OFFSET)) = (1000000 / frequency) * dutyCycle / 255;
-  }
+  (*(pin_struct.base + TIM_EGR_OFFSET)) |= 1; // Trigger update of registers
+  while((*(pin_struct.base + TIM_EGR_OFFSET)) | 1); // Wait for update to complete
 
+  (*(pin_struct.base + TIM_CCER_OFFSET)) |= (1 << ((pin_struct.channel - 1) * 4)); // Enable the output of the channel
   (*(pin_struct.base + TIM_CR1_OFFSET)) |= 1; // Enable timer channel 
 
   pin_struct.frequency = frequency;
@@ -244,37 +260,112 @@ void tal_pwm_pin_set_channel_freq(int pin, int frequency, bool* const err) {
   pwm_pin_t pin_struct;
   if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
 
-  (*(pin_struct.base + TIM_ARR_OFFSET)) = 1000000 / frequency; // Set the period of the timer
+  uint32_t f_timer = frequency * 65536; // Max ARR assumed as 65535 for flexibility
+  uint32_t prescaler = (16000000 / f_timer) - 1; // TODO: determine system clock frequency
 
-    // Set the duty cycle of the timer
-  if (pin_struct.channel == 1) {
-    (*(pin_struct.base + TIM_CCR1_OFFSET)) = (1000000 / frequency) * pin_struct.dutyCycle / 255;
-  } else if (pin_struct.channel == 2) {
-      (*(pin_struct.base + TIM_CCR2_OFFSET)) = (1000000 / frequency) * pin_struct.dutyCycle / 255;
-  } else if (pin_struct.channel == 3) {
-      (*(pin_struct.base + TIM_CCR3_OFFSET)) = (1000000 / frequency) * pin_struct.dutyCycle / 255;
-  } else if (pin_struct.channel == 4) {
-      (*(pin_struct.base + TIM_CCR4_OFFSET)) = (1000000 / frequency) * pin_struct.dutyCycle / 255;
+  if (prescaler > 65535) {
+    prescaler = 65535;
+    f_timer = 16000000 / (prescaler + 1);
   }
 
+  (*(pin_struct.base + TIM_PSC_OFFSET)) = prescaler; // Set the prescaler of the timer
+
+  uint32_t arr = (f_timer / frequency) - 1;
+  uint32_t ccr = ((pin_struct.dutyCycle / 256) / 100) * (arr + 1);
+
+  switch(pin_struct.channel){
+    case 1:
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x3; // Set channel 1 to output
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x6; // Clear
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) |= 0x6; // Set channel 1 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR1_OFFSET)) = ccr; // Set CCR value
+      break;
+    case 2:
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x30; // Set channel 2 to output
+      (*(pin_struct.base + TIM_CCMR1_OFFSET + 8)) &= ~0x6; // Clear
+      (*(pin_struct.base + TIM_CCMR1_OFFSET + 8)) |= 0x6; // Set channel 2 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR2_OFFSET)) = ccr; // Set CCR value
+      break;
+    case 3:
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x3; // Set channel 3 to output
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x6; // Clear
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) |= 0x6; // Set channel 3 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR3_OFFSET)) = ccr; // Set CCR value
+      break;
+    case 4:
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x30; // Set channel 4 to output
+      (*(pin_struct.base + TIM_CCMR2_OFFSET + 8)) &= ~0x6; // Clear
+      (*(pin_struct.base + TIM_CCMR2_OFFSET + 8)) |= 0x6; // Set channel 4 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR4_OFFSET)) = ccr; // Set CCR value
+      break;
+  }
+
+  (*(pin_struct.base + TIM_ARR_OFFSET)) = arr; // Set the period of the timer
+
+  (*(pin_struct.base + TIM_EGR_OFFSET)) |= 1; // Trigger update of registers
+  while((*(pin_struct.base + TIM_EGR_OFFSET)) | 1); // Wait for update to complete
+
+  (*(pin_struct.base + TIM_CCER_OFFSET)) |= (1 << ((pin_struct.channel - 1) * 4)); // Enable the output of the channel
+  (*(pin_struct.base + TIM_CR1_OFFSET)) |= 1; // Enable timer channel 
+
   pin_struct.frequency = frequency;
+  pin_struct.running = true;
 }
 
 void tal_pwm_pin_set_channel_duty_cycle(int pin, uint8_t dutyCycle, bool* const err) {
   pwm_pin_t pin_struct;
   if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
   
-  // Set the duty cycle of the timer
-  if (pin_struct.channel == 1) {
-    (*(pin_struct.base + TIM_CCR1_OFFSET)) = (1000000 / pin_struct.frequency) * dutyCycle / 255;
-  } else if (pin_struct.channel == 2) {
-      (*(pin_struct.base + TIM_CCR2_OFFSET)) = (1000000 / pin_struct.frequency) * dutyCycle / 255;
-  } else if (pin_struct.channel == 3) {
-      (*(pin_struct.base + TIM_CCR3_OFFSET)) = (1000000 / pin_struct.frequency) * dutyCycle / 255;
-  } else if (pin_struct.channel == 4) {
-      (*(pin_struct.base + TIM_CCR4_OFFSET)) = (1000000 / pin_struct.frequency) * dutyCycle / 255;
+  uint32_t f_timer = pin_struct.frequency * 65536; // Max ARR assumed as 65535 for flexibility
+  uint32_t prescaler = (16000000 / f_timer) - 1; // TODO: determine system clock frequency
+
+  if (prescaler > 65535) {
+    prescaler = 65535;
+    f_timer = 16000000 / (prescaler + 1);
   }
+
+  (*(pin_struct.base + TIM_PSC_OFFSET)) = prescaler; // Set the prescaler of the timer
+
+  uint32_t arr = (f_timer / pin_struct.frequency) - 1;
+  uint32_t ccr = ((dutyCycle / 256) / 100) * (arr + 1);
+
+  switch(pin_struct.channel){
+    case 1:
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x3; // Set channel 1 to output
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x6; // Clear
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) |= 0x6; // Set channel 1 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR1_OFFSET)) = ccr; // Set CCR value
+      break;
+    case 2:
+      (*(pin_struct.base + TIM_CCMR1_OFFSET)) &= ~0x30; // Set channel 2 to output
+      (*(pin_struct.base + TIM_CCMR1_OFFSET + 8)) &= ~0x6; // Clear
+      (*(pin_struct.base + TIM_CCMR1_OFFSET + 8)) |= 0x6; // Set channel 2 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR2_OFFSET)) = ccr; // Set CCR value
+      break;
+    case 3:
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x3; // Set channel 3 to output
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x6; // Clear
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) |= 0x6; // Set channel 3 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR3_OFFSET)) = ccr; // Set CCR value
+      break;
+    case 4:
+      (*(pin_struct.base + TIM_CCMR2_OFFSET)) &= ~0x30; // Set channel 4 to output
+      (*(pin_struct.base + TIM_CCMR2_OFFSET + 8)) &= ~0x6; // Clear
+      (*(pin_struct.base + TIM_CCMR2_OFFSET + 8)) |= 0x6; // Set channel 4 to PWM mode 1
+      (*(pin_struct.base + TIM_CCR4_OFFSET)) = ccr; // Set CCR value
+      break;
+  }
+
+  (*(pin_struct.base + TIM_ARR_OFFSET)) = arr; // Set the period of the timer
+
+  (*(pin_struct.base + TIM_EGR_OFFSET)) |= 1; // Trigger update of registers
+  while((*(pin_struct.base + TIM_EGR_OFFSET)) | 1); // Wait for update to complete
+
+  (*(pin_struct.base + TIM_CCER_OFFSET)) |= (1 << ((pin_struct.channel - 1) * 4)); // Enable the output of the channel
+  (*(pin_struct.base + TIM_CR1_OFFSET)) |= 1; // Enable timer channel 
+
   pin_struct.dutyCycle = dutyCycle;
+  pin_struct.running = true;
 }
 
 void tal_pwm_pin_enable(int pin, bool* const err) {
