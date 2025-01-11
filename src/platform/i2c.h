@@ -44,9 +44,9 @@ uint32_t I2C_TXDR_OFFSET    = 0xA;
 
 void tal_enable_I2C();
 
-void tal_transmit(uint8_t addr, void* data, uint32_t size);
+void tal_transmit_I2C(uint8_t addr, void* data, uint32_t size);
 
-void* tal_read(uint8_t addr, uint32_t size);
+void* tal_read_I2C(uint8_t addr, uint32_t size);
 
 
 
@@ -81,7 +81,7 @@ void tal_enable_I2C()
 }
 
 
-void tal_transmit(uint8_t addr, void* d, uint32_t size)
+void tal_transmit_I2C(uint8_t addr, void* d, uint32_t size)
 {
     tal_transmit_r(addr, d, size, true);
 }
@@ -133,7 +133,7 @@ static void tal_transmit_r(uint8_t addr, void* d, uint32_t size, bool first_call
     tal_transmit_r(addr, data, size, false); // call again, with updated (less) data to send
 }
 
-void* tal_read(uint8_t addr, uint32_t size)
+void* tal_read_I2C(uint8_t addr, uint32_t size)
 {
     uint8_t data_array[size]; // TODO: check
     return tal_read_r(addr, size, true, data_array, 0);
