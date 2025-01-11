@@ -48,9 +48,10 @@ void tal_transmit(uint8_t addr, void* data, uint32_t size);
 
 void* tal_read(uint8_t addr, uint32_t size);
 
+
+
 void tal_enable_I2C()
-{
-    // TODO enable I2C and GPIO clocks
+{ 
 
     tal_set_mode(133, 2); // alternate function mode
     tal_set_mode(134, 2);

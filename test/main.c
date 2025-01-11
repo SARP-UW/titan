@@ -5,12 +5,9 @@
 #include "platform/gpio.h"
 
 void main(void) { 
-  unsigned int value = 10;
-  unsigned int count = 0;
-
-  tal_set_mode(37, 0);
-
-  while (1) { ++count; }
+  *(volatile uint32_t*)0x5802452C |= (1U << 21);
+  *(volatile uint32_t*)0x58024520 |= ((1U << 11) - 1U);
+  
 }
 
 #if defined(__cplusplus)
