@@ -33,7 +33,7 @@
 #endif
 
 
-void tal_enable_SPI();
+void tal_configure_SPI();
 
 void tal_transmit_SPI();
 
@@ -45,17 +45,23 @@ volatile uint32_t* SPI_1_BASE = 0x40013000;
 #define SPI_CR2_OFFSET 0x04
 #define SPI_CFG1_OFFSET 0x08
 #define SPI_CFG2_OFFSET 0x0C
+#define SPI_SR_OFFSET 0x14
+#define SPI_TXDR_OFFSET 0x20
+#define SPI_RXDR_OFFSET 0x30
 
 #define SPI_CR1 *(SPI_1_BASE + SPI_CR1_OFFSET)
 #define SPI_CR2 *(SPI_1_BASE + SPI_CR2_OFFSET)
 #define SPI_CFG1 *(SPI_1_BASE + SPI_CFG1_OFFSET)
 #define SPI_CFG2 *(SPI_1_BASE + SPI_CFG2_OFFSET)
+#define SPI_SR *(SPI_1_BASE + SPI_SR_OFFSET)
+#define SPI_TXDR *(SPI_1_BASE + SPI_TXDR_OFFSET)
+#define SPI_RXDR *(SPI_1_BASE + SPI_RXDR_OFFSET)
 
 //POSSIBLE ISSUES TO CHECK WHEN IT DOESNT WORK
 // SSM bit in CFG2.  I am using hardware SS, but software SS might be better 
 //(basically im saying SS might not be being pulled low)
 
-void tal_enable_SPI()
+void tal_configure_SPI() // not named enable, because enabling must be done after we configure data size, annoyingly
 {
     tal_set_mode(43, 2); // NSS / CS pin to AF mode
     tal_set_mode(44, 2); // SCK
@@ -90,18 +96,38 @@ void tal_enable_SPI()
     SPI_CFG2 |= 1 << 31; // Important for safety, not functionality critical but prob good to have
     
     SPI_CFG1 |= 0b00111; // 8 bit data size (default)
-
-    SPI_CR1 |= 1 << 0; // Enable peripheral (SPI configuration registers are now locked)
 }
 
 void tal_transmit_SPI(void* d, uint32_t size)
 {
     uint8_t* data = (uint8_t*) d;
-    
+
+    SPI_CR2 |= size; // check this, because if bits past the 15th bit in size are 1, there could be issues. 
+    SPI_CR1 |= 1 << 0; // Enable peripheral (SPI configuration registers are now locked)
+
+    int i = 0;
+    while(i < size){
+      while(!(SPI_SR & (1 << 1))); // wait for TXP (not 100% this is the right bit to wait for, but we can test)
+      // maybe also wait until TXDR is 0?
+      // idk that just feels hacky, todo discuss
+      SPI_TXDR |= *data;
+      i++;
+    }
+
+    SPI_CR1 &= ~1; // Disable peripheral
 }
 
 void* tal_read_SPI(uint32_t size){
-    return (void*)0;
+    uint8_t data[size];
+
+    int i = 0;
+    while(i < size){
+      while(!(SPI_SR & (1 << 0))); // wait for RXP
+      data[i] = SPI_RXDR & (0xFF); // get first 8 bits
+      i++;
+    }
+  
+    return data;
 }
 
 
