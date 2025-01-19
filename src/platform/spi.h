@@ -118,6 +118,8 @@ void tal_transmit_SPI(void* d, uint32_t size)
 }
 
 void* tal_read_SPI(uint32_t size){
+    SPI_CR2 |= size; // check this, because if bits past the 15th bit in size are 1, there could be issues. 
+    SPI_CR1 |= 1 << 0; // Enable peripheral (SPI configuration registers are now locked)
     uint8_t data[size];
 
     int i = 0;
@@ -127,6 +129,7 @@ void* tal_read_SPI(uint32_t size){
       i++;
     }
 
+    SPI_CR1 &= ~1; // Disable peripheral
     return data;
 }
 
