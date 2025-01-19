@@ -126,7 +126,7 @@ void* tal_read_SPI(uint32_t size){
       data[i] = SPI_RXDR & (0xFF); // get first 8 bits
       i++;
     }
-  
+
     return data;
 }
 
