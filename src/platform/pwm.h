@@ -116,6 +116,8 @@ int32_t TIM_DMAR_OFFSET = 76;
 int32_t TIM_AF1_OFFSET = 96;
 int32_t TIM_TISEL_OFFSET = 104;
 
+#define APB1_FREQ 60000000 // TODO: determine system clock frequency
+
 // TIM1 channels and their corresponding pins
 // #define TIM1_CH1_1 70
 // #define TIM1_CH1_2 119
@@ -195,6 +197,10 @@ pwm_pin_t valid_pins[] = {
   {TIM5_CH2_2, GPIOH_BASE, 11, 2, (int32_t*) TIM5_Base, 0, 0, false}
 };
 
+// Useful equations:
+// f_pwm = f_sysclk / (prescaler + 1) * (arr + 1) f_sysclk is the frequency of APB1 system clock
+// duty_cycle = (ccr / (arr + 1)) * 100
+
 // Important Note: pins on same TIM and channel will output the same PWM, there is
 // no way to change this. Thus if TIM2_CH1_1 and TIM2_CH1_2 are both enabled,
 // changing frequency/duty cycle via tal_pwm_pin_set_channel_duty_cycle() or
@@ -206,13 +212,18 @@ void tal_pwm_pin_init(int pin, uint32_t frequency, uint16_t dutyCycle, bool* con
   if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
 
   uint32_t f_timer = frequency * 65536; // Max ARR assumed as 65535 for flexibility
-  uint32_t prescaler = (16000000 / f_timer) - 1; // TODO: determine system clock frequency
-  if (prescaler > 65535) {
+  uint32_t prescaler = (APB1_FREQ / f_timer) - 1; // Calculate prescaler value
+  if (prescaler > 65535) { // Clamp prescaler if too large
     prescaler = 65535;
-    f_timer = 16000000 / (prescaler + 1);
+    f_timer = APB1_FREQ / (prescaler + 1);
   }
-  uint32_t arr = (f_timer / frequency) - 1;
+
+  uint16_t arr = (f_timer / frequency) - 1;
   uint16_t ccr = (dutyCycle * (arr + 1));
+
+  if (ccr > arr) { 
+    ccr = arr; // set DC to 100 percent if CCR is greater than ARR
+  }
 
   switch(pin_struct.channel){
     case 1:
@@ -259,12 +270,12 @@ void tal_pwm_pin_set_channel_freq(int pin, int frequency, bool* const err) {
   if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
 
   uint32_t f_timer = frequency * 65536; // Max ARR assumed as 65535 for flexibility
-  uint32_t prescaler = (16000000 / f_timer) - 1; // TODO: determine system clock frequency
-  if (prescaler > 65535) {
+  uint32_t prescaler = (APB1_FREQ / f_timer) - 1; // Calculate prescaler value
+  if (prescaler > 65535) { // Clamp prescaler if too large
     prescaler = 65535;
-    f_timer = 16000000 / (prescaler + 1);
+    f_timer = APB1_FREQ / (prescaler + 1);
   }
-  uint32_t arr = (f_timer / frequency) - 1;
+  uint16_t arr = (f_timer / frequency) - 1;
   uint16_t ccr = (pin_struct.dutyCycle * (arr + 1));
 
   switch(pin_struct.channel){
@@ -313,13 +324,17 @@ void tal_pwm_pin_set_channel_duty_cycle(int pin, uint8_t dutyCycle, bool* const 
   if(!get_pin_info(pin, &pin_struct)){ *err = true; return; }
   
   uint32_t f_timer = pin_struct.frequency * 65536; // Max ARR assumed as 65535 for flexibility
-  uint32_t prescaler = (16000000 / f_timer) - 1; // TODO: determine system clock frequency
-  if (prescaler > 65535) {
+  uint32_t prescaler = (APB1_FREQ / f_timer) - 1; // Calculate prescaler value
+  if (prescaler > 65535) { // Clamp prescaler if too large
     prescaler = 65535;
-    f_timer = 16000000 / (prescaler + 1);
+    f_timer = APB1_FREQ / (prescaler + 1);
   }
-  uint32_t arr = (f_timer / pin_struct.frequency) - 1;
+  uint16_t arr = (f_timer / pin_struct.frequency) - 1;
   uint16_t ccr = (dutyCycle * (arr + 1));
+
+  if (ccr > arr) { 
+    ccr = arr; // set DC to 100 percent if CCR is greater than ARR
+  }
 
   switch(pin_struct.channel){
     case 1:
