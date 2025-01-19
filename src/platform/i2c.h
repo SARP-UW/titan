@@ -35,22 +35,23 @@
 volatile int32_t* I2C_1_Base = 0x40005400;
 
 // I2C_CR1 offset = 0
-uint32_t I2C_CR2_OFFSET     = 4;
-uint32_t I2C_TIMINGR_OFFSET = 16;
-uint32_t I2C_ISR_OFFSET     = 24;
-uint32_t I2C_RXDR_OFFSET    = 36;
-uint32_t I2C_TXDR_OFFSET    = 40;
+uint32_t I2C_CR2_OFFSET     = 0x1;
+uint32_t I2C_TIMINGR_OFFSET = 0x4;
+uint32_t I2C_ISR_OFFSET     = 0x6;
+uint32_t I2C_RXDR_OFFSET    = 0x9;
+uint32_t I2C_TXDR_OFFSET    = 0xA;
 
 
 void tal_enable_I2C();
 
-void tal_transmit(uint8_t addr, void* data, uint32_t size);
+void tal_transmit_I2C(uint8_t addr, void* data, uint32_t size);
 
-void* tal_read(uint8_t addr, uint32_t size);
+void* tal_read_I2C(uint8_t addr, uint32_t size);
+
+
 
 void tal_enable_I2C()
-{
-    // TODO enable I2C and GPIO clocks
+{ 
 
     tal_set_mode(133, 2); // alternate function mode
     tal_set_mode(134, 2);
@@ -80,7 +81,7 @@ void tal_enable_I2C()
 }
 
 
-void tal_transmit(uint8_t addr, void* d, uint32_t size)
+void tal_transmit_I2C(uint8_t addr, void* d, uint32_t size)
 {
     tal_transmit_r(addr, d, size, true);
 }
@@ -132,7 +133,7 @@ static void tal_transmit_r(uint8_t addr, void* d, uint32_t size, bool first_call
     tal_transmit_r(addr, data, size, false); // call again, with updated (less) data to send
 }
 
-void* tal_read(uint8_t addr, uint32_t size)
+void* tal_read_I2C(uint8_t addr, uint32_t size)
 {
     uint8_t data_array[size]; // TODO: check
     return tal_read_r(addr, size, true, data_array, 0);
