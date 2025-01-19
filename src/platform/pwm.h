@@ -22,7 +22,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
-#include <stddef.h>
+// #include <stddef.h>
 
 #if defined(__cplusplus)
   extern "C" {
