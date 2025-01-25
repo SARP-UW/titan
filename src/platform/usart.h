@@ -25,6 +25,10 @@
 #include <stddef.h>
 #include <string.h>
 
+#if defined(__cplusplus)
+  extern "C" {
+#endif
+
 
 #define USART_1_BASE 0x40011000
 #define USART_CR1_OFFSET 0x00
@@ -53,7 +57,11 @@ void usart_init(void) {
     // Select oversampling method (16 - 0 or 8 - 1) through OVER8 bit in USART_CR1
     // 8 achieves higher speed but lower tolerance for clock deviation, opposite for 16
 
-    // Configure TX, RX pins
+    // Configure TX, RX pins, 98(TX 7), 99(RX 7)
+    tal_set_mode(98, 2);
+    tal_set_mode(99, 2);
+    tal_alternate_mode(98, 7);
+    tal_alternate_mode(99, 7);
 
     // Set baud rate, set in USART_BRR
     // If oversampling by 16, write value = usart_ker_ck/required baud rate
@@ -146,3 +154,6 @@ int8_t usart_read_byte(void) {
     return *data;
 }
 
+#if defined(__cplusplus)
+  }
+#endif
