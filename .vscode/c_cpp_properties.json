@@ -3,7 +3,7 @@
     {
       "name": "tal_dev",
       "intelliSenseMode": "gcc-arm",
-      "cStandard": "c11",
+      "cStandard": "gnu17",
       "compilerArgs": [
         "-mcpu=cortex-m7",
         "-ffreestanding",

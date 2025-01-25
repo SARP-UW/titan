@@ -1,6 +1,6 @@
 /**
  * This file is part of the Titan Flight Computer Project
- * Copyright (c) 2024 UW SARP
+ * Copyright (c) 2025 UW SARP
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,15 +20,16 @@
  */
 
 #pragma once
+// includes here
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
   extern "C" {
 #endif
 
-/**********************************************************************************************
- * @section $name$
- **********************************************************************************************/
+  /**********************************************************************************************
+   * @section $name$
+   **********************************************************************************************/
 
-#if defined(__cplusplus)
-  } /* extern "C" */
+#ifdef __cplusplus
+  } // extern "C"
 #endif

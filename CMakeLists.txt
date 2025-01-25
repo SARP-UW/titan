@@ -3,6 +3,10 @@
 #         AND SHOULD BE REPLACED AT SOME POINT WITH A PROPER BUILD SYSTEM.
 ###################################################################################################
 
+# TEMP
+set(CMAKE_EXECUTABLE_SUFFIX ".exe")
+set(CMAKE_LINK_DIR src/STM32H7x5/link.ld)
+
 # Configure cmake compilers
 set(TC_BIN_PATH $ENV{ARM_GNU_TOOLCHAIN}/bin)
 set(CMAKE_C_COMPILER ${TC_BIN_PATH}/arm-none-eabi-gcc${CMAKE_EXECUTABLE_SUFFIX})
@@ -71,7 +75,7 @@ target_compile_options(${EXECUTABLE} PRIVATE
 # Set linker config
 target_link_options(${EXECUTABLE} PRIVATE
   -nostdlib
-  -T ${CMAKE_SOURCE_DIR}/dev/devboard/linker_file.ld
+  -T ${CMAKE_SOURCE_DIR}/${CMAKE_LINK_DIR}
   -mcpu=cortex-m7
   -mthumb
   -mfpu=fpv4-sp-d16

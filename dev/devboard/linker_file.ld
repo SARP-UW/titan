@@ -1,35 +1,27 @@
-/*
-******************************************************************************
-**
+/**
+ * This file is part of the Titan Flight Computer Project
+ * Copyright (c) 2024 UW SARP
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * @file src/STM32H7x5/exc.h
+ * @authors Aaron McBride
+ * @brief Exception defintions.
+ */
 
-**  File        : LinkerScript.ld
-**
-**
-**  Abstract    : Linker script for STM32H7 series
-**                1024Kbytes FLASH and 192Kbytes RAM
-**
-**                Set heap size, stack size and stack location according
-**                to application requirements.
-**
-**                Set memory bank area and size if external memory is used.
-**
-**  Target      : STMicroelectronics STM32
-**
-**  Distribution: The file is distributed as is, without any warranty
-**                of any kind.
-**
-*****************************************************************************
-** @attention
-**
-** Copyright (c) 2019 STMicroelectronics.
-** All rights reserved.
-**
-** This software is licensed under terms that can be found in the LICENSE file
-** in the root directory of this software component.
-** If no LICENSE file comes with this software, it is provided AS-IS.
-**
-******************************************************************************
-*/
+
+
+
 
 /* Entry Point */
 ENTRY(Reset_Handler)
