@@ -17,8 +17,9 @@
       ],
       "compilerPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gcc",
       "defines": [
-        "TAL_DEBUG",
-        "TAL_TARGET_GCC_STM32H745ZI"
+        "TI_DEBUG",
+        "TI_SEMIHOSTING",
+        "TI_TARGET_STM32H7x5"
       ]
     }
   ],

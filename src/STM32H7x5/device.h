@@ -14,21 +14,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file $path$
- * @authors $name$
- * @brief $summary$
+ * @file src/STM32H7x5/device.h
+ * @authors Aaron McBride
+ * @brief Device information.
  */
 
 #pragma once
-// includes here
+#include <stdint.h>
 
 #ifdef __cplusplus
   extern "C" {
 #endif
 
-  /**********************************************************************************************
-   * @section $name$
-   **********************************************************************************************/
+  /// @todo - Add definitions here...
+
+  
 
 #ifdef __cplusplus
   } // extern "C"
