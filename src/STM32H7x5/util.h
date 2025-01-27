@@ -24,6 +24,10 @@
 #include <stdbool.h>
 #include <limits.h>
 
+#ifdef __ICCARM__
+  #pragma language = extended
+#endif
+
 #ifdef __cplusplus
   extern "C" {
 #endif
@@ -81,6 +85,10 @@
       bool: uint8_t, \
       default: void \
     )
+
+  #define DBL_EXP_ 0x7FF0000000000000
+  #define DBL_SIGC_ 0x000FFFFFFFFFFFFF
+  #define DBL_SIGN_ 0x8000000000000000
 
   /**********************************************************************************************
    * @section Debugging Utilities
@@ -213,6 +221,75 @@
     const __auto_type tmax_ = (max); \
     cmp(value_, tmin_) < 0 ? tmin_ : \
     cmp(value_, tmin_) > 0 ? tmax_ : value_; \
+  })
+
+  /**
+   * @brief Rounds a value up to the nearest given multiple.
+   * @param value (integral type) The value to round.
+   * @param mul (integral type) The multiple to round to.
+   * @returns (type of @p [value]) The value rounded up to the nearest
+   *          multiple of @p [mul].
+   */
+  #define ceil(value, mul) ({ \
+    const __auto_type value_ = (value); \
+    const __auto_type mul_ = (mul); \
+    value_ + (mul_ - (value_ % mul_)); \
+  })
+
+  /**
+   * @brief Rounds a value down to the nearest given multiple.
+   * @param value (integral type) The value to round.
+   * @param mul (integral type) The multiple to round to.
+   * @returns (type of @p [value]) The value rounded down to the nearest
+   *          multiple of @p [mul].
+   */
+  #define floor(value, mul) ({ \
+    const __auto_type value_ = (value); \
+    const __auto_type mul_ = (mul); \
+    value_ - (value_ % mul_); \
+  })
+
+  /**
+   * @brief Rounds a value to the nearest given multiple.
+   * @param value (integral type) The value to round.
+   * @param mul (integral type) The multiple to round to.
+   * @returns (type of @p [value]) The value rounded to the nearest
+   *          multiple of @p [mul].
+   */
+  #define round(value, mul) ({ \
+    const __auto_type value_ = (value); \
+    const __auto_type mul_ = (mul); \
+    value_ + (mul_ / 2) - ((value_ + (mul_ / 2)) % mul_); \
+  })
+
+  /**
+   * @brief Divides two values and rounds the result up to the nearest integer.
+   * @param lhs (integer) The dividend.
+   * @param rhs (integer) The divisor.
+   * @returns (type of @p [lhs]) The result of @p [lhs] divided by @p [rhs], 
+   *          rounded up to the nearest integer.
+   */
+  #define div_ceil(lhs, rhs) ({ \
+    const __auto_type l_ = (lhs); \
+    const __auto_type r_ = (rhs); \
+    l_ / r_ + (l_ % r_ != 0 && (l_ ^ r_) > 0); \
+  })
+
+  /**
+   * @brief Determines the result of raising a base to an exponent.
+   * @param value (integer) The base value.
+   * @param exp (integer) The exponent value.
+   * @returns (type of @p [value]) The result of raising @p [value] to
+   *          the power of @p [exp].
+   */
+  #define pow(value, exp) ({ \
+    const __auto_type value_ = (value); \
+    const __auto_type exp_ = (exp); \
+    typeof(value_ + exp_) result = 1; \
+    for (int32_t i = 0; i < exp_; i++) { \
+      result *= value_; \
+    } \
+    result; \
   })
 
   /**********************************************************************************************
@@ -348,29 +425,6 @@
   })
 
   /**********************************************************************************************
-   * @section Floating Point Utilities
-   **********************************************************************************************/
-
-  // static const union { uint64_t i; double f; } u1 = {.i = 0x7FF8000000000000};
-  // static const union { uint64_t i; double f; } u2 = {.i = 0x7FF0000000000000};
-
-  // #define NAN (u1.f)
-
-  // #define INF (u2.f)
-
-  // inline bool is_nan(double value) {
-  //   union { double f; uint64_t i; } u = {.f = value};
-  //   return (u.i & 0x7FF0000000000000) == 0x7FF0000000000000 && 
-  //          (u.i & 0x000FFFFFFFFFFFFF) != 0;
-  // }
-
-  // inline void is_inf(double value) {
-  //   union { double f; uint64_t i; } u = {.f = value};
-  //   return (u.i & 0x7FF0000000000000) == 0x7FF0000000000000 && 
-  //          (u.i & 0x000FFFFFFFFFFFFF) == 0;
-  // }
-
-  /**********************************************************************************************
    * @section Memory Utilities
    **********************************************************************************************/
 
@@ -488,6 +542,52 @@
     }
     return len;
   }
+
+  inline int32_t str_fmt(const char* fmt, ...) {
+
+  }
+
+  inline uintmax_t str_parse(const char* str) {
+
+  }
+
+  inline bool is_digit(char c) {
+
+  }
+
+  inline bool is_alpha(char c) {
+
+  }
+
+  inline bool is_hex(char c) {
+    
+  }
+
+  inline bool is_punct(char c) {
+
+  }
+
+  inline bool is_graph(char c) {
+
+  }
+
+  inline bool is_upper(char c) {
+
+  }
+
+  inline bool is_lower(char c) {
+
+  }
+
+  inline char to_upper(char c) {
+
+  }
+
+  inline char to_lower(char c) {
+
+  }
+
+  
 
 #ifdef __cplusplus
   } // extern "C"

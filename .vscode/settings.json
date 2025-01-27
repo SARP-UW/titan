@@ -23,6 +23,7 @@
     "complex": "c",
     "ranges": "c",
     "scoped_allocator": "c",
-    "variant": "c"
+    "variant": "c",
+    "cmath": "c"
   }
 }
