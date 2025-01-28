@@ -93,12 +93,38 @@
   /**********************************************************************************************
    * @section Debugging Utilities
    **********************************************************************************************/
+  
+  #define str_(x) #x
+  #define strx_(x) #x
 
-  #define dbg_print(msg)
+  #ifdef TI_DEBUG
 
-  #define dbg_assert()
+    #if TI_SEMIHOSTING
 
-  #define dbg_break()
+      #define dbg_log(msg) ({ \
+        asm volatile (
+          "mov r0, %0x18"
+        )
+      })
+
+      #define assert(cond, msg) ({ \
+        if (!!(cond)) { \
+          dbg_log("Assertion failed: " msg); \
+          asm volatile ("bkpt #0x0"); \
+        } \
+      })
+
+    #else
+
+
+
+    #endif
+
+
+  #else
+
+  #endif
+
 
   /**********************************************************************************************
    * @section Uncategorised Utilities
@@ -525,70 +551,7 @@
     }
     return NULL;
   }
-
-  /**********************************************************************************************
-   * @section String Utilities
-   **********************************************************************************************/
-
-  /**
-   * @brief Determines the length of a string.
-   * @param str 
-   * @return 
-   */
-  inline int32_t str_len(const char* str) {
-    int32_t len = 0;
-    if (str) {
-      while (str[len]) { ++len; }
-    }
-    return len;
-  }
-
-  inline int32_t str_fmt(const char* fmt, ...) {
-
-  }
-
-  inline uintmax_t str_parse(const char* str) {
-
-  }
-
-  inline bool is_digit(char c) {
-
-  }
-
-  inline bool is_alpha(char c) {
-
-  }
-
-  inline bool is_hex(char c) {
-    
-  }
-
-  inline bool is_punct(char c) {
-
-  }
-
-  inline bool is_graph(char c) {
-
-  }
-
-  inline bool is_upper(char c) {
-
-  }
-
-  inline bool is_lower(char c) {
-
-  }
-
-  inline char to_upper(char c) {
-
-  }
-
-  inline char to_lower(char c) {
-
-  }
-
   
-
 #ifdef __cplusplus
   } // extern "C"
 #endif
