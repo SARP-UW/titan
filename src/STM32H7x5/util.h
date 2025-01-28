@@ -86,46 +86,6 @@
       default: void \
     )
 
-  #define DBL_EXP_ 0x7FF0000000000000
-  #define DBL_SIGC_ 0x000FFFFFFFFFFFFF
-  #define DBL_SIGN_ 0x8000000000000000
-
-  /**********************************************************************************************
-   * @section Debugging Utilities
-   **********************************************************************************************/
-  
-  #define str_(x) #x
-  #define strx_(x) #x
-
-  #ifdef TI_DEBUG
-
-    #if TI_SEMIHOSTING
-
-      #define dbg_log(msg) ({ \
-        asm volatile (
-          "mov r0, %0x18"
-        )
-      })
-
-      #define assert(cond, msg) ({ \
-        if (!!(cond)) { \
-          dbg_log("Assertion failed: " msg); \
-          asm volatile ("bkpt #0x0"); \
-        } \
-      })
-
-    #else
-
-
-
-    #endif
-
-
-  #else
-
-  #endif
-
-
   /**********************************************************************************************
    * @section Uncategorised Utilities
    **********************************************************************************************/
