@@ -32,29 +32,37 @@
 #endif
 
 typedef struct {
-  int16_t am_pm;
   int16_t hours;
+
   int16_t mins;
+
   int16_t secs;
+
   int16_t years;
+
   int16_t weekday;
+
   int16_t month;
+
   int16_t date;
+
   double subsec;
+
 } RTC_datetime;
 
 RTC_datetime tal_read_RTC();
 
 bool tal_write_RTC(RTC_datetime datetime);
 
+bool tal_init_RTC();
+
 /////////////////////////////////////////////////
 // IMPLEMENTATION
 /////////////////////////////////////////////////
+
 RTC_datetime tal_read_RTC()
 {
-  // Check that RFS Bit of RTC_ISR Register is set.
   RTC_datetime res;
-  res.am_pm = read_field(RTC_RTC_TR, RTC_RTC_TR_PM);
   res.hours = read_field(RTC_RTC_TR, RTC_RTC_TR_HT) * 10 + read_field(RTC_RTC_TR, RTC_RTC_TR_HU);
   res.mins =  read_field(RTC_RTC_TR, RTC_RTC_TR_MNT) * 10 + read_field(RTC_RTC_TR, RTC_RTC_TR_MNU);
   res.secs = read_field(RTC_RTC_TR, RTC_RTC_TR_ST) * 10 + read_field(RTC_RTC_TR, RTC_RTC_TR_SU);
@@ -63,17 +71,18 @@ RTC_datetime tal_read_RTC()
   res.month = read_field(RTC_RTC_DR, RTC_RTC_DR_MT) * 10 + read_field(RTC_RTC_TR, RTC_RTC_DR_MU);
   res.date = read_field(RTC_RTC_DR, RTC_RTC_DR_DT) * 10 + read_field(RTC_RTC_TR, RTC_RTC_DR_DU);
   double prer = read_field(RTC_RTC_PRER, RTC_RTC_PRER_PREDIV_S);
-  res.subsec = (prer - readfield(RTC_RTC_SSR, RTC_RTC_SSR_SS))/(prer + 1);
+  res.subsec = (prer - read_field(RTC_RTC_SSR, RTC_RTC_SSR_SS))/(prer + 1);
   return res;
 }
 
 bool tal_write_RTC(RTC_datetime init_dt)
 {
+  // Enter init mode
   set_field(RTC_RTC_ISR, RTC_RTC_ISR_INIT, true);
   if (get_field(RTC_RTC_ISR, RTC_RTC_ISR_INITF) != 1) 
     return false;
-  write_field(RTC_RTC_PRER, RTC_RTC_PRER_PREDIV_A, 128);
-  write_field(RTC_RTC_PRER, RTC_RTC_PRER_PREDIV_S, 256);
+
+  // Write datetime
   write_field(RTC_RTC_TR, RTC_RTC_TR_HT, init_dt.hours / 10);
   write_field(RTC_RTC_TR, RTC_RTC_TR_HU, init_dt.hours % 10);
   write_field(RTC_RTC_TR, RTC_RTC_TR_MNT, init_dt.mins / 10);
@@ -87,20 +96,37 @@ bool tal_write_RTC(RTC_datetime init_dt)
   write_field(RTC_RTC_DR, RTC_RTC_DR_MU, init_dt.month % 10);
   write_field(RTC_RTC_DR, RTC_RTC_DR_DT, init_dt.date / 10);
   write_field(RTC_RTC_DR, RTC_RTC_DR_DU, init_dt.date % 10);
-  set_field(RTC_RTC_CR, RTC_RTC_CR_FMT, init_dt.am_pm);
+  
+  // Leave INIT Mode
+  set_field(RTC_RTC_ISR, RTC_RTC_ISR_INIT, false);
+  return true;
+}
+
+
+bool tal_RTC_init()
+{
+  // Disable write protection
+  set_field(PWR_CRx[1], PWR_CRx_DBP, true);
+  write_field(RTC_RTC_WPR, RTC_RTC_WPR_KEY, 0xCA);
+  write_field(RTC_RTC_WPR, RTC_RTC_WPR_KEY, 0x53);
+
+  // Enter Initialization Mode
+  set_field(RTC_RTC_ISR, RTC_RTC_ISR_INIT, true);
+  if (get_field(RTC_RTC_ISR, RTC_RTC_ISR_INITF) != 1) 
+    return false;
+
+  // set RTC_CR register, with hour format
+  set_field(RTC_RTC_CR, RTC_RTC_CR_FMT, false);
+
+  // configure RTC_PRER with Predivs both async and sync
+  write_field(RTC_RTC_PRER, RTC_RTC_PRER_PREDIV_A, 128);
+  write_field(RTC_RTC_PRER, RTC_RTC_PRER_PREDIV_S, 256);
+  
+  // exit rtc_init mode
   set_field(RTC_RTC_ISR, RTC_RTC_ISR_INIT, false);
 }
 
 
-// Disable write protection after system reset
-void tal_RTC_init()
-{
-  set_field(PWR_CRx[1], PWR_CRx_DBP, true);
-  write_field(RTC_RTC_WPR, RTC_RTC_WPR_KEY, 0xCA);
-  write_field(RTC_RTC_WPR, RTC_RTC_WPR_KEY, 0x53);
-}
-
-
 #if defined(__cplusplus)
-  }
+}
 #endif
