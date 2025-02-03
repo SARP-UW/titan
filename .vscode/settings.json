@@ -24,6 +24,12 @@
     "ranges": "c",
     "scoped_allocator": "c",
     "variant": "c",
-    "cmath": "c"
+    "cmath": "c",
+    "barrier": "c",
+    "latch": "c",
+    "limits": "c",
+    "semaphore": "c",
+    "valarray": "c",
+    "typeinfo": "c"
   }
 }

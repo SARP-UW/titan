@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
+ * @internal
  * @file $path$
  * @authors $name$
  * @brief $summary$
@@ -26,10 +27,12 @@
   extern "C" {
 #endif
 
-  /**********************************************************************************************
-   * @section $name$
-   **********************************************************************************************/
+  /************************************************************************************************
+   * $name$
+   ************************************************************************************************/
 
 #ifdef __cplusplus
   } // extern "C"
 #endif
+
+/** @endinternal */

@@ -3,7 +3,7 @@
     {
       "name": "tal_dev",
       "intelliSenseMode": "gcc-arm",
-      "cStandard": "gnu17",
+      "cStandard": "c11",
       "compilerArgs": [
         "-mcpu=cortex-m7",
         "-ffreestanding",
@@ -19,7 +19,9 @@
       "defines": [
         "TI_DEBUG",
         "TI_SEMIHOSTING",
-        "TI_TARGET_STM32H7x5"
+        "TI_TARGET_STM32H7x5",
+        "TI_TARGET_CM7",
+        "TI_TARGET_CM4",
       ]
     }
   ],
