@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @internal
- * @file src/STM32H745_CM7/internal/interrupt.h
+ * @file src/STM32H745_CM7/interrupt.h
  * @authors Aaron McBride
  * @brief Interrupt prototypes, definitions and vtable.
  */
@@ -32,16 +32,16 @@
    **********************************************************************************************/
 
   // Attributes for exception handler prototypes
-  #define EXC_ATTR __attribute__((weak, used, alias("default_exc_handler")))
+  #define _EXC_ATTR __attribute__((weak, used, alias("_default_exc_handler")))
 
   // Attributes for IRQ handler prototypes
-  #define IRQ_ATTR __attribute__((weak, used, alias("default_irq_handler")))
+  #define _EXC_ATTR __attribute__((weak, used, alias("_default_irq_handler")))
 
   // Fallback exception interrupt handler
-  void default_exc_handler() { __asm__ ("BKPT #3"); }
+  void _default_exc_handler() { __asm__ ("BKPT #3"); }
 
   // Fallback IRQ interrupt handler
-  void default_irq_handler() { __asm__ ("BKPT #4"); }
+  void _default_irq_handler() { __asm__ ("BKPT #4"); }
 
   /**********************************************************************************************
    * General Reference Definitions
@@ -281,163 +281,163 @@
    * Exception Handler Prototypes
    *************************************************************************************************/
 
-  EXC_ATTR void reset_exc_handler();         /** @brief Reset exception. */
-  EXC_ATTR void nmi_exc_handler();           /** @brief Non-maskable interrupt. */
-  EXC_ATTR void hard_fault_exc_handler();    /** @brief Hard fault. */
-  EXC_ATTR void mem_manage_exc_handler();    /** @brief Memory management fault (MPU). */
-  EXC_ATTR void bus_fault_exc_handler();     /** @brief Bus fault. */
-  EXC_ATTR void usage_fault_exc_handler();   /** @brief Usage fault. */
-  EXC_ATTR void svc_exc_handler();           /** @brief System service call exception. */
-  EXC_ATTR void debug_mon_exc_handler();     /** @brief Debug monitor fault/exception. */
-  EXC_ATTR void pendsv_exc_handler();        /** @brief Pended system service call exception. */
-  EXC_ATTR void systick_exc_handler();       /** @brief SysTick interrupt. */
+  _EXC_ATTR void reset_exc_handler();         /** @brief Reset exception. */
+  _EXC_ATTR void nmi_exc_handler();           /** @brief Non-maskable interrupt. */
+  _EXC_ATTR void hard_fault_exc_handler();    /** @brief Hard fault. */
+  _EXC_ATTR void mem_manage_exc_handler();    /** @brief Memory management fault (MPU). */
+  _EXC_ATTR void bus_fault_exc_handler();     /** @brief Bus fault. */
+  _EXC_ATTR void usage_fault_exc_handler();   /** @brief Usage fault. */
+  _EXC_ATTR void svc_exc_handler();           /** @brief System service call exception. */
+  _EXC_ATTR void debug_mon_exc_handler();     /** @brief Debug monitor fault/exception. */
+  _EXC_ATTR void pendsv_exc_handler();        /** @brief Pended system service call exception. */
+  _EXC_ATTR void systick_exc_handler();       /** @brief SysTick interrupt. */
 
   /*************************************************************************************************
    * IRQ Handler Prototypes
    *************************************************************************************************/
 
-  IRQ_ATTR void wwdg1_irq_handler();                    /** @brief Window watchdog interrupt. */
-  IRQ_ATTR void pvd_pvm_irq_handler();                  /** @brief PVD through EXTI line. */
-  IRQ_ATTR void rtc_tamp_stamp_css_lse_irq_handler();   /** @brief RTC tamper, timestamp. */
-  IRQ_ATTR void rtc_wkup_irq_handler();                 /** @brief RTC wakeup interrupt. */
-  IRQ_ATTR void flash_irq_handler();                    /** @brief Flash memory. */
-  IRQ_ATTR void rcc_irq_handler();                      /** @brief RCC global interrupt. */
-  IRQ_ATTR void exti0_irq_handler();                    /** @brief EXTI line 0 interrupt. */
-  IRQ_ATTR void exti1_irq_handler();                    /** @brief EXTI line 1 interrupt. */
-  IRQ_ATTR void exti2_irq_handler();                    /** @brief EXTI line 2 interrupt. */
-  IRQ_ATTR void exti3_irq_handler();                    /** @brief EXTI line 3 interrupt. */
-  IRQ_ATTR void exti4_irq_handler();                    /** @brief EXTI line 4 interrupt. */
-  IRQ_ATTR void dma_str0_irq_handler();                 /** @brief DMA1 stream0. */
-  IRQ_ATTR void dma_str1_irq_handler();                 /** @brief DMA1 stream1. */
-  IRQ_ATTR void dma_str2_irq_handler();                 /** @brief DMA1 stream2. */
-  IRQ_ATTR void dma_str3_irq_handler();                 /** @brief DMA1 stream3. */
-  IRQ_ATTR void dma_str4_irq_handler();                 /** @brief DMA1 stream4. */
-  IRQ_ATTR void dma_str5_irq_handler();                 /** @brief DMA1 stream5. */
-  IRQ_ATTR void dma_str6_irq_handler();                 /** @brief DMA1 stream6. */
-  IRQ_ATTR void adc1_2_irq_handler();                   /** @brief ADC1 and ADC2. */
-  IRQ_ATTR void fdcan1_it0_irq_handler();               /** @brief FDCAN1 interrupt 0. */
-  IRQ_ATTR void fdcan2_it0_irq_handler();               /** @brief FDCAN2 interrupt 0. */
-  IRQ_ATTR void fdcan1_it1_irq_handler();               /** @brief FDCAN1 interrupt 1. */
-  IRQ_ATTR void fdcan2_it1_irq_handler();               /** @brief FDCAN2 interrupt 1. */
-  IRQ_ATTR void exti9_5_irq_handler();                  /** @brief EXTI line[9:5] interrupts. */
-  IRQ_ATTR void tim1_brk_irq_handler();                 /** @brief TIM1 break interrupt. */
-  IRQ_ATTR void tim1_up_irq_handler();                  /** @brief TIM1 update interrupt. */
-  IRQ_ATTR void tim1_trg_com_irq_handler();             /** @brief TIM1 trigger and commutation. */
-  IRQ_ATTR void tim1_cc_irq_handler();                  /** @brief TIM1 capture / compare. */
-  IRQ_ATTR void tim2_irq_handler();                     /** @brief TIM2 global interrupt. */
-  IRQ_ATTR void tim3_irq_handler();                     /** @brief TIM3 global interrupt. */
-  IRQ_ATTR void tim4_irq_handler();                     /** @brief TIM4 global interrupt. */
-  IRQ_ATTR void i2c1_ev_irq_handler();                  /** @brief I2C1 event interrupt. */
-  IRQ_ATTR void i2c1_er_irq_handler();                  /** @brief I2C1 error interrupt. */
-  IRQ_ATTR void i2c2_ev_irq_handler();                  /** @brief I2C2 event interrupt. */
-  IRQ_ATTR void i2c2_er_irq_handler();                  /** @brief I2C2 error interrupt. */
-  IRQ_ATTR void spi1_irq_handler();                     /** @brief SPI1 global interrupt. */
-  IRQ_ATTR void spi2_irq_handler();                     /** @brief SPI2 global interrupt. */
-  IRQ_ATTR void usart1_irq_handler();                   /** @brief USART1 global interrupt. */
-  IRQ_ATTR void usart2_irq_handler();                   /** @brief USART2 global interrupt. */
-  IRQ_ATTR void usart3_irq_handler();                   /** @brief USART3 global interrupt. */
-  IRQ_ATTR void exti15_10_irq_handler();                /** @brief EXTI line[15:10] interrupts. */
-  IRQ_ATTR void rtc_alarm_irq_handler();                /** @brief RTC alarms (A and B). */
-  IRQ_ATTR void tim8_brk_tim12_irq_handler();           /** @brief TIM8 and 12 break global. */
-  IRQ_ATTR void tim8_up_tim13_irq_handler();            /** @brief TIM8 and 13 update global. */
-  IRQ_ATTR void tim8_trg_com_tim14_irq_handler();       /** @brief TIM8 and 14 trigger /commutation and global. */
-  IRQ_ATTR void tim8_cc_irq_handler();                  /** @brief TIM8 capture / compare. */
-  IRQ_ATTR void dma1_str7_irq_handler();                /** @brief DMA1 stream7. */
-  IRQ_ATTR void fmc_irq_handler();                      /** @brief FMC global interrupt. */
-  IRQ_ATTR void sdmmc1_irq_handler();                   /** @brief SDMMC global interrupt. */
-  IRQ_ATTR void tim5_irq_handler();                     /** @brief TIM5 global interrupt. */
-  IRQ_ATTR void spi3_irq_handler();                     /** @brief SPI3 global interrupt. */
-  IRQ_ATTR void uart4_irq_handler();                    /** @brief UART4 global interrupt. */
-  IRQ_ATTR void uart5_irq_handler();                    /** @brief UART5 global interrupt. */
-  IRQ_ATTR void tim6_dac_irq_handler();                 /** @brief TIM6 global interrupt. */
-  IRQ_ATTR void tim7_irq_handler();                     /** @brief TIM7 global interrupt. */
-  IRQ_ATTR void dma2_str0_irq_handler();                /** @brief DMA2 stream0 interrupt. */
-  IRQ_ATTR void dma2_str1_irq_handler();                /** @brief DMA2 stream1 interrupt. */
-  IRQ_ATTR void dma2_str2_irq_handler();                /** @brief DMA2 stream2 interrupt. */
-  IRQ_ATTR void dma2_str3_irq_handler();                /** @brief DMA2 stream3 interrupt. */
-  IRQ_ATTR void dma2_str4_irq_handler();                /** @brief DMA2 stream4 interrupt. */
-  IRQ_ATTR void eth_irq_handler();                      /** @brief Ethernet global interrupt. */
-  IRQ_ATTR void eth_wkup_irq_handler();                 /** @brief Ethernet wakeup through EXTI. */
-  IRQ_ATTR void fdcan_cal_irq_handler();                /** @brief CAN2TX interrupts. */
-  IRQ_ATTR void cm4_sev_it_irq_handler();               /** @brief Arm cortex-m4 send even interrupt. */
-  IRQ_ATTR void dma2_str5_irq_handler();                /** @brief DMA2 stream5 interrupt. */
-  IRQ_ATTR void dma2_str6_irq_handler();                /** @brief DMA2 stream6 interrupt. */
-  IRQ_ATTR void dma2_str7_irq_handler();                /** @brief DMA2 stream7 interrupt. */
-  IRQ_ATTR void usart6_irq_handler();                   /** @brief USART6 global interrupt. */
-  IRQ_ATTR void i2c3_ev_irq_handler();                  /** @brief I2C3 event interrupt. */
-  IRQ_ATTR void i2c3_er_irq_handler();                  /** @brief I2C3 error interrupt. */
-  IRQ_ATTR void otg_hs_ep1_out_irq_handler();           /** @brief OTG_HS out global interrupt. */
-  IRQ_ATTR void otg_hs_ep1_in_irq_handler();            /** @brief OTG_HS in global interrupt. */
-  IRQ_ATTR void otg_hs_wkup_irq_handler();              /** @brief OTG_HS wakeup interrupt. */
-  IRQ_ATTR void otg_hs_irq_handler();                   /** @brief OTG_HS global interrupt. */
-  IRQ_ATTR void dcmi_irq_handler();                     /** @brief DCMI global interrupt. */
-  IRQ_ATTR void cryp_irq_handler();                     /** @brief CRYP global interrupt. */
-  IRQ_ATTR void hash_rng_irq_handler();                 /** @brief HASH and RNG. */
-  IRQ_ATTR void fpu_irq_handler();                      /** @brief Floating point unit interrupt. */
-  IRQ_ATTR void uart7_irq_handler();                    /** @brief UART7 global interrupt. */
-  IRQ_ATTR void uart8_irq_handler();                    /** @brief UART8 global interrupt. */
-  IRQ_ATTR void spi4_irq_handler();                     /** @brief SPI4 global interrupt. */
-  IRQ_ATTR void spi5_irq_handler();                     /** @brief SPI5 global interrupt. */
-  IRQ_ATTR void spi6_irq_handler();                     /** @brief SPI6 global interrupt. */
-  IRQ_ATTR void sai1_irq_handler();                     /** @brief SAI1 global interrupt. */
-  IRQ_ATTR void ltdc_irq_handler();                     /** @brief LCD-TFT global interrupt. */
-  IRQ_ATTR void ltdc_er_irq_handler();                  /** @brief LCD-TFT error interrupt. */
-  IRQ_ATTR void dma2d_irq_handler();                    /** @brief DMA2D global interrupt. */
-  IRQ_ATTR void sai2_irq_handler();                     /** @brief SAI2 global interrupt. */
-  IRQ_ATTR void quadspi_irq_handler();                  /** @brief QuadSPI global interrupt. */
-  IRQ_ATTR void lptim1_irq_handler();                   /** @brief LPTIM1 global interrupt. */
-  IRQ_ATTR void cec_irq_handler();                      /** @brief HDMI-CEC global interrupt. */
-  IRQ_ATTR void i2c4_ev_irq_handler();                  /** @brief I2C4 event interrupt. */
-  IRQ_ATTR void i2c4_er_irq_handler();                  /** @brief I2C4 error interrupt. */
-  IRQ_ATTR void spdif_irq_handler();                    /** @brief SPDIFRX global interrupt. */
-  IRQ_ATTR void otg_fs_ep1_out_irq_handler();           /** @brief OTG_FS out global interrupt. */
-  IRQ_ATTR void otg_fs_ep1_in_irq_handler();            /** @brief OTG_FS in global interrupt. */
-  IRQ_ATTR void otg_fs_wkup_irq_handler();              /** @brief OTG_FS wakeup. */
-  IRQ_ATTR void otg_fs_irq_handler();                   /** @brief OTG_FS global interrupt. */
-  IRQ_ATTR void dmamux1_ov_irq_handler();               /** @brief DMAMUX1 overrun interrupt. */
-  IRQ_ATTR void hrtim_mst_irq_handler();                /** @brief HRTIM master timer interrupt. */
-  IRQ_ATTR void hrtim_tima_irq_handler();               /** @brief HRTIM timer A interrupt. */
-  IRQ_ATTR void hrtim_timb_irq_handler();               /** @brief HRTIM timer B interrupt. */
-  IRQ_ATTR void hrtim_timc_irq_handler();               /** @brief HRTIM timer C interrupt. */
-  IRQ_ATTR void hrtim_timd_irq_handler();               /** @brief HRTIM timer D interrupt. */
-  IRQ_ATTR void hrtim_time_irq_handler();               /** @brief HRTIM timer E interrupt. */
-  IRQ_ATTR void hrtim_flt_irq_handler();                /** @brief HRTIM fault interrupt. */
-  IRQ_ATTR void dfsdm1_flt0_irq_handler();              /** @brief DFSDM1 filter 0 interrupt. */
-  IRQ_ATTR void dfsdm1_flt1_irq_handler();              /** @brief DFSDM1 filter 1 interrupt. */
-  IRQ_ATTR void dfsdm1_flt2_irq_handler();              /** @brief DFSDM1 filter 2 interrupt. */
-  IRQ_ATTR void dfsdm1_flt3_irq_handler();              /** @brief DFSDM1 filter 3 interrupt. */
-  IRQ_ATTR void sai3_irq_handler();                     /** @brief SAI3 global interrupt. */
-  IRQ_ATTR void swpmi_irq_handler();                    /** @brief SWPMI global interrupt. */
-  IRQ_ATTR void tim15_irq_handler();                    /** @brief TIM15 global interrupt. */
-  IRQ_ATTR void tim16_irq_handler();                    /** @brief TIM16 global interrupt. */
-  IRQ_ATTR void tim17_irq_handler();                    /** @brief TIM17 global interrupt. */
-  IRQ_ATTR void mdios_wkup_irq_handler();               /** @brief MDIOS wakeup. */
-  IRQ_ATTR void mdios_irq_handler();                    /** @brief MDIOS global interrupt. */
-  IRQ_ATTR void jpeg_irq_handler();                     /** @brief JPEG global interrupt. */
-  IRQ_ATTR void mdma_irq_handler();                     /** @brief MDMA. */
-  IRQ_ATTR void sdmmc2_irq_handler();                   /** @brief SDMMC global interrupt. */
-  IRQ_ATTR void hsem0_irq_handler();                    /** @brief HSEM global interrupt 0. */
-  IRQ_ATTR void adc3_irq_handler();                     /** @brief ADC3 global interrupt. */
-  IRQ_ATTR void dmamux2_ovr_irq_handler();              /** @brief DMAMUX2 overrun interrupt. */
-  IRQ_ATTR void bdma_ch1_irq_handler();                 /** @brief BDMA channel 1 interrupt. */
-  IRQ_ATTR void bdma_ch2_irq_handler();                 /** @brief BDMA channel 2 interrupt. */
-  IRQ_ATTR void bdma_ch3_irq_handler();                 /** @brief BDMA channel 3 interrupt. */
-  IRQ_ATTR void bdma_ch4_irq_handler();                 /** @brief BDMA channel 4 interrupt. */
-  IRQ_ATTR void bdma_ch5_irq_handler();                 /** @brief BDMA channel 5 interrupt. */
-  IRQ_ATTR void bdma_ch6_irq_handler();                 /** @brief BDMA channel 6 interrupt. */
-  IRQ_ATTR void bdma_ch7_irq_handler();                 /** @brief BDMA channel 7 interrupt. */
-  IRQ_ATTR void bdma_ch8_irq_handler();                 /** @brief BDMA channel 8 interrupt. */
-  IRQ_ATTR void comp_irq_handler();                     /** @brief COMP1 and COMP2. */
-  IRQ_ATTR void lptim2_irq_handler();                   /** @brief LPTIM2 timer interrupt. */
-  IRQ_ATTR void lptim3_irq_handler();                   /** @brief LPTIM3 timer interrupt. */
-  IRQ_ATTR void lptim4_irq_handler();                   /** @brief LPTIM4 timer interrupt. */
-  IRQ_ATTR void lptim5_irq_handler();                   /** @brief LPTIM5 timer interrupt. */
-  IRQ_ATTR void lpuart_irq_handler();                   /** @brief LPUART global interrupt. */
-  IRQ_ATTR void wwdg2_rst_irq_handler();                /** @brief Window watchdog reset interrupt. */
-  IRQ_ATTR void crs_irq_handler();                      /** @brief Clock recovery system globa. */
-  IRQ_ATTR void sai4_irq_handler();                     /** @brief SAI4 global interrupt. */
-  IRQ_ATTR void hold_core_irq_handler();                /** @brief Hold core interrupt. */
-  IRQ_ATTR void wkup_irq_handler();                     /** @brief WKUP1 to WKUP6 pins. */
+  _EXC_ATTR void wwdg1_irq_handler();                    /** @brief Window watchdog interrupt. */
+  _EXC_ATTR void pvd_pvm_irq_handler();                  /** @brief PVD through EXTI line. */
+  _EXC_ATTR void rtc_tamp_stamp_css_lse_irq_handler();   /** @brief RTC tamper, timestamp. */
+  _EXC_ATTR void rtc_wkup_irq_handler();                 /** @brief RTC wakeup interrupt. */
+  _EXC_ATTR void flash_irq_handler();                    /** @brief Flash memory. */
+  _EXC_ATTR void rcc_irq_handler();                      /** @brief RCC global interrupt. */
+  _EXC_ATTR void exti0_irq_handler();                    /** @brief EXTI line 0 interrupt. */
+  _EXC_ATTR void exti1_irq_handler();                    /** @brief EXTI line 1 interrupt. */
+  _EXC_ATTR void exti2_irq_handler();                    /** @brief EXTI line 2 interrupt. */
+  _EXC_ATTR void exti3_irq_handler();                    /** @brief EXTI line 3 interrupt. */
+  _EXC_ATTR void exti4_irq_handler();                    /** @brief EXTI line 4 interrupt. */
+  _EXC_ATTR void dma_str0_irq_handler();                 /** @brief DMA1 stream0. */
+  _EXC_ATTR void dma_str1_irq_handler();                 /** @brief DMA1 stream1. */
+  _EXC_ATTR void dma_str2_irq_handler();                 /** @brief DMA1 stream2. */
+  _EXC_ATTR void dma_str3_irq_handler();                 /** @brief DMA1 stream3. */
+  _EXC_ATTR void dma_str4_irq_handler();                 /** @brief DMA1 stream4. */
+  _EXC_ATTR void dma_str5_irq_handler();                 /** @brief DMA1 stream5. */
+  _EXC_ATTR void dma_str6_irq_handler();                 /** @brief DMA1 stream6. */
+  _EXC_ATTR void adc1_2_irq_handler();                   /** @brief ADC1 and ADC2. */
+  _EXC_ATTR void fdcan1_it0_irq_handler();               /** @brief FDCAN1 interrupt 0. */
+  _EXC_ATTR void fdcan2_it0_irq_handler();               /** @brief FDCAN2 interrupt 0. */
+  _EXC_ATTR void fdcan1_it1_irq_handler();               /** @brief FDCAN1 interrupt 1. */
+  _EXC_ATTR void fdcan2_it1_irq_handler();               /** @brief FDCAN2 interrupt 1. */
+  _EXC_ATTR void exti9_5_irq_handler();                  /** @brief EXTI line[9:5] interrupts. */
+  _EXC_ATTR void tim1_brk_irq_handler();                 /** @brief TIM1 break interrupt. */
+  _EXC_ATTR void tim1_up_irq_handler();                  /** @brief TIM1 update interrupt. */
+  _EXC_ATTR void tim1_trg_com_irq_handler();             /** @brief TIM1 trigger and commutation. */
+  _EXC_ATTR void tim1_cc_irq_handler();                  /** @brief TIM1 capture / compare. */
+  _EXC_ATTR void tim2_irq_handler();                     /** @brief TIM2 global interrupt. */
+  _EXC_ATTR void tim3_irq_handler();                     /** @brief TIM3 global interrupt. */
+  _EXC_ATTR void tim4_irq_handler();                     /** @brief TIM4 global interrupt. */
+  _EXC_ATTR void i2c1_ev_irq_handler();                  /** @brief I2C1 event interrupt. */
+  _EXC_ATTR void i2c1_er_irq_handler();                  /** @brief I2C1 error interrupt. */
+  _EXC_ATTR void i2c2_ev_irq_handler();                  /** @brief I2C2 event interrupt. */
+  _EXC_ATTR void i2c2_er_irq_handler();                  /** @brief I2C2 error interrupt. */
+  _EXC_ATTR void spi1_irq_handler();                     /** @brief SPI1 global interrupt. */
+  _EXC_ATTR void spi2_irq_handler();                     /** @brief SPI2 global interrupt. */
+  _EXC_ATTR void usart1_irq_handler();                   /** @brief USART1 global interrupt. */
+  _EXC_ATTR void usart2_irq_handler();                   /** @brief USART2 global interrupt. */
+  _EXC_ATTR void usart3_irq_handler();                   /** @brief USART3 global interrupt. */
+  _EXC_ATTR void exti15_10_irq_handler();                /** @brief EXTI line[15:10] interrupts. */
+  _EXC_ATTR void rtc_alarm_irq_handler();                /** @brief RTC alarms (A and B). */
+  _EXC_ATTR void tim8_brk_tim12_irq_handler();           /** @brief TIM8 and 12 break global. */
+  _EXC_ATTR void tim8_up_tim13_irq_handler();            /** @brief TIM8 and 13 update global. */
+  _EXC_ATTR void tim8_trg_com_tim14_irq_handler();       /** @brief TIM8 and 14 trigger /commutation and global. */
+  _EXC_ATTR void tim8_cc_irq_handler();                  /** @brief TIM8 capture / compare. */
+  _EXC_ATTR void dma1_str7_irq_handler();                /** @brief DMA1 stream7. */
+  _EXC_ATTR void fmc_irq_handler();                      /** @brief FMC global interrupt. */
+  _EXC_ATTR void sdmmc1_irq_handler();                   /** @brief SDMMC global interrupt. */
+  _EXC_ATTR void tim5_irq_handler();                     /** @brief TIM5 global interrupt. */
+  _EXC_ATTR void spi3_irq_handler();                     /** @brief SPI3 global interrupt. */
+  _EXC_ATTR void uart4_irq_handler();                    /** @brief UART4 global interrupt. */
+  _EXC_ATTR void uart5_irq_handler();                    /** @brief UART5 global interrupt. */
+  _EXC_ATTR void tim6_dac_irq_handler();                 /** @brief TIM6 global interrupt. */
+  _EXC_ATTR void tim7_irq_handler();                     /** @brief TIM7 global interrupt. */
+  _EXC_ATTR void dma2_str0_irq_handler();                /** @brief DMA2 stream0 interrupt. */
+  _EXC_ATTR void dma2_str1_irq_handler();                /** @brief DMA2 stream1 interrupt. */
+  _EXC_ATTR void dma2_str2_irq_handler();                /** @brief DMA2 stream2 interrupt. */
+  _EXC_ATTR void dma2_str3_irq_handler();                /** @brief DMA2 stream3 interrupt. */
+  _EXC_ATTR void dma2_str4_irq_handler();                /** @brief DMA2 stream4 interrupt. */
+  _EXC_ATTR void eth_irq_handler();                      /** @brief Ethernet global interrupt. */
+  _EXC_ATTR void eth_wkup_irq_handler();                 /** @brief Ethernet wakeup through EXTI. */
+  _EXC_ATTR void fdcan_cal_irq_handler();                /** @brief CAN2TX interrupts. */
+  _EXC_ATTR void cm4_sev_it_irq_handler();               /** @brief Arm cortex-m4 send even interrupt. */
+  _EXC_ATTR void dma2_str5_irq_handler();                /** @brief DMA2 stream5 interrupt. */
+  _EXC_ATTR void dma2_str6_irq_handler();                /** @brief DMA2 stream6 interrupt. */
+  _EXC_ATTR void dma2_str7_irq_handler();                /** @brief DMA2 stream7 interrupt. */
+  _EXC_ATTR void usart6_irq_handler();                   /** @brief USART6 global interrupt. */
+  _EXC_ATTR void i2c3_ev_irq_handler();                  /** @brief I2C3 event interrupt. */
+  _EXC_ATTR void i2c3_er_irq_handler();                  /** @brief I2C3 error interrupt. */
+  _EXC_ATTR void otg_hs_ep1_out_irq_handler();           /** @brief OTG_HS out global interrupt. */
+  _EXC_ATTR void otg_hs_ep1_in_irq_handler();            /** @brief OTG_HS in global interrupt. */
+  _EXC_ATTR void otg_hs_wkup_irq_handler();              /** @brief OTG_HS wakeup interrupt. */
+  _EXC_ATTR void otg_hs_irq_handler();                   /** @brief OTG_HS global interrupt. */
+  _EXC_ATTR void dcmi_irq_handler();                     /** @brief DCMI global interrupt. */
+  _EXC_ATTR void cryp_irq_handler();                     /** @brief CRYP global interrupt. */
+  _EXC_ATTR void hash_rng_irq_handler();                 /** @brief HASH and RNG. */
+  _EXC_ATTR void fpu_irq_handler();                      /** @brief Floating point unit interrupt. */
+  _EXC_ATTR void uart7_irq_handler();                    /** @brief UART7 global interrupt. */
+  _EXC_ATTR void uart8_irq_handler();                    /** @brief UART8 global interrupt. */
+  _EXC_ATTR void spi4_irq_handler();                     /** @brief SPI4 global interrupt. */
+  _EXC_ATTR void spi5_irq_handler();                     /** @brief SPI5 global interrupt. */
+  _EXC_ATTR void spi6_irq_handler();                     /** @brief SPI6 global interrupt. */
+  _EXC_ATTR void sai1_irq_handler();                     /** @brief SAI1 global interrupt. */
+  _EXC_ATTR void ltdc_irq_handler();                     /** @brief LCD-TFT global interrupt. */
+  _EXC_ATTR void ltdc_er_irq_handler();                  /** @brief LCD-TFT error interrupt. */
+  _EXC_ATTR void dma2d_irq_handler();                    /** @brief DMA2D global interrupt. */
+  _EXC_ATTR void sai2_irq_handler();                     /** @brief SAI2 global interrupt. */
+  _EXC_ATTR void quadspi_irq_handler();                  /** @brief QuadSPI global interrupt. */
+  _EXC_ATTR void lptim1_irq_handler();                   /** @brief LPTIM1 global interrupt. */
+  _EXC_ATTR void cec_irq_handler();                      /** @brief HDMI-CEC global interrupt. */
+  _EXC_ATTR void i2c4_ev_irq_handler();                  /** @brief I2C4 event interrupt. */
+  _EXC_ATTR void i2c4_er_irq_handler();                  /** @brief I2C4 error interrupt. */
+  _EXC_ATTR void spdif_irq_handler();                    /** @brief SPDIFRX global interrupt. */
+  _EXC_ATTR void otg_fs_ep1_out_irq_handler();           /** @brief OTG_FS out global interrupt. */
+  _EXC_ATTR void otg_fs_ep1_in_irq_handler();            /** @brief OTG_FS in global interrupt. */
+  _EXC_ATTR void otg_fs_wkup_irq_handler();              /** @brief OTG_FS wakeup. */
+  _EXC_ATTR void otg_fs_irq_handler();                   /** @brief OTG_FS global interrupt. */
+  _EXC_ATTR void dmamux1_ov_irq_handler();               /** @brief DMAMUX1 overrun interrupt. */
+  _EXC_ATTR void hrtim_mst_irq_handler();                /** @brief HRTIM master timer interrupt. */
+  _EXC_ATTR void hrtim_tima_irq_handler();               /** @brief HRTIM timer A interrupt. */
+  _EXC_ATTR void hrtim_timb_irq_handler();               /** @brief HRTIM timer B interrupt. */
+  _EXC_ATTR void hrtim_timc_irq_handler();               /** @brief HRTIM timer C interrupt. */
+  _EXC_ATTR void hrtim_timd_irq_handler();               /** @brief HRTIM timer D interrupt. */
+  _EXC_ATTR void hrtim_time_irq_handler();               /** @brief HRTIM timer E interrupt. */
+  _EXC_ATTR void hrtim_flt_irq_handler();                /** @brief HRTIM fault interrupt. */
+  _EXC_ATTR void dfsdm1_flt0_irq_handler();              /** @brief DFSDM1 filter 0 interrupt. */
+  _EXC_ATTR void dfsdm1_flt1_irq_handler();              /** @brief DFSDM1 filter 1 interrupt. */
+  _EXC_ATTR void dfsdm1_flt2_irq_handler();              /** @brief DFSDM1 filter 2 interrupt. */
+  _EXC_ATTR void dfsdm1_flt3_irq_handler();              /** @brief DFSDM1 filter 3 interrupt. */
+  _EXC_ATTR void sai3_irq_handler();                     /** @brief SAI3 global interrupt. */
+  _EXC_ATTR void swpmi_irq_handler();                    /** @brief SWPMI global interrupt. */
+  _EXC_ATTR void tim15_irq_handler();                    /** @brief TIM15 global interrupt. */
+  _EXC_ATTR void tim16_irq_handler();                    /** @brief TIM16 global interrupt. */
+  _EXC_ATTR void tim17_irq_handler();                    /** @brief TIM17 global interrupt. */
+  _EXC_ATTR void mdios_wkup_irq_handler();               /** @brief MDIOS wakeup. */
+  _EXC_ATTR void mdios_irq_handler();                    /** @brief MDIOS global interrupt. */
+  _EXC_ATTR void jpeg_irq_handler();                     /** @brief JPEG global interrupt. */
+  _EXC_ATTR void mdma_irq_handler();                     /** @brief MDMA. */
+  _EXC_ATTR void sdmmc2_irq_handler();                   /** @brief SDMMC global interrupt. */
+  _EXC_ATTR void hsem0_irq_handler();                    /** @brief HSEM global interrupt 0. */
+  _EXC_ATTR void adc3_irq_handler();                     /** @brief ADC3 global interrupt. */
+  _EXC_ATTR void dmamux2_ovr_irq_handler();              /** @brief DMAMUX2 overrun interrupt. */
+  _EXC_ATTR void bdma_ch1_irq_handler();                 /** @brief BDMA channel 1 interrupt. */
+  _EXC_ATTR void bdma_ch2_irq_handler();                 /** @brief BDMA channel 2 interrupt. */
+  _EXC_ATTR void bdma_ch3_irq_handler();                 /** @brief BDMA channel 3 interrupt. */
+  _EXC_ATTR void bdma_ch4_irq_handler();                 /** @brief BDMA channel 4 interrupt. */
+  _EXC_ATTR void bdma_ch5_irq_handler();                 /** @brief BDMA channel 5 interrupt. */
+  _EXC_ATTR void bdma_ch6_irq_handler();                 /** @brief BDMA channel 6 interrupt. */
+  _EXC_ATTR void bdma_ch7_irq_handler();                 /** @brief BDMA channel 7 interrupt. */
+  _EXC_ATTR void bdma_ch8_irq_handler();                 /** @brief BDMA channel 8 interrupt. */
+  _EXC_ATTR void comp_irq_handler();                     /** @brief COMP1 and COMP2. */
+  _EXC_ATTR void lptim2_irq_handler();                   /** @brief LPTIM2 timer interrupt. */
+  _EXC_ATTR void lptim3_irq_handler();                   /** @brief LPTIM3 timer interrupt. */
+  _EXC_ATTR void lptim4_irq_handler();                   /** @brief LPTIM4 timer interrupt. */
+  _EXC_ATTR void lptim5_irq_handler();                   /** @brief LPTIM5 timer interrupt. */
+  _EXC_ATTR void lpuart_irq_handler();                   /** @brief LPUART global interrupt. */
+  _EXC_ATTR void wwdg2_rst_irq_handler();                /** @brief Window watchdog reset interrupt. */
+  _EXC_ATTR void crs_irq_handler();                      /** @brief Clock recovery system globa. */
+  _EXC_ATTR void sai4_irq_handler();                     /** @brief SAI4 global interrupt. */
+  _EXC_ATTR void hold_core_irq_handler();                /** @brief Hold core interrupt. */
+  _EXC_ATTR void wkup_irq_handler();                     /** @brief WKUP1 to WKUP6 pins. */
 
   /*************************************************************************************************
    * Interrupt Vector Table Definition
