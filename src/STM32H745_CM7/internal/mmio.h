@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @internal
- * @file src/port/STM32H745_CM7/internal/mmio.h
+ * @file src/STM32H745_CM7/internal/mmio.h
  * @authors Aaron McBride
  * @brief Memory-mapped I/O definitions and utilities.
  */
@@ -52,7 +52,9 @@
    * @param value (uint32_t) The value to write to the field.
    * @returns (uint32_t) The value assigned to @p [dst].
    */
-  uint32_t write_field(volatile uint32_t* dst, field_t field, uint32_t value);
+  uint32_t write_field(volatile uint32_t* dst, field_t field, uint32_t value) {
+    return *dst = (*dst & ~field.msk) | ((value << field.pos) & field.msk);
+  }
 
   /**
    * @brief Writes a value to a field.
@@ -61,7 +63,9 @@
    * @param value (uint32_t) The value to write to the field.
    * @returns (uint32_t) The value assigned to @p [dst].
    */
-  uint32_t write_field_x(uint32_t* dst, field_t field, uint32_t value);
+  uint32_t write_field_x(uint32_t* dst, field_t field, uint32_t value) {
+    return *dst = (*dst & ~field.msk) | ((value << field.pos) & field.msk);
+  }
 
   /**
    * @brief Reads a field from a value.
@@ -69,7 +73,9 @@
    * @param field (field_t) The target field.
    * @returns (uint32_t) The value of @p [field] in @p [src].
    */
-  uint32_t read_field(const volatile uint32_t* src, field_t field);
+  uint32_t read_field(const volatile uint32_t* src, field_t field) {
+    return (*src & field.msk) >> field.pos;
+  }
 
   /**
    * @brief Reads a field from a value.
@@ -77,7 +83,9 @@
    * @param field (field_t) The target field.
    * @returns (uint32_t) The value of @p [field] in @p [src].
    */
-  uint32_t read_field_x(const uint32_t* src, field_t field);
+  uint32_t read_field_x(const uint32_t* src, field_t field) {
+    return (*src & field.msk) >> field.pos;
+  }
 
   /**
    * @brief Determines if a value can fit in a field.
@@ -86,47 +94,15 @@
    * @returns (bool) True if @p [value] can be represented in @p [field], 
    *          or false otherwise.
    */
-  bool in_range_field(field_t field, uint32_t value);
+  bool in_range_field(field_t field, uint32_t value) {
+    return (value & ~(field.msk >> field.pos)) == 0U;
+  }
 
   /**
    * @brief Gets the width of a field.
    * @param field (field_t) The target field.
    * @returns (int32_t) The width of @p [field].
    */
-  int32_t field_width(field_t field);
-
-  /**
-   * @brief Constructs a field_t struct.
-   * @param pos (uint32_t) The position of the first bit in the field.
-   * @param len (uint32_t) The number of consecutive bits occupied by the field.
-   * @returns (field_t) A field_t for the given position and length.
-   */
-  field_t make_field(uint32_t pos, uint32_t len);
-
-  /**********************************************************************************************
-   * Implementation of MMIO Utilities
-   **********************************************************************************************/
-
-  uint32_t write_field(volatile uint32_t* dst, field_t field, uint32_t value) {
-    return *dst = (*dst & ~field.msk) | ((value << field.pos) & field.msk);
-  }
-
-  uint32_t write_field_x(uint32_t* dst, field_t field, uint32_t value) {
-    return *dst = (*dst & ~field.msk) | ((value << field.pos) & field.msk);
-  }
-
-  uint32_t read_field(const volatile uint32_t* src, field_t field) {
-    return (*src & field.msk) >> field.pos;
-  }
-
-  uint32_t read_field_x(const uint32_t* src, field_t field) {
-    return (*src & field.msk) >> field.pos;
-  }
-
-  bool in_range_field(field_t field, uint32_t value) {
-    return (value & ~(field.msk >> field.pos)) == 0U;
-  }
-
   int32_t field_width(field_t field) {
     static const int32_t bit_size = 32;
     int32_t width = 0;
@@ -138,6 +114,12 @@
     return width;
   }
   
+  /**
+   * @brief Constructs a field_t struct.
+   * @param pos (uint32_t) The position of the first bit in the field.
+   * @param len (uint32_t) The number of consecutive bits occupied by the field.
+   * @returns (field_t) A field_t for the given position and length.
+   */
   field_t make_field(uint32_t pos, uint32_t len) {
     return (field_t) {
       .msk = ((UINT32_C(1) << len) - 1U) << pos,

@@ -25,13 +25,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "include/ti/task.h" // header
-#include "src/port/STM32H745_CM7/internal/sys_util.h"
-#include "src/port/STM32H745_CM7/internal/interrupt.h"
-#include "src/port/STM32H745_CM7/internal/mmio.h"
-#include "src/port/STM32H745_CM7/internal/compat.h"
-
-
-COMPAT_FILE
+#include "src/STM32H745_CM7/internal/interrupt.h"
+#include "src/STM32H745_CM7/internal/mmio.h"
 
 #ifdef __cplusplus
   extern "C" {
@@ -100,7 +95,7 @@ COMPAT_FILE
 
   __attribute__((naked))
   void pendsv_exc_handler() {
-    TI_VOLATILE_ASM (
+    __asm__ volatile (
 
       // Save context.
       "mrs r0, psp                \n\t"
