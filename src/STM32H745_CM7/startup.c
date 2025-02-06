@@ -15,16 +15,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @internal
- * @file src/STM32H745_CM7/reset.c
+ * @file src/STM32H745_CM7/startup.c
  * @authors Aaron McBride
- * @brief Reset handler for the STM32H745_CM7.
+ * @brief Reset handler and program startup code.
  */
 
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "src/STM32H745_CM7/config.h"
+#include "src/STM32H745_CM7/device_config.h"
 #include "src/STM32H745_CM7/mmio.h"
 #include "src/STM32H745_CM7/interrupt.h"
 
@@ -101,7 +101,7 @@
       (*current_elem++)();
     }
   }
-  
+
   /************************************************************************************************
    * Reset Handler Implementation
    ************************************************************************************************/

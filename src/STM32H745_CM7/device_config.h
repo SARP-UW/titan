@@ -23,29 +23,18 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include "include/ti/lib_config.h"
 
 #ifdef __cplusplus
   extern "C" {
 #endif
 
   /************************************************************************************************
-   * Execution Environment Configuration
-   ************************************************************************************************/
-
-  // System tick frequency in Hz.
-  #define TI_EXEC_TICK_FREQ 100000
-
-  /************************************************************************************************
-   * Execution Environment Configuration Verification
-   ************************************************************************************************/
-
-  #if (TI_EXEC_TICK_FREQ < 1)
-    #error "CONFIG ERROR: TI_EXEC_TICK_FREQ."
-  #endif
-
-  /************************************************************************************************
    * Power System Configuration
    ************************************************************************************************/
+
+  // Voltage scaling configuration.
+  #define TI_PWR_VOS 1
 
   // LDO enabled.
   #define TI_PWR_LDO_ENABLED true
@@ -57,9 +46,6 @@
   // 25 = 2.5V
   // 18 = 1.8V
   #define TI_PWR_SMPS_VOLTAGE 25
-
-  // SMPS high performance mode enabled.
-  #define TI_PWR_SMPS_HIGH_PERFORMANCE true
 
   // Enable charging of VBAT.
   #define TI_PWR_VBAT_CHARGE_ENABLED true
@@ -78,12 +64,12 @@
 
   #if (TI_PWR_SMPS_VOLTAGE != 25) && \
       (TI_PWR_SMPS_VOLTAGE != 18)
-    #error "CONFIG ERROR: TI_PWR_SMPS_VOLTAGE."
+    #error "TI DEVICE CONFIG ERROR: TI_PWR_SMPS_VOLTAGE."
   #endif
 
   #if (TI_PWR_VBAT_CHARGE_RESISTOR != 1500) && \
       (TI_PWR_VBAT_CHARGE_RESISTOR != 5000)
-    #error "CONFIG ERROR: TI_PWR_VBAT_CHARGE_RESISTOR."
+    #error "TI DEVICE CONFIG ERROR: TI_PWR_VBAT_CHARGE_RESISTOR."
   #endif
 
   /************************************************************************************************
@@ -98,11 +84,11 @@
    ************************************************************************************************/
 
   #if (TI_CLK_CPU_FREQ < 1) || (TI_CLK_CPU_FREQ > 480000000)
-    #error "CONFIG ERROR: TI_CLK_CPU_FREQ."
+    #error "TI DEVICE CONFIG ERROR: TI_CLK_CPU_FREQ."
   #endif
 
-  #if (TI_EXEC_TICK_FREQ > (TI_CLK_CPU_FREQ / 2))
-    #error "CONFIG ERROR: TI_EXEC_TICK_FREQ."
+  #if (TI_THRD_TICK_FREQ > (TI_CLK_CPU_FREQ / 2))
+    #error "TI DEVICE CONFIG ERROR: TI_CLK_CPU_FREQ."
   #endif
 
 

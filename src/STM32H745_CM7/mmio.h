@@ -28,9 +28,9 @@
   extern "C" {
 #endif
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * MMIO Type Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /** @brief Type of read-write register pointers. */
   typedef volatile uint64_t* rw_reg64_t;
@@ -50,32 +50,24 @@
   typedef struct { uint16_t msk; int32_t pos; } field16_t;
   typedef struct { uint8_t  msk; int32_t pos; } field8_t;
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * MMIO Utilities
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**
-   * @brief Writes a value to a field.
-   * @param dst (integral pointer) The location to write to.
-   * @param field (field_t) The target field.
-   * @param value (integral value) The value to write to the field.
-   * @returns (unsigned integer) The value assigned to @p [dst].
+   * @brief Constructs a field struct from a position and width.
+   * @param ftype (token) The type of the field to construct.
+   * @param _pos (integral value) The position of the field.
+   * @param width (integral value) The width of the field.
+   * @returns (field_t) A field type which defines a field at the specified location.
    * @note - Arguments to this macro are expanded multiple times.
    */
-  #define WRITE_FIELD(dst, field, value) ( \
-    *(dst) = (*(dst) & ~(field).msk) | \
-    (((uint64_t)(value) << (field).pos) & (field).msk) \
-  )
-
-  /**
-   * @brief Reads a field from a value.
-   * @param src (integral pointer) The location to read from.
-   * @param field (field_t) The target field.
-   * @returns (unsigned integer) The value of @p [field] in @p [src].
-   * @note - Arguments to this macro are expanded multiple times.
-   */
-  #define READ_FIELD(src, field) ( \
-    *(src) & (field).msk >> (field).pos \
+  #define MAKE_FIELD(ftype, _pos, width) \
+  ( \
+    (ftype) { \
+      .msk = ((UINT64_C(1) << (width)) - 1U) << (_pos), \
+      .pos = (_pos) \
+    } \
   )
 
   /**
@@ -86,44 +78,53 @@
    *          or false otherwise.
    * @note - Arguments to this macro are expanded multiple times.
    */
-  #define IN_RANGE_FIELD(field, value) ( \
+  #define IN_RANGE_FIELD(field, value) \
+  ( \
     ((uint64_t)(value) & ~((field).msk >> (field).pos)) == 0U \
   )
-  
+
   /**
-   * @brief Constructs a field struct.
-   * @param ftype (token) The name of the field type to construct.
-   * @param pos (integer) The position of the first bit in the field.
-   * @param len (integer) The number of consecutive bits occupied by the field.
-   * @returns (field_t) A field struct that represents the specified field.
+   * @brief Writes a value to a field.
+   * @param dst (integral pointer) The location to write to.
+   * @param field (field_t) The target field.
+   * @param value (integral value) The value to write to the field.
+   * @returns (unsigned integer) The value assigned to @p [dst].
    * @note - Arguments to this macro are expanded multiple times.
    */
-  #define MAKE_FIELD(ftype, pos, width) ( \
-    (ftype) { \
-      .msk = ((UINT64_C(1) << (width)) - 1U) << (pos), \
-      .pos = (pos), \
-    } \
+  #define WRITE_FIELD(dst, field, value) \
+  ( \
+    *(dst) = (*(dst) & ~(field).msk) | \
+    (((value) << (field).pos) & (field).msk) \
   )
 
   /**
-   * @brief Shifts the location of a field.
-   * @param field (field_t) The initial field.
-   * @param n (integer) The number of bits to shift the field by.
-   *        Positive = towards MSB, negative = towards LSB.
-   * @returns (field_t) The result of shifting the location of 
-   *          @p [field] by @p [n] bits.
+   * @brief Writes a value to a write-only field.
+   * @param dst (integral pointer) The location to write to.
+   * @param field (field_t) The target field.
+   * @param value (integral value) The value to write to the field.
+   * @returns (unsigned integer) The value assigned to @p [dst].
    * @note - Arguments to this macro are expanded multiple times.
    */
-  #define SHIFT_FIELD(field, n) ( \
-    (field_t) { \
-      .msk = ((n) > 0) ? (field).msk << (n) : (field).msk >> -(n), \
-      .pos = (field).pos + (n), \
-    } \
+  #define WRITE_WOFIELD(dst, field, value) \
+  ( \
+    *(dst) = (((value) << (field).pos) & (field).msk) \
   )
 
-  /**********************************************************************************************
+  /**
+   * @brief Reads the value of a field
+   * @param src (integral pointer) The location to read from.
+   * @param field (field_t) The target field.
+   * @returns (unsigned integer) The value of @p [field] in @p [src].
+   * @note - Arguments to this macro are expanded multiple times.
+   */
+  #define READ_FIELD(src, field) \
+  ( \
+    (*(src) & (field).msk) >> (field).pos \
+  )
+
+  /************************************************************************************************
    * COMP1 Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** COMP1 Register Definitions ****/
 
@@ -171,9 +172,9 @@
     [2] = {.msk = 0x00020000U, .pos = 17},   /** @brief Clear COMP channel 2 interrupt flag. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * CRS Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** CRS Register Definitions ****/
 
@@ -211,9 +212,9 @@
   static const field32_t CRS_ICR_ERRC      = {.msk = 0x00000004U, .pos = 2};    /** @brief Error clear flag writing 1 to this bit clears TRIMOVF, SYNCMISS and SYNCERR bits and consequently also the ERRF flag in the CRS_ISR register. */
   static const field32_t CRS_ICR_ESYNCC    = {.msk = 0x00000008U, .pos = 3};    /** @brief Expected SYNC clear flag writing 1 to this bit clears the ESYNCF flag in the CRS_ISR register. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * DAC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** DAC Register Definitions ****/
 
@@ -354,9 +355,9 @@
     [2] = {.msk = 0x00FF0000U, .pos = 16},   /** @brief DAC channel 2 refresh time (only valid in sample &amp; hold mode) refresh time= (TREFRESH[7:0]) x T LSI. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * BDMA Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** BDMA Register Definitions ****/
 
@@ -515,9 +516,9 @@
     [8] = {.msk = 0x80000000U, .pos = 31},   /** @brief Channel x transfer error clear this bit is set and cleared by software. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * DMA2D Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** DMA2D Register Definitions ****/
 
@@ -605,9 +606,9 @@
   static const field32_t DMA2D_AMTCR_EN      = {.msk = 0x00000001U, .pos = 0};    /** @brief Enable enables the dead time functionality. */
   static const field32_t DMA2D_AMTCR_DT      = {.msk = 0x0000FF00U, .pos = 8};    /** @brief Dead time dead time value in the AXI clock cycle inserted between two consecutive accesses on the AXI master port. These bits represent the minimum guaranteed number of cycles between two consecutive AXI accesses. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * DMAMUXx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated DMAMUXx Register Definitions ****/
 
@@ -696,9 +697,9 @@
   static const field32_t DMAMUXx_CSR_SOF        = {.msk = 0x0000FFFFU, .pos = 0};    /** @brief Synchronization overrun event flag. */
   static const field32_t DMAMUXx_CFR_CSOF       = {.msk = 0x0000FFFFU, .pos = 0};    /** @brief Clear synchronization overrun event flag. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * FMC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** FMC Register Definitions ****/
 
@@ -834,9 +835,9 @@
     [2] = {.msk = 0x00000018U, .pos = 3},   /** @brief Status mode for bank 2 these bits define the status mode of SDRAM bank 2. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * CEC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** CEC Register Definitions ****/
 
@@ -890,22 +891,22 @@
   static const field32_t CEC_IER_TXERRIE   = {.msk = 0x00000800U, .pos = 11};   /** @brief Tx-Error interrupt enable the TXERRIE bit is set and cleared by software. */
   static const field32_t CEC_IER_TXACKIE   = {.msk = 0x00001000U, .pos = 12};   /** @brief Tx-Missing acknowledge error interrupt enable the TXACKEIE bit is set and cleared by software. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * HSEM Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** HSEM Register Definitions ****/
 
-  static const rw_reg32_t HSEM_HSEM_IER  = (rw_reg32_t)0x58026500U;   /** @brief HSEM interrupt enable register. */
-  static const ro_reg32_t HSEM_HSEM_ICR  = (ro_reg32_t)0x58026504U;   /** @brief HSEM interrupt clear register. */
-  static const ro_reg32_t HSEM_HSEM_ISR  = (ro_reg32_t)0x58026508U;   /** @brief HSEM interrupt status register. */
-  static const ro_reg32_t HSEM_HSEM_MISR = (ro_reg32_t)0x5802650CU;   /** @brief HSEM masked interrupt status register. */
-  static const rw_reg32_t HSEM_HSEM_CR   = (rw_reg32_t)0x58026540U;   /** @brief HSEM clear register. */
-  static const rw_reg32_t HSEM_HSEM_KEYR = (rw_reg32_t)0x58026544U;   /** @brief HSEM interrupt clear register. */
+  static const rw_reg32_t HSEM_IER  = (rw_reg32_t)0x58026500U;   /** @brief HSEM interrupt enable register. */
+  static const ro_reg32_t HSEM_ICR  = (ro_reg32_t)0x58026504U;   /** @brief HSEM interrupt clear register. */
+  static const ro_reg32_t HSEM_ISR  = (ro_reg32_t)0x58026508U;   /** @brief HSEM interrupt status register. */
+  static const ro_reg32_t HSEM_MISR = (ro_reg32_t)0x5802650CU;   /** @brief HSEM masked interrupt status register. */
+  static const rw_reg32_t HSEM_CR   = (rw_reg32_t)0x58026540U;   /** @brief HSEM clear register. */
+  static const rw_reg32_t HSEM_KEYR = (rw_reg32_t)0x58026544U;   /** @brief HSEM interrupt clear register. */
 
   /**** Enumerated HSEM Register Definitions ****/
 
-  static const rw_reg32_t HSEM_HSEM_Rx[32] = {
+  static const rw_reg32_t HSEM_Rx[32] = {
     [0]  = (rw_reg32_t)0x58026400U,   /** @brief HSEM register HSEM_R0 HSEM_R31. */
     [1]  = (rw_reg32_t)0x58026404U,   /** @brief HSEM register HSEM_R0 HSEM_R31. */
     [2]  = (rw_reg32_t)0x58026408U,   /** @brief HSEM register HSEM_R0 HSEM_R31. */
@@ -940,7 +941,7 @@
     [31] = (rw_reg32_t)0x5802647CU,   /** @brief HSEM register HSEM_R0 HSEM_R31. */
   };
 
-  static const ro_reg32_t HSEM_HSEM_RLRx[32] = {
+  static const ro_reg32_t HSEM_RLRx[32] = {
     [0]  = (ro_reg32_t)0x58026480U,   /** @brief HSEM read lock register. */
     [1]  = (ro_reg32_t)0x58026484U,   /** @brief HSEM read lock register. */
     [2]  = (ro_reg32_t)0x58026488U,   /** @brief HSEM read lock register. */
@@ -977,19 +978,19 @@
 
   /**** HSEM Register Field Definitions ****/
 
-  static const field32_t HSEM_HSEM_Rx_PROCID     = {.msk = 0x000000FFU, .pos = 0};    /** @brief Semaphore processid. */
-  static const field32_t HSEM_HSEM_Rx_MASTERID   = {.msk = 0x0000FF00U, .pos = 8};    /** @brief Semaphore masterid. */
-  static const field32_t HSEM_HSEM_Rx_LOCK       = {.msk = 0x80000000U, .pos = 31};   /** @brief Lock indication. */
-  static const field32_t HSEM_HSEM_RLRx_PROCID   = {.msk = 0x000000FFU, .pos = 0};    /** @brief Semaphore processid. */
-  static const field32_t HSEM_HSEM_RLRx_MASTERID = {.msk = 0x0000FF00U, .pos = 8};    /** @brief Semaphore masterid. */
-  static const field32_t HSEM_HSEM_RLRx_LOCK     = {.msk = 0x80000000U, .pos = 31};   /** @brief Lock indication. */
-  static const field32_t HSEM_HSEM_CR_MASTERID   = {.msk = 0x0000FF00U, .pos = 8};    /** @brief MasterID of semaphores to be cleared. */
-  static const field32_t HSEM_HSEM_CR_KEY        = {.msk = 0xFFFF0000U, .pos = 16};   /** @brief Semaphore clear key. */
-  static const field32_t HSEM_HSEM_KEYR_KEY      = {.msk = 0xFFFF0000U, .pos = 16};   /** @brief Semaphore clear key. */
+  static const field32_t HSEM_Rx_PROCID     = {.msk = 0x000000FFU, .pos = 0};    /** @brief Semaphore processid. */
+  static const field32_t HSEM_Rx_COREID     = {.msk = 0x00000F00U, .pos = 8};    /** @brief Semaphore core id. */
+  static const field32_t HSEM_Rx_LOCK       = {.msk = 0x80000000U, .pos = 31};   /** @brief Lock indication. */
+  static const field32_t HSEM_RLRx_PROCID   = {.msk = 0x000000FFU, .pos = 0};    /** @brief Semaphore processid. */
+  static const field32_t HSEM_RLRx_COREID   = {.msk = 0x00000F00U, .pos = 8};    /** @brief Semaphore core id. */
+  static const field32_t HSEM_RLRx_LOCK     = {.msk = 0x80000000U, .pos = 31};   /** @brief Lock indication. */
+  static const field32_t HSEM_CR_COREID     = {.msk = 0x0000FF00U, .pos = 8};    /** @brief Core ID of semaphores to be cleared. */
+  static const field32_t HSEM_CR_KEY        = {.msk = 0xFFFF0000U, .pos = 16};   /** @brief Semaphore clear key. */
+  static const field32_t HSEM_KEYR_KEY      = {.msk = 0xFFFF0000U, .pos = 16};   /** @brief Semaphore clear key. */
 
   /**** Enumerated HSEM Register Field Definitions ****/
 
-  static field32_t const HSEM_HSEM_IER_ISEMx[32] = {
+  static field32_t const HSEM_IER_ISEMx[32] = {
     [0]  = {.msk = 0x00000001U, .pos = 0},    /** @brief Interrupt semaphore n enable bit. */
     [1]  = {.msk = 0x00000002U, .pos = 1},    /** @brief Interrupt semaphore n enable bit. */
     [2]  = {.msk = 0x00000004U, .pos = 2},    /** @brief Interrupt semaphore n enable bit. */
@@ -1024,9 +1025,9 @@
     [31] = {.msk = 0x80000000U, .pos = 31},   /** @brief Interrupt(N) semaphore n enable bit. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * I2Cx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated I2Cx Register Definitions ****/
 
@@ -1182,9 +1183,9 @@
   static const field32_t I2Cx_RXDR_RXDATA       = {.msk = 0x000000FFU, .pos = 0};    /** @brief 8-bit receive data data byte received from the I2C bus. */
   static const field32_t I2Cx_TXDR_TXDATA       = {.msk = 0x000000FFU, .pos = 0};    /** @brief 8-bit transmit data data byte to be transmitted to the I2C bus. Note: these bits can be written only when TXE=1. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * GPIOx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated GPIOx Register Definitions ****/
 
@@ -1516,9 +1517,9 @@
     [7] = {.msk = 0xF0000000U, .pos = 28},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * JPEG Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** JPEG Register Definitions ****/
 
@@ -1574,9 +1575,9 @@
   static const field32_t JPEG_CFR_CEOCF    = {.msk = 0x00000020U, .pos = 5};    /** @brief Clear end of conversion flag writing 1 clears the end of conversion flag of the JPEG status register. */
   static const field32_t JPEG_CFR_CHPDF    = {.msk = 0x00000040U, .pos = 6};    /** @brief Clear header parsing done flag writing 1 clears the header parsing done flag of the JPEG status register. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * MDMA Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** MDMA Register Definitions ****/
 
@@ -1906,9 +1907,9 @@
     [15] = {.msk = 0x00008000U, .pos = 15},   /** @brief Channel x global interrupt flag (x=...) this bit is set and reset by hardware. It is a logical OR of all the channel x interrupt flags (ctcifx, btifx, brtifx, teifx) which are enabled in the interrupt mask register (ctciex, btiex, brtiex, teiex). */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * QUADSPI Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** QUADSPI Register Definitions ****/
 
@@ -1973,9 +1974,9 @@
   static const field32_t QUADSPI_PIR_INTERVAL    = {.msk = 0x0000FFFFU, .pos = 0};    /** @brief Polling interval number of CLK cycles between to read during automatic polling phases. This field can be written only when BUSY = 0. */
   static const field32_t QUADSPI_LPTR_TIMEOUT    = {.msk = 0x0000FFFFU, .pos = 0};    /** @brief Timeout period after each access in memory-mapped mode, the QUADSPI prefetches the subsequent bytes and holds these bytes in the FIFO. This field indicates how many CLK cycles the QUADSPI waits after the FIFO becomes full until it raises ncs, putting the flash memory in a lower-consumption state. This field can be written only when BUSY = 0. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * RNG Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** RNG Register Definitions ****/
 
@@ -1994,9 +1995,9 @@
   static const field32_t RNG_SR_CEIS  = {.msk = 0x00000020U, .pos = 5};   /** @brief Clock error interrupt status this bit is set at the same time as CECS. It is cleared by writing it to 0. An interrupt is pending if IE = 1 in the RNG_CR register. Note: this bit is meaningless if CED (clock error detection) bit in RNG_CR is equal to 1. */
   static const field32_t RNG_SR_SEIS  = {.msk = 0x00000040U, .pos = 6};   /** @brief Seed error interrupt status this bit is set at the same time as SECS. It is cleared by writing it to 0. ** more than 64 consecutive bits at the same value (0 or 1) ** more than 32 consecutive alternances of 0 and 1 (0101010101...01) an interrupt is pending if IE = 1 in the RNG_CR register. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * RTC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** RTC Register Definitions ****/
 
@@ -2214,9 +2215,9 @@
     [3] = {.msk = 0x01000000U, .pos = 24},   /** @brief Tamper 3 mask flag. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * SAIx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated SAIx Register Definitions ****/
 
@@ -2479,9 +2480,9 @@
     [4] = {.msk = 0x70000000U, .pos = 28},   /** @brief Delay line for second microphone of pair 4. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * SDMMCx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated SDMMCx Register Definitions ****/
 
@@ -2707,9 +2708,9 @@
   static const field32_t SDMMCx_IDMABSIZER_IDMABNDT = {.msk = 0x00001FE0U, .pos = 5};    /** @brief Number of transfers per buffer. This 8-bit value shall be multiplied by 8 to get the size of the buffer in 32-bit words and by 32 to get the size of the buffer in bytes. Example: IDMABNDT = 0x01: buffer size = 8 words = 32 bytes. These bits can only be written by firmware when DPSM is inactive (DPSMACT = 0). */
   static const field32_t SDMMCx_RESPCMDR_RESPCMD    = {.msk = 0x0000003FU, .pos = 0};    /** @brief Response command index. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * VREFBUF Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** VREFBUF Register Definitions ****/
 
@@ -2724,9 +2725,9 @@
   static const field32_t VREFBUF_CSR_VRS  = {.msk = 0x00000070U, .pos = 4};   /** @brief Voltage reference scale these bits select the value generated by the voltage reference buffer. Other: reserved. */
   static const field32_t VREFBUF_CCR_TRIM = {.msk = 0x0000003FU, .pos = 0};   /** @brief Trimming code these bits are automatically initialized after reset with the trimming value stored in the flash memory during the production test. Writing into these bits allows to tune the internal reference buffer voltage. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * IWDGx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated IWDGx Register Definitions ****/
 
@@ -2765,9 +2766,9 @@
   static const field32_t IWDGx_SR_WVU   = {.msk = 0x00000004U, .pos = 2};   /** @brief Watchdog counter window value update this bit is set by hardware to indicate that an update of the window value is ongoing. It is reset by hardware when the reload value update operation is completed in the VDD voltage domain (takes up to 5 RC 40 khz cycles). Window value can be updated only when WVU bit is reset. This bit is generated only if generic window = 1. */
   static const field32_t IWDGx_WINR_WIN = {.msk = 0x00000FFFU, .pos = 0};   /** @brief Watchdog counter window value these bits are write access protected see section23.3.6. These bits contain the high limit of the window value to be compared to the downcounter. To prevent a reset, the downcounter must be reloaded when its value is lower than the window register value and greater than 0x0 the WVU bit in the IWDG_SR register must be reset in order to be able to change the reload value. Note: reading this register returns the reload value from the VDD voltage domain. This value may not be valid if a write operation to this register is ongoing. For this reason the value read from this register is valid only when the WVU bit in the IWDG_SR register is reset. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * WWDGx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated WWDGx Register Definitions ****/
 
@@ -2795,9 +2796,9 @@
   static const field32_t WWDGx_CFR_EWI   = {.msk = 0x00000200U, .pos = 9};    /** @brief Early wakeup interrupt when set, an interrupt occurs whenever the counter reaches the value 0x40. This interrupt is only cleared by hardware after a reset. */
   static const field32_t WWDGx_SR_EWIF   = {.msk = 0x00000001U, .pos = 0};    /** @brief Early wakeup interrupt flag this bit is set by hardware when the counter has reached the value 0x40. It must be cleared by software by writing 0. A write of 1 has no effect. This bit is also set if the interrupt is not enabled. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * PWR Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** PWR Register Definitions ****/
 
@@ -2887,9 +2888,9 @@
     [6] = {.msk = 0x0C000000U, .pos = 26},   /** @brief Wakeup pin pull configuration for wkup(truncate(n/2)-7) these bits define the I/O pad pull configuration used when wkupen(truncate(n/2)-7) = 1. The associated GPIO port pull configuration shall be set to the same value or to 00. The wakeup pin pull configuration is kept in standby mode. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * SPIx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated SPIx Register Definitions ****/
 
@@ -3108,9 +3109,9 @@
   static const field32_t SPIx_CGFR_I2SCFG  = {.msk = 0x0000000EU, .pos = 1};    /** @brief I2S configuration mode. */
   static const field32_t SPIx_CGFR_I2SMOD  = {.msk = 0x00000001U, .pos = 0};    /** @brief I2S mode selection. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * LTDC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** LTDC Register Definitions ****/
 
@@ -3264,9 +3265,9 @@
     [2] = {.msk = 0x00000007U, .pos = 0},   /** @brief Blending factor 2. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * SPDIFRX Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** SPDIFRX Register Definitions ****/
 
@@ -3349,9 +3350,9 @@
   static const field32_t SPDIFRX_DR_0x_PT     = {.msk = 0x00000030U, .pos = 4};    /** @brief Preamble type. */
   static const field32_t SPDIFRX_DR_0x_DR     = {.msk = 0xFFFFFF00U, .pos = 8};    /** @brief Data value. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * ADCx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated ADCx Register Definitions ****/
 
@@ -3681,9 +3682,9 @@
     [4] = {.msk = 0xF8000000U, .pos = 27},   /** @brief ADC group injected sequencer rank 4. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * ADCx_COMMON Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated ADCx_COMMON Register Definitions ****/
 
@@ -3750,9 +3751,9 @@
     [3] = {.msk = 0x02000000U, .pos = 25},   /** @brief Analog watchdog 3 flag of the slave ADC. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * CRC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** CRC Register Definitions ****/
 
@@ -3769,9 +3770,9 @@
   static const field32_t CRC_CR_REV_IN   = {.msk = 0x00000060U, .pos = 5};   /** @brief Reverse input data. */
   static const field32_t CRC_CR_REV_OUT  = {.msk = 0x00000080U, .pos = 7};   /** @brief Reverse output data. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * RCC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** RCC Register Definitions ****/
 
@@ -4315,9 +4316,9 @@
     [3] = {.msk = 0x00800000U, .pos = 23},   /** @brief I2C3 peripheral clocks enable during csleep mode. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * LPTIMx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated LPTIMx Register Definitions ****/
 
@@ -4445,9 +4446,9 @@
     [2] = {.msk = 0x00000030U, .pos = 4},   /** @brief LPTIM input 2 selection. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * LPUART1 Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** LPUART1 Register Definitions ****/
 
@@ -4541,9 +4542,9 @@
     [1] = {.msk = 0x10000000U, .pos = 28},   /** @brief Word length. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * SYSCFG Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** SYSCFG Register Definitions ****/
 
@@ -4631,9 +4632,9 @@
     [3] = {.msk = 0x0000F000U, .pos = 12},   /** @brief EXTI x configuration (x = 0 to 3). */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * EXTI Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated EXTI Register Definitions ****/
 
@@ -4809,9 +4810,9 @@
     [21] = {.msk = 0x00200000U, .pos = 21},   /** @brief CPU event mask on event input x. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * DELAY_BLOCK_SDMMCx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated DELAY_BLOCK_SDMMCx Register Definitions ****/
 
@@ -4834,9 +4835,9 @@
   static const field32_t DELAY_BLOCK_SDMMCx_CFGR_LNG  = {.msk = 0x0FFF0000U, .pos = 16};   /** @brief Delay line length value. */
   static const field32_t DELAY_BLOCK_SDMMCx_CFGR_LNGF = {.msk = 0x80000000U, .pos = 31};   /** @brief Length valid flag. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * DELAY_BLOCK_QUADSPI Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** DELAY_BLOCK_QUADSPI Register Definitions ****/
 
@@ -4852,9 +4853,9 @@
   static const field32_t DELAY_BLOCK_QUADSPI_CFGR_LNG  = {.msk = 0x0FFF0000U, .pos = 16};   /** @brief Delay line length value. */
   static const field32_t DELAY_BLOCK_QUADSPI_CFGR_LNGF = {.msk = 0x80000000U, .pos = 31};   /** @brief Length valid flag. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * FLASH Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** FLASH Register Definitions ****/
 
@@ -5098,9 +5099,9 @@
     [1] = {.msk = 0xFFFF0000U, .pos = 16},   /** @brief Boot address 1. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * AXI Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated AXI Register Definitions ****/
 
@@ -5202,9 +5203,9 @@
   static const field32_t AXI_AXI_INIx_FN_MOD_READ_ISS_OVERRIDE          = {.msk = 0x00000001U, .pos = 0};   /** @brief Override ASIB read issuing capability. */
   static const field32_t AXI_AXI_INIx_FN_MOD_WRITE_ISS_OVERRIDE         = {.msk = 0x00000002U, .pos = 1};   /** @brief Override ASIB write issuing capability. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * HASH Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** HASH Register Definitions ****/
 
@@ -5318,9 +5319,9 @@
     [1] = {.msk = 0x00040000U, .pos = 18},   /** @brief ALGO. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * CRYP Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** CRYP Register Definitions ****/
 
@@ -5515,9 +5516,9 @@
     [2] = {.msk = 0x00000002U, .pos = 1},   /** @brief IV62. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * DCMI Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** DCMI Register Definitions ****/
 
@@ -5595,9 +5596,9 @@
     [3] = {.msk = 0xFF000000U, .pos = 24},   /** @brief Data byte 3. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * OTGx_HS_GLOBAL Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated OTGx_HS_GLOBAL Register Definitions ****/
 
@@ -5876,9 +5877,9 @@
   static const field32_t OTGx_HS_GLOBAL_OTG_HS_GLPMCFG_LPMRCNTSTS        = {.msk = 0x0E000000U, .pos = 25};   /** @brief LPM retry count status. */
   static const field32_t OTGx_HS_GLOBAL_OTG_HS_GLPMCFG_ENBESL            = {.msk = 0x10000000U, .pos = 28};   /** @brief Enable best effort service latency. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * OTGx_HS_HOST Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated OTGx_HS_HOST Register Definitions ****/
 
@@ -6217,9 +6218,9 @@
   static const field32_t OTGx_HS_HOST_OTG_HS_HCTSIZx_PKTCNT    = {.msk = 0x1FF80000U, .pos = 19};   /** @brief Packet count. */
   static const field32_t OTGx_HS_HOST_OTG_HS_HCTSIZx_DPID      = {.msk = 0x60000000U, .pos = 29};   /** @brief Data PID. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * OTGx_HS_DEVICE Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated OTGx_HS_DEVICE Register Definitions ****/
 
@@ -6566,9 +6567,9 @@
   static const field32_t OTGx_HS_DEVICE_OTG_HS_DOEPTSIZx_PKTCNT        = {.msk = 0x00080000U, .pos = 19};   /** @brief Packet count. */
   static const field32_t OTGx_HS_DEVICE_OTG_HS_DOEPTSIZx_STUPCNT       = {.msk = 0x60000000U, .pos = 29};   /** @brief SETUP packet count. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * OTGx_HS_PWRCLK Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated OTGx_HS_PWRCLK Register Definitions ****/
 
@@ -6583,9 +6584,9 @@
   static const field32_t OTGx_HS_PWRCLK_OTG_HS_PCGCR_GATEHCLK = {.msk = 0x00000002U, .pos = 1};   /** @brief Gate HCLK. */
   static const field32_t OTGx_HS_PWRCLK_OTG_HS_PCGCR_PHYSUSP  = {.msk = 0x00000010U, .pos = 4};   /** @brief PHY suspended. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * ETHERNET_MAC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** ETHERNET_MAC Register Definitions ****/
 
@@ -7108,9 +7109,9 @@
     [3] = {.msk = 0x00000080U, .pos = 7},   /** @brief ATSEN3. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * DMAx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated DMAx Register Definitions ****/
 
@@ -7274,6 +7275,7 @@
 
   static const field32_t DMAx_SxCR_MBURST = {.msk = 0x01800000U, .pos = 23};   /** @brief Memory burst transfer configuration. */
   static const field32_t DMAx_SxCR_PBURST = {.msk = 0x00600000U, .pos = 21};   /** @brief Peripheral burst transfer configuration. */
+  static const field32_t DMAx_SxCR_TRBUFF = {.msk = 0x00100000U, .pos = 20};   /** @brief Bufferable transfer enable. */
   static const field32_t DMAx_SxCR_CT     = {.msk = 0x00080000U, .pos = 19};   /** @brief Current target (only in double buffer mode). */
   static const field32_t DMAx_SxCR_DBM    = {.msk = 0x00040000U, .pos = 18};   /** @brief Double buffer mode. */
   static const field32_t DMAx_SxCR_PL     = {.msk = 0x00030000U, .pos = 16};   /** @brief Priority level. */
@@ -7368,9 +7370,9 @@
     [3] = {.msk = 0x00400000U, .pos = 22},   /** @brief Stream x clear FIFO error interrupt flag (x = 3..0). */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * HRTIM_MASTER Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** HRTIM_MASTER Register Definitions ****/
 
@@ -7459,9 +7461,9 @@
     [4] = {.msk = 0x00000008U, .pos = 3},   /** @brief MCMP4IE. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * HRTIM_TIMA Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** HRTIM_TIMA Register Definitions ****/
 
@@ -7833,9 +7835,9 @@
     [5] = {.msk = 0x00000010U, .pos = 4},   /** @brief Fault 5 enable. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * HRTIM_TIMB Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** HRTIM_TIMB Register Definitions ****/
 
@@ -8207,9 +8209,9 @@
     [5] = {.msk = 0x00000010U, .pos = 4},   /** @brief Fault 5 enable. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * HRTIM_TIMC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** HRTIM_TIMC Register Definitions ****/
 
@@ -8581,9 +8583,9 @@
     [5] = {.msk = 0x00000010U, .pos = 4},   /** @brief Fault 5 enable. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * HRTIM_TIMD Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** HRTIM_TIMD Register Definitions ****/
 
@@ -8955,9 +8957,9 @@
     [5] = {.msk = 0x00000010U, .pos = 4},   /** @brief Fault 5 enable. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * HRTIM_TIME Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** HRTIM_TIME Register Definitions ****/
 
@@ -9329,9 +9331,9 @@
     [5] = {.msk = 0x00000010U, .pos = 4},   /** @brief Fault 5 enable. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * HRTIM_COMMON Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** HRTIM_COMMON Register Definitions ****/
 
@@ -9730,9 +9732,9 @@
     [4] = {.msk = 0x00000200U, .pos = 9},   /** @brief HRTIM_CMP4xR register update enable. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * DFSDM Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated DFSDM Register Definitions ****/
 
@@ -10013,9 +10015,9 @@
     [1] = {.msk = 0xFFFF0000U, .pos = 16},   /** @brief Input data for channel 1. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * G2_TIM1x Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated G2_TIM1x Register Definitions ****/
 
@@ -10182,9 +10184,9 @@
     [2] = {.msk = 0x00000800U, .pos = 11},   /** @brief BRK COMP2 input polarity. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * TIM15 Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** TIM15 Register Definitions ****/
 
@@ -10361,9 +10363,9 @@
     [2] = {.msk = 0x00000F00U, .pos = 8},   /** @brief Selects TI2[0] to TI2[15] input. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * USARTx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated USARTx Register Definitions ****/
 
@@ -10556,9 +10558,9 @@
     [4] = {.msk = 0x00100000U, .pos = 20},   /** @brief Driver enable de-assertion time. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * UARTx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated UARTx Register Definitions ****/
 
@@ -10751,9 +10753,9 @@
     [4] = {.msk = 0x00100000U, .pos = 20},   /** @brief Driver enable de-assertion time. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * A_TIMx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated A_TIMx Register Definitions ****/
 
@@ -11079,9 +11081,9 @@
     [4] = {.msk = 0x0F000000U, .pos = 24},   /** @brief Selects TI4[0] to TI4[15] input. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * FDCANx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated FDCANx Register Definitions ****/
 
@@ -11815,9 +11817,9 @@
     [2] = {.msk = 0x00002000U, .pos = 13},   /** @brief Scheduling error 2 interrupt line. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * CAN_CCU Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** CAN_CCU Register Definitions ****/
 
@@ -11852,9 +11854,9 @@
   static const field32_t CAN_CCU_IE_CWEE      = {.msk = 0x00000001U, .pos = 0};    /** @brief Calibration watchdog event enable. */
   static const field32_t CAN_CCU_IE_CSCE      = {.msk = 0x00000002U, .pos = 1};    /** @brief Calibration state changed enable. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * MDIOS Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** MDIOS Register Definitions ****/
 
@@ -11955,9 +11957,9 @@
   static const field32_t MDIOS_MDIOS_DINRx_DIN0      = {.msk = 0x0000FFFFU, .pos = 0};   /** @brief Input data received from MDIO master during write frames. */
   static const field32_t MDIOS_MDIOS_DOUTRx_DOUT0    = {.msk = 0x0000FFFFU, .pos = 0};   /** @brief Output data sent to MDIO master during read frames. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * OPAMP Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated OPAMP Register Definitions ****/
 
@@ -11994,9 +11996,9 @@
   static const field32_t OPAMP_OPAMPx_HSOTR_TRIMLPOFFSETN = {.msk = 0x0000001FU, .pos = 0};    /** @brief Trim for NMOS differential pairs. */
   static const field32_t OPAMP_OPAMPx_HSOTR_TRIMLPOFFSETP = {.msk = 0x00001F00U, .pos = 8};    /** @brief Trim for PMOS differential pairs. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * SWPMI Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** SWPMI Register Definitions ****/
 
@@ -12055,9 +12057,9 @@
   static const field32_t SWPMI_OR_SWP_TBYP  = {.msk = 0x00000001U, .pos = 0};    /** @brief SWP transceiver bypass. */
   static const field32_t SWPMI_OR_SWP_CLASS = {.msk = 0x00000002U, .pos = 1};    /** @brief SWP class selection. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * G_TIMx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated G_TIMx Register Definitions ****/
 
@@ -12461,9 +12463,9 @@
     [4] = {.msk = 0x0F000000U, .pos = 24},   /** @brief TI4[0] to TI4[15] input selection. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * B_TIMx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated B_TIMx Register Definitions ****/
 
@@ -12525,9 +12527,9 @@
   static const field32_t B_TIMx_PSC_PSC      = {.msk = 0x0000FFFFU, .pos = 0};    /** @brief Prescaler value. */
   static const field32_t B_TIMx_ARR_ARR      = {.msk = 0x0000FFFFU, .pos = 0};    /** @brief Low auto-reload value. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * PF Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** PF Register Definitions ****/
 
@@ -12565,9 +12567,9 @@
     [7] = {.msk = 0x001C0000U, .pos = 18},   /** @brief CL7. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * AC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** AC Register Definitions ****/
 
@@ -12603,9 +12605,9 @@
   static const field32_t AC_ABFSR_EPPB       = {.msk = 0x00000010U, .pos = 4};    /** @brief EPPB. */
   static const field32_t AC_ABFSR_AXIMTYPE   = {.msk = 0x00000300U, .pos = 8};    /** @brief AXIMTYPE. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * RAMECCx Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** Enumerated RAMECCx Register Definitions ****/
 
@@ -12771,9 +12773,9 @@
   static const field32_t RAMECCx_MxFECR_DEDF      = {.msk = 0x00000002U, .pos = 1};   /** @brief ECC double error detected flag. */
   static const field32_t RAMECCx_MxFECR_DEBWDF    = {.msk = 0x00000004U, .pos = 2};   /** @brief ECC double error on byte write (BW) detected flag. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * ART Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** ART Register Definitions ****/
 
@@ -12784,9 +12786,9 @@
   static const field32_t ART_CTR_EN         = {.msk = 0x00000001U, .pos = 0};   /** @brief Cache enable. */
   static const field32_t ART_CTR_PCACHEADDR = {.msk = 0x000FFF00U, .pos = 8};   /** @brief Cacheable page index. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * @section SCB Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** @subsection SCB Register Definitions ****/
 
@@ -12892,9 +12894,9 @@
     [6] = {.msk = 0x00FF0000U, .pos = 16},   /** @brief Priority of system handler 6. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * @section SYST Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** @subsection SYST Register Definitions ****/
 
@@ -12915,9 +12917,9 @@
   static const field32_t SYST_CALIB_SKEW    = {.msk = 0x40000000U, .pos = 30};   /** @brief SKEW flag: indicates whether the TENMS value is exact. */
   static const field32_t SYST_CALIB_NOREF   = {.msk = 0x80000000U, .pos = 31};   /** @brief NOREF flag. Reads as zero. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * @section NVIC Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** @subsection NVIC Register Definitions ****/
 
@@ -13015,9 +13017,9 @@
     [3] = {.msk = 0xFF000000U, .pos = 24},   /** @brief IPR_N3. */
   };
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * @section MPU Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** @subsection MPU Register Definitions ****/
 
@@ -13049,9 +13051,9 @@
   static const field32_t MPU_MPU_RASR_AP         = {.msk = 0x07000000U, .pos = 24};   /** @brief Access permission. */
   static const field32_t MPU_MPU_RASR_XN         = {.msk = 0x10000000U, .pos = 28};   /** @brief Instruction access disable bit. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * @section FPU Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** @subsection FPU Register Definitions ****/
 
@@ -13086,9 +13088,9 @@
   static const field32_t FPU_FPSCR_Z       = {.msk = 0x40000000U, .pos = 30};   /** @brief Zero condition code flag. */
   static const field32_t FPU_FPSCR_N       = {.msk = 0x80000000U, .pos = 31};   /** @brief Negative condition code flag. */
 
-  /**********************************************************************************************
+  /************************************************************************************************
    * @section DBG Definitions
-   **********************************************************************************************/
+   ************************************************************************************************/
 
   /**** @subsection DBG Register Definitions ****/
 
