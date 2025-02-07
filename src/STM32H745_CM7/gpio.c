@@ -1,4 +1,4 @@
-#include "include/tal/gpio.h"
+#include "include/ti/gpio.h"
 #include "src/STM32H745_CM7/mmio.h"
 
 #define PORTS 11
@@ -43,7 +43,16 @@ int32_t port_index_from_pin[140] = {-1,402,403,404,405,406,-1,-1,-1,213,
                                     306,307,609,610,611,612,613,614,-1,-1,
                                     103,104,105,106,107,-1,108,109,400,401};
 
+static const int32_t _GPIO_PORT_COUNT = 11;
 
+// Initializes gpio peripheral
+bool init_gpio(void) {
+  for (int32_t i = 0; i < _GPIO_PORT_COUNT; i++) {
+    const field32_t cur_field = MAKE_FIELD(field32_t, i, 1);
+    WRITE_FIELD(RCC_AHBxRSTR[4], cur_field, 1U);
+  }
+  return true;
+}
 
 void tal_set_mode(int pin, int mode)
 {

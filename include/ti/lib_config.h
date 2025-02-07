@@ -51,11 +51,11 @@
    * Execution Environment Configuration Verification
    ************************************************************************************************/
 
-  #if (TI_THRD_MAX_THREADS < 1) 
+  #if (TI_THREAD_MAX_THREADS < 1) 
     #error "TI LIB CONFIG ERROR: TI_THRD_MAX_THREADS"
   #endif
 
-  #if (TI_THRD_TICK_FREQ < 1)
+  #if (TI_THREAD_TICK_FREQ < 1)
     #error "TI LIB CONFIG ERROR: TI_THRD_TICK_FREQ"
   #endif
 

@@ -35,19 +35,20 @@ _Min_Stack_Size = 0x400 ; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 1024K
-RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 128K
-ITCMRAM (xrw)      : ORIGIN = 0x00000000, LENGTH = 64K
+FLASH (rx)    : ORIGIN = 0x08000000, LENGTH = 1024K
+RAM (xrw)     : ORIGIN = 0x20000000, LENGTH = 128K
+ITCMRAM (xrw) : ORIGIN = 0x00000000, LENGTH = 64K
 }
 
 /* Define output sections */
 SECTIONS
 {
   /* The startup code goes first into FLASH */
-  .isr_vector :
+  .vtable :
   {
     . = ALIGN(4);
-    KEEP(*(.isr_vector)) /* Startup code */
+    LONG(_estack)
+    KEEP(*(.vtable)) /* Startup code */
     . = ALIGN(4);
   } >FLASH
 
@@ -65,7 +66,7 @@ SECTIONS
     KEEP (*(.fini))
 
     . = ALIGN(4);
-    _etext = .;        /* define a global symbols at end of code */
+    _etext = .;       
   } >FLASH
 
   /* Constant data goes into FLASH */
@@ -124,7 +125,17 @@ SECTIONS
     _edata = .;        /* define a global symbol at data end */
   } >RAM AT> FLASH
 
-  
+  /* data table */
+  .data_table : 
+  {
+    . = ALIGN(4);
+    __data_table_start__ = .;
+    LONG(_sdata)
+    LONG(_edata)
+    LONG(LOADADDR(.data))
+    __data_table_end__ = .;
+  }
+
   /* Uninitialized data section */
   . = ALIGN(4);
   .bss :
@@ -140,6 +151,16 @@ SECTIONS
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
   } >RAM
+
+  /* Added */
+  .bss_table : 
+  {
+    . = ALIGN(4);
+    __bss_table_start__ = .;
+    LONG(_sbss)
+    LONG(_ebss)
+    __bss_table_end__ = .;
+  }
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :

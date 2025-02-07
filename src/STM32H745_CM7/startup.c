@@ -28,6 +28,8 @@
 #include "src/STM32H745_CM7/mmio.h"
 #include "src/STM32H745_CM7/interrupt.h"
 
+#include "src/STM32H745_CM7/gpio.c"
+
 #ifdef __cplusplus
   extern "C" {
 #endif
@@ -102,6 +104,12 @@
     }
   }
 
+  // Initializes the clock system
+  static void init_clock_system(void) {
+    WRITE_FIELD(RCC_CR, RCC_CR_HSION, 1U);
+    while (READ_FIELD(RCC_CR, RCC_CR_HSIRDY) == 0U);
+  }
+
   /************************************************************************************************
    * Reset Handler Implementation
    ************************************************************************************************/
@@ -113,10 +121,12 @@
   void reset_exc_handler(void) {
     init_data();
     init_bss();
-    invoke_preinit();
-    invoke_init();
+    init_clock_system();
+    init_gpio();
+    // invoke_preinit();
+    // invoke_init();
     main();
-    invoke_fini();
+    // invoke_fini();
   }
 
 #ifdef __cplusplus

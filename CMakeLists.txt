@@ -5,7 +5,7 @@
 
 # TEMP
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
-set(CMAKE_LINK_DIR src/STM32H7x5/link.ld)
+set(CMAKE_LINK_DIR src/STM32H745_CM7/link.ld)
 
 # Configure cmake compilers
 set(TC_BIN_PATH $ENV{ARM_GNU_TOOLCHAIN}/bin)
@@ -41,13 +41,12 @@ set(CMAKE_C_EXTENSIONS OFF)
 # Add executable to be built
 set(EXECUTABLE ${PROJECT_NAME}.elf)
 add_executable(${EXECUTABLE} 
-  test/devboard_startup.S 
   test/main.c
 )
 
 # Set include directory
 target_include_directories(${EXECUTABLE} PRIVATE
-  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Set compiler defines
@@ -84,6 +83,7 @@ target_link_options(${EXECUTABLE} PRIVATE
   -lnosys
   -Wl,-Map=${PROJECT_NAME}.map,--cref
   -Wl,--gc-sections
+  -Wl,-start-group
   -Xlinker
   -print-memory-usage
 )

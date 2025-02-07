@@ -28,10 +28,6 @@
   extern "C" {
 #endif
 
-  /************************************************************************************************
-   * Types
-   ************************************************************************************************/
-
   static const int32_t TI_THREAD_MIN_STACK_SIZE = 128;
   static const int32_t TI_THREAD_MIN_PRIORITY = 0;
   static const int32_t TI_THREAD_MAX_PRIORITY = 256;
@@ -50,10 +46,6 @@
     int32_t id;
     void* handle;
   } ti_thread_t;
-
-  /************************************************************************************************
-   * Thread Functions
-   ************************************************************************************************/
 
   ti_thread_t ti_thread_create(void (*fn)(void*), 
       int32_t priority, void* stack, int32_t stack_size);
@@ -85,16 +77,6 @@
   bool ti_thread_enter_critical(void);
 
   bool ti_thread_exit_critical(void);
-
-  /************************************************************************************************
-   * ?
-   ************************************************************************************************/
-
-  #define TI_CRITICAL_SECTION(...) do { \
-    ti_exec_enter_critical(); \
-    do { __VA_ARGS__ } while (0); \
-    ti_exec_exit_critical(); \
-  } while (0)
 
 #ifdef __cplusplus
   } // extern "C"

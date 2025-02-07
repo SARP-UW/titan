@@ -1,38 +1,34 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "cortex-debug",
-      "cwd": "${workspaceFolder}",
-      "configFiles": [
-        "${workspaceFolder}/dev/devboard/flash_config.cfg",
-      ],
-      "device": "STM32H745ZIT3",
-      "interface":"swd",
-      "name": "devboard CM7",
-      "request": "launch",
-      "runToEntryPoint": "",
-      "serialNumber": "",
-      "servertype": "openocd",
-      "svdFile": "${workspaceFolder}/dev/devboard/STM32H745_CM7.svd",
-      "swoConfig": {
-        "enabled": true,
-        "cpuFrequency": 480000000,
-        "swoFrequency": 2000000,
-        "source": "probe",
-        "decoders": [
-          {
-            "type": "console",
-            "name": "ITM",
-            "port": 0
-          }
-        ]
-      },
-      "armToolchainPath": "${env:ARM_GNU_TOOLCHAIN}/bin",
-      "gdbPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gdb",
-      "executable": "${workspaceFolder}/build/TAL.elf",
-      "numberOfProcessors": 2,
-      "targetProcessor": 0
-    }
-  ]
+    "version":"0.2.0",
+    "configurations": [
+        {
+            "name": "Cortex ST-Link",
+            "cwd": "${workspaceRoot}",
+            "executable": "${workspaceFolder}/build/TAL.elf",
+            "gdbPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gdb",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "stutil",
+            "stlinkPath": "C:/Users/AJM42/Desktop/stlink/stlink-1.8.0-win32/stlink-1.8.0-win32/bin/st-util.exe",
+            "armToolchainPath": "${env:ARM_GNU_TOOLCHAIN}/bin",
+            "stm32cubeprogrammer": "C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin",
+            "device": "STM32H745_CM7",
+            "svdFile": "${workspaceFolder}/dev/devboard/STM32H745_CM7.svd",
+        },  
+        {
+            "name": "Cortex Debug",
+            "cwd": "${workspaceRoot}",
+            "executable": "${workspaceFolder}/build/TAL.elf",
+            "gdbPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gdb",
+            "armToolchainPath": "${env:ARM_GNU_TOOLCHAIN}/bin",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "device": "STM32H745_CM7",
+            "configFiles": [
+              "${workspaceFolder}/dev/devboard/flash_config.cfg",
+            ],
+            "svdFile": "${workspaceFolder}/dev/devboard/STM32H745_CM7.svd",
+        }       
+    ]
 }
