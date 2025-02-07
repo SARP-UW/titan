@@ -1517,6 +1517,17 @@
     [7] = {.msk = 0xF0000000U, .pos = 28},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
   };
 
+  static field32_t const GPIOx_AFRH_AFSELx[8] = {
+    [0] = {.msk = 0x0000000FU, .pos = 0},    /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [1] = {.msk = 0x000000F0U, .pos = 4},    /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [2] = {.msk = 0x00000F00U, .pos = 8},    /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [3] = {.msk = 0x0000F000U, .pos = 12},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [4] = {.msk = 0x000F0000U, .pos = 16},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [5] = {.msk = 0x00F00000U, .pos = 20},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [6] = {.msk = 0x0F000000U, .pos = 24},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [7] = {.msk = 0xF0000000U, .pos = 28},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+  };
+
   /************************************************************************************************
    * JPEG Definitions
    ************************************************************************************************/
