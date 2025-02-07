@@ -43,27 +43,6 @@ int32_t port_index_from_pin[140] = {-1,402,403,404,405,406,-1,-1,-1,213,
                                     306,307,609,610,611,612,613,614,-1,-1,
                                     103,104,105,106,107,-1,108,109,400,401};
 
-// would be size 11 but ports I J and K do not have any pins connected so no point in storing their address
-volatile int32_t* port_registers[8] = {
-  (int32_t*)1476526080,
-  (int32_t*)1476527104,
-  (int32_t*)1476528128,
-  (int32_t*)1476529152,
-  (int32_t*)1476530176,
-  (int32_t*)1476531200,
-  (int32_t*)1476532224,
-  (int32_t*)1476533248
-};
-
-
-int32_t MODER_OFFSET  = 0x0;
-int32_t OTYPER_OFFSET = 0x1;
-int32_t OSPEEDR_OFFSET= 0x2;
-int32_t PUPDR_OFFSET  = 0x3;
-int32_t IDR_OFFSET    = 0x4; 
-int32_t ODR_OFFSET    = 0x5;
-int32_t AFRL_OFFSET   = 0x8;
-int32_t AFRH_OFFSET   = 0x9;
 
 
 void tal_set_mode(int pin, int mode)
