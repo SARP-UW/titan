@@ -20,7 +20,7 @@
     },
     {
       "type": "shell",
-    "label": "build",
+      "label": "build",
       "detail": "Builds project.",
       "command": "ninja",
       "problemMatcher": "$gcc",
@@ -33,7 +33,17 @@
       "label": "flash",
       "detail": "Flashes current build to dev board.",
       "command": "openocd -f dev/devboard/flash_config.cfg -c 'program build/TAL.elf verify reset exit'",
-      "problemMatcher": [],
+      "problemMatcher": "$gcc" 
+    },
+    {
+      "type": "shell",
+      "label": "build_flash",
+      "detail": "Builds and flashes project to devboard.",
+      "command": [
+        "ninja",
+        "openocd -f dev/devboard/flash_config.cfg -c 'program build/TAL.elf verify reset exit'",
+      ],
+      "problemMatcher": "$gcc",
     },
   ]
 }
