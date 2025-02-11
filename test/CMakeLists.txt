@@ -15,37 +15,42 @@
 # 
 # @file test/CMakeLists.txt
 # @authors Aaron McBride
-# @brief CMake lists file for test directory of titan project
+# @brief CMake lists file for test directory of titan project.
 
-# CMake version/includes
 cmake_minimum_required(VERSION 3.19)
+include("${CMAKE_CURRENT_LIST_DIR}/../CMakeLists.txt")
 
-# Get target port
-option(TITAN_TEST_PORT "Default port for test build." "NULL")
-if(${TIATN_TEST_PORT} STREQUAL "NULL")
-  message(FATAL_ERROR "No port specified for test build.")
-endif()
+# Create project for test build
+project(TITAN_TEST)
 
-# Initialize test project
-project(TITAN_TEST_PROJECT)
+# Iterate through all ports
+set(TI_PORT_DIR "${CMAKE_CURRENT_LIST_DIR}/../port")
+file(GLOB TI_PORT_NAME_LIST RELATIVE "${TI_PORT_DIR}" "${TI_PORT_DIR}/*")
+foreach(CUR_PORT_NAME IN LISTS TI_PORT_NAME_LIST)
 
-# Set language
-enable_language(C ASM)
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_EXTENSIONS OFF)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+  # Create target for each port, with test/src/main.c as source file
+  add_executable(TITAN_${CUR_PORT_NAME}_TEST
+    "${CMAKE_CURRENT_LIST_DIR}/src/main.c"
+  )
 
-# Initialize test executable
-add_executable(TITAN_TEST
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/main.c"
-)
+  # Configure target languages/standards
+  enable_language(C ASM)
+  set(CMAKE_C_STANDARD 99)
+  set(CMAKE_C_EXTENSIONS OFF)
+  set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Add include directories
-target_include_directories(TITAN_TEST 
-  PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
-)
+  # Include all test in the src directory.
+  target_include_directories(TITAN_${CUR_PORT_NAME}_TEST 
+    PRIVATE "${CMAKE_CURRENT_LIST_DIR}/src"
+  )
 
-# Add target titan library
-set(TITAN_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/..")
-find_library(TITAN_LIB TITAN_${TITAN_TEST_PORT} ${TITAN_LIB_PATH})
-target_link_libraries(TITAN_TEST ${TITAN_LIB})
+  # Set compiler options
+  target_compile_options(TITAN_${CUR_PORT_NAME}_TEST
+    "-Wall" 
+    "-Wextra" 
+    "-Werror" 
+    "-O0" 
+    "-g"
+  )
+
+endforeach()

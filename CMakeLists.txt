@@ -15,58 +15,42 @@
 # 
 # @file CMakeLists.txt
 # @authors Aaron McBride
-# @brief CMake lists file for the titan project.
+# @brief CMake lists file for titan project (top-level).
 
-# CMake version/includes
 cmake_minimum_required(VERSION 3.19)
-include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/util/config_parser.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/common/cmake/config_parser.cmake")
 
-# Get library configuration file
-set(TITAN_LIB_DEFAULT_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/cmake/lib_config/default_config.json")
-option(TITAN_LIB_CONFIG "Path or name of library configuration file" ${TITAN_LIB_DEFAULT_CONFIG})
-if(NOT EXISTS ${TITAN_LIB_CONFIG})
-  set(TITAN_LIB_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/cmake/lib_config/${TITAN_LIB_CONFIG}_config.json")
-  if(NOT EXISTS ${TITAN_LIB_CONFIG})
-    message(FATAL_ERROR "${TITAN_LIB_CONFIG} is not a name/path to a valid library configuration file.")
+# Get library configuration file (default or from given path or from presets folder)
+set(TI_LIB_CONFIG_PRESET_PATH "${CMAKE_CURRENT_LIST_DIR}/common/lib_config")
+set(TI_LIB_DEFAULT_CONFIG "${TI_LIB_CONFIG_PRESET_PATH}/default_config.json")
+option(TITAN_LIB_CONFIG "Path or name of library configuration file" "${TI_DEFAULT_LIB_CONFIG}")
+if(NOT EXISTS "${TITAN_LIB_CONFIG}")
+  string(TOLOWER "${TITAN_LIB_CONFIG}" TI_LIB_CONFIG_PRESET_NAME)
+  set(TITAN_LIB_CONFIG "${TI_LIB_CONFIG_PRESET_PATH}/${TI_LIB_CONFIG_PRESET_NAME}_config.json")
+  if(NOT EXISTS "${TITAN_LIB_CONFIG}")
+    message(FATAL_ERROR "${TITAN_LIB_CONFIG} is not the name/path of a valid configuration file.")
   endif()
 endif()
 
-# Parse library configuration file
-parse_lib_config(TITAN_LIB_CFG_DEF_LIST ${TITAN_LIB_CONFIG})
+# Get list of C pre-processor definitions from configuration file
+ti_parse_config_file("${TITAN_LIB_CONFIG}" TI_LIB_CFG_DEF_LIST)
 
-# Initialize top level titan library
+# Initialize top-level library
 add_library(TITAN_TOP INTERFACE)
 
-# Set library include directories
-target_include_directories(TITAN_TOP
-  INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include"
+# Set top-level include directory (public interface)
+target_include_directories(TITAN_TOP 
+  INTERFACE "${CMAKE_CURRENT_LIST_DIR}/include"
 )
 
-if(${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
+# Make compiler define library configuration definitions
+target_compile_definitions(TITAN_TOP 
+  INTERFACE ${TI_LIB_CFG_DEF_LIST}
+)
 
-  # Set linking options
-  target_link_options(TITAN_TOP 
-    INTERFACE
-      -Wl, --gc-sections
-      -Wl, -start-group
-      -Wl, --whole-archive
-      -Xlinker
-      -print-memory-usage 
-  )
-
-  # Set compiler defines (library configuration)
-  target_compile_definitions(TITAN_TOP 
-    INTERFACE ${TITAN_LIB_CFG_DEF_LIST}
-  )
-
-# Unsupported compiler
-else()
-  message(FATAL_ERROR "Unsupported compiler: ${CMAKE_C_COMPILER_ID}")
-endif()
-
-# Add port libraries
-set(TITAN_PORT_DIR "${TITAN_PORT_PATH}/port")
-file(GLOB TITAN_PORT_LIST RELATIVE ${TITAN_PORT_DIR} "${TITAN_PORT_DIR}/*")
-foreach(PORT_DIR IN ${TITAN_PORT_LIST})
-  add_subdirectory("${TITAN_PORT_DIR}/${PORT_DIR}")
+# Add all ports - they initialize their own libraries and link to top-level.
+set(TI_PORT_DIR "${CMAKE_CURRENT_LIST_DIR}/port")
+file(GLOB TI_PORT_NAME_LIST RELATIVE "${TI_PORT_DIR}" "${TI_PORT_DIR}/*")
+foreach(CUR_PORT_NAME IN LISTS TI_PORT_NAME_LIST)
+  add_subdirectory("${TI_PORT_DIR}/${CUR_PORT_NAME}")
 endforeach()

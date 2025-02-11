@@ -5,47 +5,67 @@
       "type": "shell",
       "label": "configure_dev",
       "detail": "Configures dev build.",
-      "command": "cmake -G Ninja ../dev",
+      "command": "cmake -G Ninja ..",
       "problemMatcher": "$gcc",
       "options": {
-        "cwd": "${workspaceFolder}/build"
+        "cwd": "${workspaceFolder}/dev/build"
       }
     },
     {
       "type": "shell",
       "label": "configure_test",
       "detail": "Configures test build.",
-      "command": "cmake -DTITAN_TEST_PORT=\"STM32H745\" -G Ninja ../test",
+      "command": "cmake -G Ninja --target TITAN_STM32H745_TEST ..",
       "problemMatcher": "$gcc",
       "options": {
-        "cwd": "${workspaceFolder}/build"
+        "cwd": "${workspaceFolder}/test/build"
       }
     },
     {
       "type": "shell",
-      "label": "clean",
-      "detail": "Cleans build directory.",
+      "label": "clean_dev",
+      "detail": "Cleans dev build directory.",
       "command": "ninja clean",
       "problemMatcher": "$gcc",
       "options": {
-        "cwd": "${workspaceFolder}/build"
+        "cwd": "${workspaceFolder}/dev"
       }
     },
     {
       "type": "shell",
-      "label": "build",
-      "detail": "Builds code.",
+      "label": "clean_test",
+      "detail": "Cleans test build directory.",
+      "command": "ninja clean",
+      "problemMatcher": "$gcc",
+      "options": {
+        "cwd": "${workspaceFolder}/test"
+      }
+    },
+    {
+      "type": "shell",
+      "label": "build_dev",
+      "detail": "Builds dev code.",
       "command": "ninja",
       "problemMatcher": "$gcc",
       "options": {
-        "cwd": "${workspaceFolder}/build"
+        "cwd": "${workspaceFolder}/dev"
+      }
+    },
+    {
+      "type": "shell",
+      "label": "build_test",
+      "detail": "Builds test code.",
+      "command": "ninja",
+      "problemMatcher": "$gcc",
+      "options": {
+        "cwd": "${workspaceFolder}/test"
       }
     },
     {
       "type": "shell",
       "label": "flash_dev",
       "detail": "Flashes dev build.",
-      "command": "openocd -f dev/resource/flash_config.cfg -c 'program build/TITAN_DEV.elf verify reset exit'",
+      "command": "openocd -f dev/resource/flash_config.cfg -c 'program dev/build/TITAN_DEV.elf verify reset exit'",
       "problemMatcher": "$gcc",
       "options": {
         "cwd": "${workspaceFolder}"
@@ -55,7 +75,7 @@
       "type": "shell",
       "label": "flash_test",
       "detail": "Flashes test build.",
-      "command": "openocd -f dev/resource/flash_config.cfg -c 'program build/TITAN_TEST.elf verify reset exit'",
+      "command": "openocd -f dev/resource/flash_config.cfg -c 'program test/build/TITAN_STM32H745_TEST.elf verify reset exit'",
       "problemMatcher": "$gcc",
       "options": {
         "cwd": "${workspaceFolder}"
@@ -66,9 +86,9 @@
       "label": "xbuild_dev",
       "detail": "Cleans, configures and builds dev code.",
       "dependsOn": [
-        "clean",
+        "clean_dev",
         "configure_dev",
-        "build"
+        "build_dev"
       ],
       "dependsOrder": "sequence",
       "problemMatcher": "$gcc",
@@ -78,9 +98,9 @@
       "label": "xbuild_test",
       "detail": "Cleans, configures and builds test code.",
       "dependsOn": [
-        "clean",
+        "clean_test",
         "configure_test",
-        "build"
+        "build_test"
       ],
       "dependsOrder": "sequence",
       "problemMatcher": "$gcc",

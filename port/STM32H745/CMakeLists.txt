@@ -17,75 +17,74 @@
 # @authors Aaron McBride
 # @brief CMake lists file for the STM32H745 port.
 
-# CMake version/includes
 cmake_minimum_required(VERSION 3.19)
-include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/util/json_parser.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/../common/cmake/config_parser.cmake")
 
-# Get port configuration file
-set(TITAN_STM32H745_DEFAULT_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/port_config/default_config.json")
-option(TITAN_STM32H745_CONFIG "Path to port configuration file" ${TITAN_STM32H745_DEFAULT_CONFIG})
-if(NOT EXISTS ${TITAN_STM32H745_CONFIG})
-  set(TITAN_STM32H745_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/port_config/${TITAN_STM32H745_CONFIG}_config.json")
-  if(NOT EXISTS ${TITAN_STM32H745_CONFIG})
-    message(FATAL_ERROR "${TITAN_STM32H745_CONFIG} is not a name/path to a valid configuration file for the STM32H745 port.")
-  endif()
+# Get port-specific configuration file
+set(TI_STM32H745_CONFIG_PRESET_PATH "${CMAKE_CURRENT_LIST_DIR}/port_config")
+set(TI_STM32H745_DEFAULT_CONFIG "${TI_STM32H745_CONFIG_PRESET_PATH}/STM32H745_config.json")
+option(TITAN_STM32H745_CONFIG "Path to port configuration file" "${TI_STM32H745_DEFAULT_CONFIG}")
+if(NOT EXISTS "${TITAN_STM32H745_CONFIG}")
+  string(TOLOWER "${TITAN_STM32H745_CONFIG}" TI_STM32H745_CONFIG_PRESET_NAME)
+  set(TITAN_STM32H745_CONFIG "${TI_STM32H745_CONFIG_PRESET_PATH}/${TI_STM32H745_CONFIG_PRESET_NAME}_config.json")
 endif()
 
-# Parse port configuration file
-parse_port_config(TITAN_STM32H745_CFG_DEF_LIST ${TITAN_STM32H745_CONFIG})
+# Only proceed if configuration file exists and compiler is supported
+if(EXISTS "${TITAN_STM32H745_CONFIG}" AND
+  ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
+   "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang"))
 
-# Initialize port library
-add_library(TITAN_STM32H745 INTERFACE)
+  # Get list of C pre-processor definitions from configuration file
+  ti_parse_config_file("${TITAN_STM32H745_CONFIG}" TI_STM32H745_CFG_DEF_LIST)
 
-# Link to top level titan library
-target_link_libraries(TITAN_STM32H745 TITAN_TOP)
+  # Initialize STM32H745 port library
+  add_library(TITAN_STM32H745 INTERFACE)
 
-# Set library include directories
-target_include_directories(TITAN_STM32H745 
-  INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include"
-)
+  # Link to top level library (contains public include/ti directory)
+  target_link_libraries(TITAN_STM32H745 TITAN_TOP)
 
-# Find library sources
-FILE(GLOB_RECURSE TITAN_STM32H745_INT_H "${CMAKE_CURRENT_SOURCE_DIR}/src" "*.h")
-FILE(GLOB_RECURSE TITAN_STM32H745_INT_C "${CMAKE_CURRENT_SOURCE_DIR}/src" "*.c")
-
-# Set library sources
-target_sources(TITAN_STM32H745
-  INTERFACE
-    ${TITAN_STM32H745_INT_H}
-    ${TITAN_STM32H745_INT_C}
-)
-
-# Configure GNU compiler
-if(${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
-
-  # Set library compilation options
-  target_compile_options(TITAN_STM32H745 
-    INTERFACE
-      -T "${CMAKE_CURRENT_SOURCE_DIR}/linker_scripts/gnu_link.ld"
-      -mcpu=cortex-m4
-      -mthumb
-      -mfpu=fpv4-sp-d16
-      -mfloat-abi=hard
+  # Include port-specific directories in library
+  target_include_directories(TITAN_STM32H745 
+    INTERFACE "${CMAKE_CURRENT_LIST_DIR}/include"
+    PRIVATE "${CMAKE_CURRENT_LIST_DIR}/src"
   )
 
-  # Set library linking options
-  target_link_options(TITAN_STM32H745 
-    INTERFACE
-      -T "${CMAKE_CURRENT_SOURCE_DIR}/linker_scripts/gnu_link.ld"
-      -mcpu=cortex-m4,
-      -mthumb,
-      -mfpu=fpv4-sp-d16,
-      -mfloat-abi=hard
-  )
+  # Compiler configuration for GNU-like compilers
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
+    "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
 
-  # Set compiler definitions (from lib/port config)
-  target_compile_definitions(TITAN_STM32H745 
-    INTERFACE ${TITAN_STM32H745_CFG_DEF_LIST};
-    TI_TARGET_${TITAN_PORT}
-  )
+    # Set compilation flags specific to STM32H745
+    target_compile_options(TITAN_STM32H745 
+      INTERFACE
+        "-T ${CMAKE_CURRENT_LIST_DIR}/linker_script/gnu_link.ld"
+        "-mcpu=cortex-m4"
+        "-mthumb"
+        "-mfpu=fpv4-sp-d16"
+        "-mfloat-abi=hard"
+    )
 
-# Invalid compiler
-elseif()
-  message(FATAL_ERROR "Compiler not supported.")
+    # Set linking flags specific to STM32H745
+    target_link_options(TITAN_STM32H745 
+      INTERFACE
+        "-T ${CMAKE_CURRENT_LIST_DIR}/linker_script/gnu_link.ld"
+        "-mcpu=cortex-m4"
+        "-mthumb"
+        "-mfpu=fpv4-sp-d16"
+        "-mfloat-abi=hard"
+        "-Wl,--gc-sections"
+        "-Wl,-start-group"
+        "-Wl,--whole-archive"
+        "-Xlinker"
+        "-print-memory-usage"
+    )
+
+    # Make compiler define port configuration definitions
+    target_compile_definitions(TITAN_STM32H745 
+      INTERFACE 
+        ${TI_STM32H745_CFG_DEF_LIST}
+        "-D TI_TARGET_STM32H745"
+    )
+
+  endif()
+
 endif()
