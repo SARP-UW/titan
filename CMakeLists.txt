@@ -13,161 +13,60 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # 
-# @internal
 # @file CMakeLists.txt
 # @authors Aaron McBride
 # @brief CMake lists file for the titan project.
 
-###################################################################################################
-# Project Options
-###################################################################################################
+# CMake version/includes
+cmake_minimum_required(VERSION 3.19)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/util/config_parser.cmake")
 
-# Paths to default configuration files
-set(DEFAULT_BUILD_CONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/config/default_build_config.cmake)
-set(DEFAULT_LIB_CONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/config/default_lib_config.cmake)
-
-# Project options
-option(TI_TARGET_PORT "Target port to build for." "null")
-option(TI_PORT_CONFIG "Path to port configuration file." "null")
-option(TI_BUILD_CONFIG "Path to build configuration file." ${DEFAULT_BUILD_CONFIG_PATH})
-option(TI_LIB_CONFIG "Path to library configuration file." ${DEFAULT_LIB_CONFIG_PATH})
-
-# Set variable with path to target port directory
-set(PORT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/port/${TI_TARGET_PORT})
-
-# Validate set option values
-if(NOT EXISTS ${PORT_PATH})
-  if(TI_TARGET_PORT STREQUAL "null")
-    message(FATAL_ERROR "TI_TARGET_PORT not set.")
-  else()
-    message(FATAL_ERROR "Invalid target port: ${TI_TARGET_PORT}")
+# Get library configuration file
+set(TITAN_LIB_DEFAULT_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/cmake/lib_config/default_config.json")
+option(TITAN_LIB_CONFIG "Path or name of library configuration file" ${TITAN_LIB_DEFAULT_CONFIG})
+if(NOT EXISTS ${TITAN_LIB_CONFIG})
+  set(TITAN_LIB_CONFIG "${CMAKE_CURRENT_SOURCE_DIR}/cmake/lib_config/${TITAN_LIB_CONFIG}_config.json")
+  if(NOT EXISTS ${TITAN_LIB_CONFIG})
+    message(FATAL_ERROR "${TITAN_LIB_CONFIG} is not a name/path to a valid library configuration file.")
   endif()
 endif()
-if(NOT EXISTS ${TI_BUILD_CONFIG})
-  message(FATAL_ERROR "Invalid path to build configuration file: ${TI_BUILD_CONFIG}")
-endif()
-if(NOT EXISTS ${TI_LIB_CONFIG})
-  message(FATAL_ERROR "Invalid path to library configuration file: ${TI_LIB_CONFIG}")
-endif()
 
-###################################################################################################
-# Load/Parse Configuration Files
-###################################################################################################
+# Parse library configuration file
+parse_lib_config(TITAN_LIB_CFG_DEF_LIST ${TITAN_LIB_CONFIG})
 
-# Load/parse build configuration file
-message(STATUS "Parsing the build configuration file...")
-file(READ ${TI_BUILD_CONFIG} BUILD_CONFIG_JSON)
-string(JSON BUILD_CONFIG PARSE ${BUILD_CONFIG_JSON})
+# Initialize top level titan library
+add_library(TITAN_TOP INTERFACE)
 
-# Load/parse library configuration file
-message(STATUS "Parsing the library configuration file...")
-file(READ ${TI_LIB_CONFIG} LIB_CONFIG_JSON)
-string(JSON LIB_CONFIG PARSE ${LIB_CONFIG_JSON})
+# Set library include directories
+target_include_directories(TITAN_TOP
+  INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
 
-# Load/parse port configuration file
-message(STATUS "Parsing the port configuration file...")
-file(READ ${TI_PORT_CONFIG} PORT_CONFIG_JSON)
-string(JSON PORT_CONFIG PARSE ${PORT_CONFIG_JSON})
+if(${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
 
-###################################################################################################
-# Apply Build Configuration Settings
-###################################################################################################
+  # Set linking options
+  target_link_options(TITAN_TOP 
+    INTERFACE
+      -Wl, --gc-sections
+      -Wl, -start-group
+      -Wl, --whole-archive
+      -Xlinker
+      -print-memory-usage 
+  )
 
-# ARM GCC compiler settings
-if(BUILD_CONFIG["compiler_type"] STREQUAL "arm_gcc")
+  # Set compiler defines (library configuration)
+  target_compile_definitions(TITAN_TOP 
+    INTERFACE ${TITAN_LIB_CFG_DEF_LIST}
+  )
 
-  # Set environment information
-  set(CMAKE_SYSTEM_NAME Generic)
-  set(CMAKE_SYSTEM_PROCESSOR ARM)
-
-  # Set compiler paths
-  set(CMAKE_C_COMPILER ${BUILD_CONFIG["compiler_path"]}/arm-none-eabi-gcc)
-  set(CMAKE_CXX_COMPILER ${BUILD_CONFIG["compiler_path"]}/arm-none-eabi-g++)
-  set(CMAKE_ASM_COMPILER ${BUILD_CONFIG["compiler_path"]}/arm-none-eabi-gcc)
-  set(CMAKE_OBJCOPY ${BUILD_CONFIG["compiler_path"]}/arm-none-eabi-objcopy)
-  set(CMAKE_OBJDUMP ${BUILD_CONFIG["compiler_path"]}/arm-none-eabi-objdump)
-  set(CMAKE_SIZE ${BUILD_CONFIG["compiler_path"]}/arm-none-eabi-size)
-
+# Unsupported compiler
 else()
-  message(FATAL_ERROR "Invalid compiler type: ${BUILD_CONFIG["compiler"]}")
+  message(FATAL_ERROR "Unsupported compiler: ${CMAKE_C_COMPILER_ID}")
 endif()
 
-# Set language standards
-set(CMAKE_C_STANDARD ${BUILD_CONFIG["c_standard"]})
-set(CMAKE_CXX_STANDARD ${BUILD_CONFIG["cxx_standard"]})
-
-# Add compiler arguments
-foreach(arg IN LISTS BUILD_CONFIG["compiler_args"])
-  string(APPEND CMAKE_C_FLAGS " ${arg}")
+# Add port libraries
+set(TITAN_PORT_DIR "${TITAN_PORT_PATH}/port")
+file(GLOB TITAN_PORT_LIST RELATIVE ${TITAN_PORT_DIR} "${TITAN_PORT_DIR}/*")
+foreach(PORT_DIR IN ${TITAN_PORT_LIST})
+  add_subdirectory("${TITAN_PORT_DIR}/${PORT_DIR}")
 endforeach()
-
-###################################################################################################
-# Setup CMake
-###################################################################################################
-
-# Initialize CMake project
-cmake_minimum_required(VERSION 3.15.3)
-project(TAL)
-enable_language(C CXX ASM)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-# Add executable to be built
-set(EXECUTABLE ${PROJECT_NAME}.elf)
-add_executable(${EXECUTABLE} 
-  test/main.c
-)
-
-# Set include directory
-target_include_directories(${EXECUTABLE} PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-# Set compiler defines
-target_compile_definitions(${EXECUTABLE} PRIVATE
-  -D TAL_DEBUG
-  -D TAL_ARCH_ARMV7M 
-  -D TAL_ARCH_FPU 
-  -D TAL_PLATFORM_STMH7X5
-  -D TAL_PACKAGE_144
-)
-
-# Set compiler config
-target_compile_options(${EXECUTABLE} PRIVATE
-  -mcpu=cortex-m7
-  -mthumb
-  -mfpu=fpv4-sp-d16
-  -mfloat-abi=hard
-  -fdata-sections
-  -ffreestanding
-  -T devboard.ld
-  -O2
-  -g3
-)
-
-# Set linker config
-target_link_options(${EXECUTABLE} PRIVATE
-  -nostdlib
-  -T ${CMAKE_SOURCE_DIR}/${CMAKE_LINK_DIR}
-  -mcpu=cortex-m7
-  -mthumb
-  -mfpu=fpv4-sp-d16
-  -mfloat-abi=hard
-  -specs=nano.specs
-  -lnosys
-  -Wl,-Map=${PROJECT_NAME}.map,--cref
-  -Wl,--gc-sections
-  -Wl,-start-group
-  -Xlinker
-  -print-memory-usage
-)
-
-# Set pos build commands
-add_custom_command(TARGET ${EXECUTABLE} POST_BUILD 
-  COMMAND ${CMAKE_SIZE} ${EXECUTABLE}
-  COMMAND ${CMAKE_OBJCOPY} -O srec --srec-len=64 ${EXECUTABLE} ${PROJECT_NAME}.s19
-  COMMAND ${CMAKE_OBJCOPY} -O ihex ${EXECUTABLE} ${PROJECT_NAME}.hex
-  COMMAND ${CMAKE_OBJCOPY} -O binary ${EXECUTABLE} ${PROJECT_NAME}.bin
-)

@@ -1,29 +1,23 @@
 {
+  "version": 4,
   "configurations": [
     {
-      "name": "tal_dev",
+      "name": "TITAN_STM32H745",
+      "compilerPath": "${env:ARM_GNU_TOOLCHAIN}//arm-none-eabi-gcc.exe",
       "intelliSenseMode": "gcc-arm",
-      "cStandard": "c11",
+      "cStandard": "c99",
       "compilerArgs": [
-        "-mcpu=cortex-m7",
-        "-ffreestanding",
-        "-nostdlib",
         "-Wpedantic",
         "-Wall",
         "-Wextra"
       ],
       "includePath": [
-        "${workspaceFolder}"
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/port/STM32H745"
       ],
-      "compilerPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gcc",
       "defines": [
-        "TI_DEBUG",
-        "TI_SEMIHOSTING",
-        "TI_TARGET_STM32H7x5",
-        "TI_TARGET_CM7",
-        "TI_TARGET_CM4",
+        "TI_TARGET_STM32H745"
       ]
     }
-  ],
-  "version": 4
+  ]
 }

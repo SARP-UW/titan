@@ -3,17 +3,30 @@
   "tasks": [
     {
       "type": "shell",
-      "label": "configure",
-      "detail": "Configures cmake for project.",
-      "command": "cmake -B build -G Ninja",
-      "problemMatcher": [],
+      "label": "configure_dev",
+      "detail": "Configures dev build.",
+      "command": "cmake -G Ninja ../dev",
+      "problemMatcher": "$gcc",
+      "options": {
+        "cwd": "${workspaceFolder}/build"
+      }
+    },
+    {
+      "type": "shell",
+      "label": "configure_test",
+      "detail": "Configures test build.",
+      "command": "cmake -DTITAN_TEST_PORT=\"STM32H745\" -G Ninja ../test",
+      "problemMatcher": "$gcc",
+      "options": {
+        "cwd": "${workspaceFolder}/build"
+      }
     },
     {
       "type": "shell",
       "label": "clean",
-      "detail": "Removes all build files.",
+      "detail": "Cleans build directory.",
       "command": "ninja clean",
-      "problemMatcher": [],
+      "problemMatcher": "$gcc",
       "options": {
         "cwd": "${workspaceFolder}/build"
       }
@@ -21,7 +34,7 @@
     {
       "type": "shell",
       "label": "build",
-      "detail": "Builds project.",
+      "detail": "Builds code.",
       "command": "ninja",
       "problemMatcher": "$gcc",
       "options": {
@@ -30,20 +43,77 @@
     },
     {
       "type": "shell",
-      "label": "flash",
-      "detail": "Flashes current build to dev board.",
-      "command": "openocd -f dev/devboard/flash_config.cfg -c 'program build/TAL.elf verify reset exit'",
-      "problemMatcher": "$gcc" 
+      "label": "flash_dev",
+      "detail": "Flashes dev build.",
+      "command": "openocd -f dev/resource/flash_config.cfg -c 'program build/TITAN_DEV.elf verify reset exit'",
+      "problemMatcher": "$gcc",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
     },
     {
       "type": "shell",
-      "label": "build_flash",
-      "detail": "Builds and flashes project to devboard.",
-      "command": [
-        "ninja",
-        "openocd -f dev/devboard/flash_config.cfg -c 'program build/TAL.elf verify reset exit'",
+      "label": "flash_test",
+      "detail": "Flashes test build.",
+      "command": "openocd -f dev/resource/flash_config.cfg -c 'program build/TITAN_TEST.elf verify reset exit'",
+      "problemMatcher": "$gcc",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "type": "shell",
+      "label": "xbuild_dev",
+      "detail": "Cleans, configures and builds dev code.",
+      "dependsOn": [
+        "clean",
+        "configure_dev",
+        "build"
       ],
+      "dependsOrder": "sequence",
       "problemMatcher": "$gcc",
     },
-  ]
+    {
+      "type": "shell",
+      "label": "xbuild_test",
+      "detail": "Cleans, configures and builds test code.",
+      "dependsOn": [
+        "clean",
+        "configure_test",
+        "build"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": "$gcc",
+    },
+    {
+      "type": "shell",
+      "label": "xflash_dev",
+      "detail": "Cleans, configures, builds and flashes dev code.",
+      "dependsOn": [
+        "xbuild_dev",
+        "flash_dev"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": "$gcc",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "type": "shell",
+      "label": "xflash_test",
+      "detail": "Cleans, configures, builds and flashes test code.",
+      "dependsOn": [
+        "xbuild_test",
+        "flash_test"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": "$gcc",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    }
+  ],
 }
