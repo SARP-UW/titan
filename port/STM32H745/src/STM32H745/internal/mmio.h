@@ -62,8 +62,7 @@
    * @returns (field_t) A field type which defines a field at the specified location.
    * @note - Arguments to this macro are expanded multiple times.
    */
-  #define MAKE_FIELD(ftype, _pos, width) \
-  ( \
+  #define MAKE_FIELD(ftype, _pos, width) ( \
     (ftype) { \
       .msk = ((UINT64_C(1) << (width)) - 1U) << (_pos), \
       .pos = (_pos) \
@@ -78,8 +77,7 @@
    *          or false otherwise.
    * @note - Arguments to this macro are expanded multiple times.
    */
-  #define IN_RANGE_FIELD(field, value) \
-  ( \
+  #define IN_RANGE_FIELD(field, value) ( \
     ((uint64_t)(value) & ~((field).msk >> (field).pos)) == 0U \
   )
 
@@ -91,8 +89,7 @@
    * @returns (unsigned integer) The value assigned to @p [dst].
    * @note - Arguments to this macro are expanded multiple times.
    */
-  #define WRITE_FIELD(dst, field, value) \
-  ( \
+  #define WRITE_FIELD(dst, field, value) ( \
     *(dst) = (*(dst) & ~(field).msk) | \
     (((value) << (field).pos) & (field).msk) \
   )
@@ -105,9 +102,52 @@
    * @returns (unsigned integer) The value assigned to @p [dst].
    * @note - Arguments to this macro are expanded multiple times.
    */
-  #define WRITE_WOFIELD(dst, field, value) \
-  ( \
+  #define WRITE_WOFIELD(dst, field, value) ( \
     *(dst) = (((value) << (field).pos) & (field).msk) \
+  )
+
+  /**
+   * @brief Sets all the bits in a field.
+   * @param dst (integral pointer) The location to write to.
+   * @param field (field_t) The target field.
+   * @returns (unsigned integer) The value assigned to @p [dst].
+   * @note - Arguments to this macro are expanded multiple times.
+   */
+  #define SET_FIELD(dst, field) ( \
+    *(dst) |= (field).msk \
+  )
+
+  /**
+   * @brief Sets all the bits in a write-only field.
+   * @param dst (integral pointer) The location to write to.
+   * @param field (field_t) The target field.
+   * @returns (unsigned integer) The value assigned to @p [dst].
+   * @note - Arguments to this macro are expanded multiple times.
+   */
+  #define SET_WOFIELD(dst, field) ( \
+    *(dst) = (field).msk \
+  )
+
+  /**
+   * @brief Clears all the bits in a field.
+   * @param dst (integral pointer) The location to write to.
+   * @param field (field_t) The target field.
+   * @returns (unsigned integer) The value assigned to @p [dst].
+   * @note - Arguments to this macro are expanded multiple times.
+   */
+  #define CLR_FIELD(dst, field) ( \
+    *(dst) &= ~(field).msk \
+  )
+
+  /**
+   * @brief Toggles all the bits in a field.
+   * @param dst (integral pointer) The location to write to.
+   * @param field (field_t) The target field.
+   * @returns (unsigned integer) The value assigned to @p [dst].
+   * @note - Arguments to this macro are expanded multiple times.
+   */
+  #define TOGL_FIELD(dst, field) ( \
+    *(dst) ^= (field).msk \
   )
 
   /**
@@ -117,9 +157,30 @@
    * @returns (unsigned integer) The value of @p [field] in @p [src].
    * @note - Arguments to this macro are expanded multiple times.
    */
-  #define READ_FIELD(src, field) \
-  ( \
+  #define READ_FIELD(src, field) ( \
     (*(src) & (field).msk) >> (field).pos \
+  )
+
+  /**
+   * @brief Determines if a field is set.
+   * @param src (integral pointer) The location to read from.
+   * @param field (field_t) The target field.
+   * @returns (bool) True if all bits  @p [field] in @p [src] are set, or false otherwise.
+   * @note - Arguments to this macro are expanded multiple times.
+   */
+  #define IS_FIELD_SET(src, field) ( \
+    (*(src) & (field).msk) == (field).msk \
+  )
+
+  /**
+   * @brief Determines if a field is clear.
+   * @param src (integral pointer) The location to read from.
+   * @param field (field_t) The target field.
+   * @returns (bool) Ture if all bits in @p [field] in @p [src] are clear, or false otherwise.
+   * @note - Arguments to this macro are expanded multiple times.
+   */
+  #define IS_FIELD_CLR(src, field) ( \
+    (*(src) & (field).msk) == 0U \
   )
 
   /************************************************************************************************

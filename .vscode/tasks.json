@@ -3,137 +3,107 @@
   "tasks": [
     {
       "type": "shell",
-      "label": "configure_dev",
-      "detail": "Configures dev build.",
-      "command": "cmake -G Ninja ..",
-      "problemMatcher": "$gcc",
-      "options": {
-        "cwd": "${workspaceFolder}/dev/build"
-      }
+      "label": "_rmbuild",
+      "command": "rm -rf build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "windows": {
+        "command": "cmd.exe",
+        "args": [ "/c", "rd /s /q build" ]
+      },
+      "problemMatcher": []
     },
     {
       "type": "shell",
-      "label": "configure_test",
-      "detail": "Configures test build.",
-      "command": "cmake -G Ninja --target TITAN_STM32H745_TEST ..",
-      "problemMatcher": "$gcc",
-      "options": {
-        "cwd": "${workspaceFolder}/test/build"
-      }
+      "label": "_mkbuild",
+      "command": "mkdir -p build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "windows": {
+        "command": "cmd.exe",
+        "args": [ "/c", "if not exist build mkdir build" ]
+      },
+      "problemMatcher": []
     },
     {
       "type": "shell",
-      "label": "clean_dev",
-      "detail": "Cleans dev build directory.",
-      "command": "ninja clean",
-      "problemMatcher": "$gcc",
-      "options": {
-        "cwd": "${workspaceFolder}/dev"
-      }
+      "label": "configure",
+      "detail": "Configures titan project.",
+      "command": "cmake -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=DEBUG -D TITAN_DEV_TARGET=ON -D TITAN_DEV_PORT=STM32H745 -D TITAN_DEV_LIB_CONFIG=${workspaceFolder}/dev/resource/lib_config.json -D TITAN_DEV_PORT_CONFIG=${workspaceFolder}/dev/resource/port_config.json -D TITAN_TEST_TARGET=ON -D TITAN_TEST_PORT=STM32H745 -D TITAN_TEST_LIB_CONFIG=${workspaceFolder}/dev/resource/lib_config.json -D TITAN_TEST_PORT_CONFIG=${workspaceFolder}/dev/resource/port_config.json --toolchain dev/resource/toolchain.cmake --log-level=VERBOSE",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
     },
     {
       "type": "shell",
-      "label": "clean_test",
-      "detail": "Cleans test build directory.",
-      "command": "ninja clean",
-      "problemMatcher": "$gcc",
-      "options": {
-        "cwd": "${workspaceFolder}/test"
-      }
+      "label": "clean_configure",
+      "detail": "Cleans and configures titan project.",
+      "dependsOn": [ "_rmbuild", "_mkbuild", "configure" ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
     },
     {
       "type": "shell",
       "label": "build_dev",
       "detail": "Builds dev code.",
-      "command": "ninja",
-      "problemMatcher": "$gcc",
-      "options": {
-        "cwd": "${workspaceFolder}/dev"
-      }
+      "command": "cmake --build build --target TITAN_DEV",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": "$gcc"
     },
     {
       "type": "shell",
       "label": "build_test",
       "detail": "Builds test code.",
-      "command": "ninja",
-      "problemMatcher": "$gcc",
-      "options": {
-        "cwd": "${workspaceFolder}/test"
-      }
+      "command": "cmake --build build --target TITAN_TEST",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": "$gcc"
     },
     {
       "type": "shell",
       "label": "flash_dev",
       "detail": "Flashes dev build.",
-      "command": "openocd -f dev/resource/flash_config.cfg -c 'program dev/build/TITAN_DEV.elf verify reset exit'",
-      "problemMatcher": "$gcc",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
+      "command": "openocd -f ${workspaceFolder}/dev/resource/flash_config.cfg -c 'program {${workspaceFolder}/build/dev/TITAN_DEV.elf} verify reset exit'",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
     },
     {
       "type": "shell",
       "label": "flash_test",
       "detail": "Flashes test build.",
-      "command": "openocd -f dev/resource/flash_config.cfg -c 'program test/build/TITAN_STM32H745_TEST.elf verify reset exit'",
-      "problemMatcher": "$gcc",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
+      "command": "openocd -f ${workspaceFolder}/dev/resource/flash_config.cfg -c 'program {${workspaceFolder}/build/test/TITAN_TEST.elf} verify reset exit'",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
     },
     {
       "type": "shell",
       "label": "xbuild_dev",
-      "detail": "Cleans, configures and builds dev code.",
-      "dependsOn": [
-        "clean_dev",
-        "configure_dev",
-        "build_dev"
-      ],
+      "detail": "Configures and builds dev code.",
+      "dependsOn": [ "configure", "build_dev" ],
       "dependsOrder": "sequence",
-      "problemMatcher": "$gcc",
+      "problemMatcher": []
     },
     {
       "type": "shell",
       "label": "xbuild_test",
-      "detail": "Cleans, configures and builds test code.",
-      "dependsOn": [
-        "clean_test",
-        "configure_test",
-        "build_test"
-      ],
+      "detail": "Configures and builds test code.",
+      "dependsOn": [ "configure", "build_test" ],
       "dependsOrder": "sequence",
-      "problemMatcher": "$gcc",
+      "problemMatcher": []
     },
     {
       "type": "shell",
       "label": "xflash_dev",
-      "detail": "Cleans, configures, builds and flashes dev code.",
-      "dependsOn": [
-        "xbuild_dev",
-        "flash_dev"
-      ],
+      "detail": "Configures, builds and flashes dev code.",
+      "dependsOn": [ "xbuild_dev", "flash_dev" ],
       "dependsOrder": "sequence",
-      "problemMatcher": "$gcc",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
     },
     {
       "type": "shell",
       "label": "xflash_test",
-      "detail": "Cleans, configures, builds and flashes test code.",
-      "dependsOn": [
-        "xbuild_test",
-        "flash_test"
-      ],
+      "detail": "Configures, builds and flashes test code.",
+      "dependsOn": [ "xbuild_test", "flash_test" ],
       "dependsOrder": "sequence",
-      "problemMatcher": "$gcc",
-      "group": {
-        "kind": "test",
-        "isDefault": true
-      }
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
     }
   ],
 }

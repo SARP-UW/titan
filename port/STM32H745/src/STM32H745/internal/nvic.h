@@ -24,8 +24,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "src/STM32H745_CM7/mmio.h"
-#include "src/STM32H745_CM7/interrupt.h" 
+#include "STM32H745/internal/mmio.h"
+#include "STM32H745/internal/interrupt.h" 
 
 #ifdef __cplusplus
   extern "C" {

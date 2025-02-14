@@ -13,9 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # 
-# @file cmake/util/config_parser.cmake
+# @file cmake/config_parser.cmake
 # @authors Aaron McBride
-# @brief Facilities for parsing configuration files.
+# @brief Utilities for parsing titan configuration files.
 
 cmake_minimum_required(VERSION 3.19)
 
@@ -23,7 +23,7 @@ cmake_minimum_required(VERSION 3.19)
 # Function to split top-level JSON objects and arrays
 # INPUT_STR: (string) JSON text to split
 # OUTPUT_LIST: (list) Output list of top-level JSON objects and arrays
-function(_ti_split_top_level INPUT_STR OUTPUT_LIST)
+function(__ti_split_top_level INPUT_STR OUTPUT_LIST)
   set(RESULT "")
   set(CURRENT "")
   string(LENGTH "${INPUT_STR}" LEN)
@@ -64,21 +64,21 @@ endfunction()
 # JSON_TEXT: (string) JSON text to process
 # PREFIX: (string) Prefix for CMake definitions
 # MACRO_DEFS: (list) Output list of CMake definitions
-function(_ti_process_json JSON_TEXT PREFIX MACRO_DEFS)
+function(__ti_process_json FILE_TYPE JSON_TEXT PREFIX MACRO_DEFS)
   string(STRIP "${JSON_TEXT}" JSON_TEXT)
 
   # Handle JSON object
   if(JSON_TEXT MATCHES "^\\{.*\\}$")
     string(REGEX REPLACE "^[[:space:]]*\\{" "" JSON_TEXT "${JSON_TEXT}")
     string(REGEX REPLACE "\\}[[:space:]]*$" "" JSON_TEXT "${JSON_TEXT}")
-    _ti_split_top_level("${JSON_TEXT}" ENTRIES)
+    __ti_split_top_level("${JSON_TEXT}" ENTRIES)
     foreach(ENTRY IN LISTS ENTRIES)
       string(STRIP "${ENTRY}" ENTRY)
 
       # Expecting: "key" : value
       string(REGEX MATCH "^\"([^\"]+)\"[[:space:]]*:[[:space:]]*(.*)$" _MATCH "${ENTRY}")
       if(NOT _MATCH)
-        message(WARNING "Skipping unrecognized object in config file: ${ENTRY}")
+        message(VERBOSE "TITAN: Skipping unrecognized/empty object in ${FILE_TYPE} file: ${ENTRY}")
         continue()
       endif()
       set(KEY "${CMAKE_MATCH_1}")
@@ -92,13 +92,13 @@ function(_ti_process_json JSON_TEXT PREFIX MACRO_DEFS)
 
       # Recurse if value is an object or array
       if(VAL MATCHES "^[[:space:]]*\\{.*\\}[[:space:]]*$" OR VAL MATCHES "^[[:space:]]*\\[.*\\][[:space:]]*$")
-        _ti_process_json("${VAL}" "${NEW_PREFIX}" MACRO_DEFS)
+        __ti_process_json("${FILE_TYPE}" "${VAL}" "${NEW_PREFIX}" MACRO_DEFS)
       elseif(VAL MATCHES "^[[:space:]]*\".*\"[[:space:]]*$")
         string(REGEX REPLACE "^[[:space:]]*\"(.*)\"[[:space:]]*$" "\\1" STR_VAL "${VAL}")
         set(MACRO_NAME "${NEW_PREFIX}_${STR_VAL}")
-        list(APPEND MACRO_DEFS "-D${MACRO_NAME}")
+        list(APPEND MACRO_DEFS "${MACRO_NAME}")
       else()
-        list(APPEND MACRO_DEFS "-D${NEW_PREFIX}=${VAL}")
+        list(APPEND MACRO_DEFS "${NEW_PREFIX}=${VAL}")
       endif()
     endforeach()
 
@@ -106,19 +106,19 @@ function(_ti_process_json JSON_TEXT PREFIX MACRO_DEFS)
   elseif(JSON_TEXT MATCHES "^\\[.*\\]$")
     string(REGEX REPLACE "^[[:space:]]*\\[" "" JSON_TEXT "${JSON_TEXT}")
     string(REGEX REPLACE "\\][[:space:]]*$" "" JSON_TEXT "${JSON_TEXT}")
-    _ti_split_top_level("${JSON_TEXT}" ELEMENTS)
+    __ti_split_top_level("${JSON_TEXT}" ELEMENTS)
     set(IDX 0)
     foreach(ELEMENT IN LISTS ELEMENTS)
       string(STRIP "${ELEMENT}" ELEMENT)
       set(NEW_PREFIX "${PREFIX}_${IDX}")
       if(ELEMENT MATCHES "^[[:space:]]*\\{.*\\}[[:space:]]*$" OR ELEMENT MATCHES "^[[:space:]]*\\[.*\\][[:space:]]*$")
-        _ti_process_json("${ELEMENT}" "${NEW_PREFIX}" MACRO_DEFS)
+        __ti_process_json("${FILE_TYPE}" "${ELEMENT}" "${NEW_PREFIX}" MACRO_DEFS)
       elseif(ELEMENT MATCHES "^[[:space:]]*\".*\"[[:space:]]*$")
         string(REGEX REPLACE "^[[:space:]]*\"(.*)\"[[:space:]]*$" "\\1" STR_VAL "${ELEMENT}")
         set(MACRO_NAME "${NEW_PREFIX}_${STR_VAL}")
-        list(APPEND MACRO_DEFS "-D${MACRO_NAME}")
+        list(APPEND MACRO_DEFS "${MACRO_NAME}")
       else()
-        list(APPEND MACRO_DEFS "-D${NEW_PREFIX}=${ELEMENT}")
+        list(APPEND MACRO_DEFS "${NEW_PREFIX}=${ELEMENT}")
       endif()
       math(EXPR IDX "${IDX} + 1")
     endforeach()
@@ -129,21 +129,32 @@ function(_ti_process_json JSON_TEXT PREFIX MACRO_DEFS)
     if(JSON_TEXT MATCHES "^\".*\"$")
       string(REGEX REPLACE "^\"(.*)\"$" "\\1" STR_VAL "${JSON_TEXT}")
       set(MACRO_NAME "${PREFIX}_${STR_VAL}")
-      list(APPEND MACRO_DEFS "-D${MACRO_NAME}")
+      list(APPEND MACRO_DEFS "${MACRO_NAME}")
     else()
-      list(APPEND MACRO_DEFS "-D${PREFIX}=${JSON_TEXT}")
+      list(APPEND MACRO_DEFS "${PREFIX}=${JSON_TEXT}")
     endif()
   endif()
   set(${MACRO_DEFS} "${MACRO_DEFS}" PARENT_SCOPE)
 endfunction()
 
-# Parse a JSON configuration file into CMake definitions
+# Parses a library configuration file (JSON) into CMake definitions
 # JSON_FILE: Path to the JSON configuration file
 # OUT_DEF_LIST: Output list of CMake definitions
-function(ti_parse_config_file JSON_FILE OUT_DEF_LIST)
+function(_ti_parse_lib_config_file JSON_FILE OUT_DEF_LIST)
   file(READ "${JSON_FILE}" JSON_TEXT)
   string(REPLACE "\n" " " JSON_TEXT "${JSON_TEXT}")
   set(MACRO_DEFS "")
-  _ti_process_json("${JSON_TEXT}" "" MACRO_DEFS)
+  __ti_process_json("library configuration" "${JSON_TEXT}" "" MACRO_DEFS)
+  set(${OUT_DEF_LIST} "${MACRO_DEFS}" PARENT_SCOPE)
+endfunction()
+
+# Parses a port configuration file (JSON) into CMake definitions
+# JSON_FILE: Path to the JSON configuration file
+# OUT_DEF_LIST: Output list of CMake definitions
+function(_ti_parse_port_config_file JSON_FILE OUT_DEF_LIST)
+  file(READ "${JSON_FILE}" JSON_TEXT)
+  string(REPLACE "\n" " " JSON_TEXT "${JSON_TEXT}")
+  set(MACRO_DEFS "")
+  __ti_process_json("port configuration" "${JSON_TEXT}" "" MACRO_DEFS)
   set(${OUT_DEF_LIST} "${MACRO_DEFS}" PARENT_SCOPE)
 endfunction()

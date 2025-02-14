@@ -17,7 +17,7 @@
  * @internal
  * @file src/STM32H745_CM7/interrupt.h
  * @authors Aaron McBride
- * @brief Interrupt prototypes, definitions and vtable.
+ * @brief Reference information for system interrupts.
  */
 
 #pragma once
@@ -28,7 +28,7 @@
 #endif
 
   /************************************************************************************************
-   * General Reference Definitions
+   * Uncategorised Information
    ************************************************************************************************/
 
   /** @brief The number of implement IRQs */
@@ -44,25 +44,24 @@
   static const int32_t IRQN_EXC_OFFSET = 16;
 
   /************************************************************************************************
-   * Exception Number Definitions
+   * Exception Numbers
    ************************************************************************************************/
 
-  static const int32_t RST_EXC_NUM         = 1;     /** @brief Reset exception. */
-  static const int32_t NMI_EXC_NUM         = 2;     /** @brief Non-maskable interrupt. */
-  static const int32_t HARD_FAULT_EXC_NUM  = 3;     /** @brief Hard fault. */
-  static const int32_t MEM_MANAGE_EXC_NUM  = 4;     /** @brief Memory management fault (MPU). */
-  static const int32_t BUS_FAULT_EXC_NUM   = 5;     /** @brief Bus fault. */
-  static const int32_t USAGE_FAULT_EXC_NUM = 6;     /** @brief Usage fault. */
-  static const int32_t SVC_EXC_NUM         = 11;    /** @brief System service call exception. */
-  static const int32_t DEBUG_MON_EXC_NUM   = 12;    /** @brief Debug monitor fault/exception. */
-  static const int32_t PENDSV_EXC_NUM      = 14;    /** @brief Pended system service call exception. */
-  static const int32_t SYSTICK_EXC_NUM     = 15;    /** @brief SysTick interrupt. */
+  static const int32_t RST_EXC_NUM         = 1;     /** @brief Reset exceptios (both cores). */
+  static const int32_t NMI_EXC_NUM         = 2;     /** @brief Non-maskable interrupt (both cores). */
+  static const int32_t HARD_FAULT_EXC_NUM  = 3;     /** @brief Hard fault (both cores). */
+  static const int32_t MEM_MANAGE_EXC_NUM  = 4;     /** @brief Memory management fault (MPU (both cores)). */
+  static const int32_t BUS_FAULT_EXC_NUM   = 5;     /** @brief Bus fault (both cores). */
+  static const int32_t USAGE_FAULT_EXC_NUM = 6;     /** @brief Usage fault (both cores). */
+  static const int32_t SVC_EXC_NUM         = 11;    /** @brief System service call exception (both cores). */
+  static const int32_t DEBUG_MON_EXC_NUM   = 12;    /** @brief Debug monitor fault/exception (both cores). */
+  static const int32_t PENDSV_EXC_NUM      = 14;    /** @brief Pended system service call exception (both cores). */
+  static const int32_t SYSTICK_EXC_NUM     = 15;    /** @brief SysTick interrupt (both cores). */
 
   /************************************************************************************************
-   * IRQ Number Definitions
+   * IRQ Numbers
    ************************************************************************************************/
 
-  static const int32_t WWDG1_IRQ_NUM                  = 0;     /** @brief Window watchdog. */
   static const int32_t PVD_PVM_IRQ_NUM                = 1;     /** @brief PVD through EXTI line. */
   static const int32_t RTC_TAMP_STAMP_CSS_LSE_IRQ_NUM = 2;     /** @brief RTC tamper, timestamp. */
   static const int32_t RTC_WKUP_IRQ_NUM               = 3;     /** @brief RTC wakeup interrupt. */
@@ -82,8 +81,7 @@
   static const int32_t TIM6_DAC_IRQ_NUM               = 54;    /** @brief TIM6 global interrupt. */
   static const int32_t ETH_IRQ_NUM                    = 61;    /** @brief Ethernet global interrupt. */
   static const int32_t ETH_WKUP_IRQ_NUM               = 62;    /** @brief Ethernet wakeup through EXTI. */
-  static const int32_t FDCAN_CAL_IRQ_NUM              = 63;    /** @brief CAN2TX interrupts. */
-  static const int32_t CM4_SEV_IT_IRQ_NUM             = 66;    /** @brief Arm cortex-m4 send even interrupt. */
+  static const int32_t FDCAN_CAL_IRQ_NUM              = 63;    /** @brief CAN2TX interrupts. */  
   static const int32_t OTG_HS_EP1_OUT_IRQ_NUM         = 74;    /** @brief OTG_HS out global interrupt. */
   static const int32_t OTG_HS_EP1_IN_IRQ_NUM          = 75;    /** @brief OTG_HS in global interrupt. */
   static const int32_t OTG_HS_WKUP_IRQ_NUM            = 76;    /** @brief OTG_HS wakeup interrupt. */
@@ -91,7 +89,6 @@
   static const int32_t DCMI_IRQ_NUM                   = 78;    /** @brief DCMI global interrupt. */
   static const int32_t CRYP_IRQ_NUM                   = 79;    /** @brief CRYP global interrupt. */
   static const int32_t HASH_RNG_IRQ_NUM               = 80;    /** @brief HASH and RNG. */
-  static const int32_t FPU_IRQ_NUM                    = 81;    /** @brief Floating point unit interrupt. */
   static const int32_t LTDC_IRQ_NUM                   = 88;    /** @brief LCD-TFT global interrupt. */
   static const int32_t LTDC_ER_IRQ_NUM                = 89;    /** @brief LCD-TFT error interrupt. */
   static const int32_t DMA2D_IRQ_NUM                  = 90;    /** @brief DMA2D global interrupt. */
@@ -110,48 +107,41 @@
   static const int32_t MDIOS_IRQ_NUM                  = 120;   /** @brief MDIOS global interrupt. */
   static const int32_t JPEG_IRQ_NUM                   = 121;   /** @brief JPEG global interrupt. */
   static const int32_t MDMA_IRQ_NUM                   = 122;   /** @brief MDMA global interrupt. */
-  static const int32_t HSEM0_IRQ_NUM                  = 125;   /** @brief HSEM global interrupt 0. */
   static const int32_t ADC3_IRQ_NUM                   = 127;   /** @brief ADC3 global interrupt. */
   static const int32_t DMAMUX2_OVR_IRQ_NUM            = 128;   /** @brief DMAMUX2 overrun interrupt. */
-  static const int32_t WWDG2_RST_IRQ_NUM              = 129;   /** @brief Window watchdog interrupt. */
   static const int32_t COMP_IRQ_NUM                   = 137;   /** @brief COMP1 and COMP2. */
   static const int32_t LPUART_IRQ_NUM                 = 142;   /** @brief LPUART global interrupt. */
   static const int32_t CRS_IRQ_NUM                    = 144;   /** @brief Clock recovery system globa. */
-  static const int32_t HOLD_CORE_IRQ_NUM              = 148;   /** @brief Hold core interrupt. */
   static const int32_t WKUP_IRQ_NUM                   = 149;   /** @brief WKUP1 to WKUP6 pins. */
 
-  static const int32_t DMAx_STRx_IRQ_NUM[3][8] = {
-    [1] = {
-      [0] = 11,    /** @brief DMA1 stream0 interrupt. */
-      [1] = 12,    /** @brief DMA1 stream1 interrupt. */
-      [2] = 13,    /** @brief DMA1 stream2 interrupt. */
-      [3] = 14,    /** @brief DMA1 stream3 interrupt. */
-      [4] = 15,    /** @brief DMA1 stream4 interrupt. */
-      [5] = 16,    /** @brief DMA1 stream5 interrupt. */
-      [6] = 17,    /** @brief DMA1 stream6 interrupt. */
-      [7] = 47,    /** @brief DMA1 stream7 interrupt. */
-    },
-    [2] = {
-      [0] = 56,    /** @brief DMA2 stream0 interrupt. */
-      [1] = 57,    /** @brief DMA2 stream1 interrupt. */
-      [2] = 58,    /** @brief DMA2 stream2 interrupt. */
-      [3] = 59,    /** @brief DMA2 stream3 interrupt. */
-      [4] = 60,    /** @brief DMA2 stream4 interrupt. */
-      [5] = 68,    /** @brief DMA2 stream5 interrupt. */
-      [6] = 69,    /** @brief DMA2 stream6 interrupt. */
-      [7] = 70,    /** @brief DMA2 stream7 interrupt. */
-    },
+  static const int32_t WWDGx_IRQ_NUM[3] = {
+    [1] = 0,     /** @brief Window watchdog interrupt (CM7 core). */
+    [2] = 0,     /** @brief Window watchdog interrupt (CM4 core). */
   };
 
-  static const int32_t FDCANx_ITx_IRQ_NUM[3][2] = {
-    [1] = {
-      [0] = 19,   /** @brief FDCAN1 interrupt 0. */
-      [1] = 21,   /** @brief FDCAN1 interrupt 1. */
-    },
-    [2] = {
-      [0] = 20,   /** @brief FDCAN2 interrupt 0. */
-      [1] = 22,   /** @brief FDCAN2 interrupt 1. */
-    },
+  static const int32_t CPUx_SEV_IT_IRQ_NUM[3] = {
+    [1] = 64,    /** @brief Arm cortex-m7 send event interrupt (used by CM4). */
+    [2] = 64,    /** @brief Arm cortex-m4 send event interrupt (used by CM7). */
+  };
+
+  static const int32_t HSEMx_IRQ_NUM[2] = {
+    [0] = 125, /** @brief HSEM global interrupt 0. */
+    [1] = 126, /** @brief HSEM global interrupt 1. */
+  };
+
+  static const int32_t WWDGx_RST_IRQ_NUM[3] = {
+    [1] = 143, /** @brief Window watchdog 2 reset interrupt (used by CM7) */
+    [2] = 143, /** @brief Window watchdog 1 reset interrupt (used by CM4) */
+  };
+
+  static const int32_t CPUx_FPU_IRQ_NUM[3] = {
+    [1] = 81,    /** @brief Floating point unit interrupt (used by CM4). */
+    [2] = 81,    /** @brief Floating point unit interrupt (used by CM7). */
+  };
+
+  static const int32_t CPUx_HOLD_CORE_IRQ_NUM[3] = {
+    [1] = 148, /** @brief Hold core interrupt (CM7 core). */
+    [2] = 148, /** @brief Hold core interrupt (CM4 core). */
   };
 
   static const int32_t HRTIM_TIMx_IRQ_NUM[6] = {
@@ -261,7 +251,41 @@
     [8] = 46,    /** @brief TIM8 capture / compare. */
   };
 
-#ifdef __cplusplus
+  static const int32_t DMAx_STRx_IRQ_NUM[3][8] = {
+    [1] = {
+      [0] = 11,    /** @brief DMA1 stream0 interrupt. */
+      [1] = 12,    /** @brief DMA1 stream1 interrupt. */
+      [2] = 13,    /** @brief DMA1 stream2 interrupt. */
+      [3] = 14,    /** @brief DMA1 stream3 interrupt. */
+      [4] = 15,    /** @brief DMA1 stream4 interrupt. */
+      [5] = 16,    /** @brief DMA1 stream5 interrupt. */
+      [6] = 17,    /** @brief DMA1 stream6 interrupt. */
+      [7] = 47,    /** @brief DMA1 stream7 interrupt. */
+    },
+    [2] = {
+      [0] = 56,    /** @brief DMA2 stream0 interrupt. */
+      [1] = 57,    /** @brief DMA2 stream1 interrupt. */
+      [2] = 58,    /** @brief DMA2 stream2 interrupt. */
+      [3] = 59,    /** @brief DMA2 stream3 interrupt. */
+      [4] = 60,    /** @brief DMA2 stream4 interrupt. */
+      [5] = 68,    /** @brief DMA2 stream5 interrupt. */
+      [6] = 69,    /** @brief DMA2 stream6 interrupt. */
+      [7] = 70,    /** @brief DMA2 stream7 interrupt. */
+    },
+  };
+
+  static const int32_t FDCANx_ITx_IRQ_NUM[3][2] = {
+    [1] = {
+      [0] = 19,   /** @brief FDCAN1 interrupt 0. */
+      [1] = 21,   /** @brief FDCAN1 interrupt 1. */
+    },
+    [2] = {
+      [0] = 20,   /** @brief FDCAN2 interrupt 0. */
+      [1] = 22,   /** @brief FDCAN2 interrupt 1. */
+    },
+  };
+
+  #ifdef __cplusplus
   } // extern "C"
 #endif
 

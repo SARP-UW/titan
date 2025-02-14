@@ -3,20 +3,22 @@
   "configurations": [
     {
       "name": "TITAN_STM32H745",
-      "compilerPath": "${env:ARM_GNU_TOOLCHAIN}//arm-none-eabi-gcc.exe",
+      "compilerPath": "${env:ARM_GNU_TOOLCHAIN}/arm-none-eabi-gcc.exe",
       "intelliSenseMode": "gcc-arm",
       "cStandard": "c99",
+      "includePath": [
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/port/STM32H745/include",
+        "${workspaceFolder}/port/STM32H745/src"
+      ],
       "compilerArgs": [
         "-Wpedantic",
         "-Wall",
         "-Wextra"
       ],
-      "includePath": [
-        "${workspaceFolder}/include",
-        "${workspaceFolder}/port/STM32H745"
-      ],
       "defines": [
-        "TI_TARGET_STM32H745"
+        "TI_PORT_STM32H745",
+        "TI_SEMIHOSTING"
       ]
     }
   ]

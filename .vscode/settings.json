@@ -1,35 +1,6 @@
 {
   "files.associations": {
     "*.h": "c",
-    "*.inc": "c",
-    "*.tcc": "c",
-    "charconv": "c",
-    "chrono": "c",
-    "expected": "c",
-    "optional": "c",
-    "format": "c",
-    "ratio": "c",
-    "system_error": "c",
-    "array": "c",
-    "functional": "c",
-    "regex": "c",
-    "tuple": "c",
-    "type_traits": "c",
-    "utility": "c",
-    "random": "c",
-    "compare": "c",
-    "cstdint": "c",
-    "any": "c",
-    "complex": "c",
-    "ranges": "c",
-    "scoped_allocator": "c",
-    "variant": "c",
-    "cmath": "c",
-    "barrier": "c",
-    "latch": "c",
-    "limits": "c",
-    "semaphore": "c",
-    "valarray": "c",
-    "typeinfo": "c"
-  }
+  },
+  "cortex-debug.variableUseNaturalFormat": false
 }
