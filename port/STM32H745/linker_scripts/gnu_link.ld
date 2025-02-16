@@ -17,16 +17,16 @@
  * @file port/STM32H745/linker_scripts/gnu_link.ld
  * @authors Aaron McBride
  * @brief GNU linker script for the STM32H745 port.
- * @todo Needs more work generally...
+ * @todo Integrate with FMC/QSPI memory (?)
  */
 
 /* Reference constants */
-__VTABLE_ALIGNMENT__ = 1024;
-__STACK_ALIGNMENT__ = 8;
-__HEAP_ALIGNMENT__ = 8;
-__KSTACK_SIZE__ = 1024;
+__SYS_ALIGN = 4;
+__STACK_ALIGN = 8;
+__CM7_KSTACK_SIZE = 512;
+__CM4_KSTACK_SIZE = 512;
 
-/* Set program entry point */
+/* Program entry point */
 ENTRY(cm7_reset_exc_handler)
 
 /* Define the memory layout */
@@ -46,211 +46,275 @@ MEMORY
 SECTIONS
 {
 
-  /* Vector table for CM7 core */
-  .cm7_vtable : 
+  /* Vector table for CM7 core. */
+  .cm7_vtable :
   {
-    . = ALIGN(__VTABLE_ALIGNMENT__);
-    __cm7_vtable_start__ = .;
-    LONG(__cm7_kstack_end__);
+    . = ALIGN(__SYS_ALIGN);
+    __cm7_vtable_start = .;
+    LONG(__cm7_kstack_end);
     KEEP(*(.cm7_vtable .cm7_vtable.*))
-    . = ALIGN(__VTABLE_ALIGNMENT__);
-    __cm7_vtable_end__ = .;
+    . = ALIGN(__SYS_ALIGN);
+    __cm7_vtable_end = .;
   } > FLASH_BK1
 
-  /* Vector table for CM4 core */
-  .cm4_vtable : 
+  /* Vector table for CM4 core. */
+  .cm4_vtable :
   {
-    . = ALIGN(__VTABLE_ALIGNMENT__);
-    __cm4_vtable_start__ = .;
-    LONG(__cm4_kstack_end__);
+    . = ALIGN(__SYS_ALIGN);
+    __cm4_vtable_start = .;
+    LONG(__cm4_kstack_end);
     KEEP(*(.cm4_vtable .cm4_vtable.*))
-    . = ALIGN(__VTABLE_ALIGNMENT__);
-    __cm4_vtable_end__ = .;
+    . = ALIGN(__SYS_ALIGN);
+    __cm4_vtable_end = .;
   } > FLASH_BK2
 
-  /* ARM exception table */
-  .arm_extab :
-  {
-    __extab_start = .;
-    *(.ARM.extab* .gnu.linkonce.armextab.*)
-    __extab_end = .;
-  } > FLASH_BK1
-
-  /* ARM exception index table */
-  .arm_exidx :
-  {
-    __exidx_start = .;
-    *(.ARM.exidx*)
-    __exidx_end = .;
-  } > FLASH_BK1
-
-  /* ARM attributes section */
-  .ARM.attributes : 
-  { 
-    __arm_attributes_start__ = .;
-    *(.ARM.attributes) 
-    __arm_attributes_end__ = .;
-  } > FLASH_BK1
-
-  /* Pre-initialization function array */
+  /* Pre-initialization function array. */
   .preinit_array :
   {
-    . = ALIGN(4);
-    __preinit_array_start__ = .;
-    KEEP (*(.preinit_array))
-    . = ALIGN(4);
-    __preinit_array_end__ = .;
+    . = ALIGN(__SYS_ALIGN);
+    __preinit_array_start = .;
+    KEEP(*(.preinit_array))
+    . = ALIGN(__SYS_ALIGN);
+    __preinit_array_end = .;
   } > FLASH_BK1
 
-  /* Initialization function array */
+  /* Initialization function array. */
   .init_array :
   {
-    . = ALIGN(4);
-    __init_array_start__ = .;
-    KEEP (*(SORT(.init_array*)))
-    KEEP (*(.init_array))
-    . = ALIGN(4);
-    __init_array_end__ = .;
+    . = ALIGN(__SYS_ALIGN);
+    __init_array_start = .;
+    KEEP(*(SORT(.init_array*)))
+    KEEP(*(.init_array))
+    . = ALIGN(__SYS_ALIGN);
+    __init_array_end = .;
   } > FLASH_BK1
 
-  /* Finalization function array */
+  /* Kernel initialization function array. */
   .fini_array :
   {
-    . = ALIGN(4);
-    __fini_array_start__ = .;
-    KEEP (*(SORT(.fini_array*)))
-    KEEP (*(.fini_array))
-    . = ALIGN(4);
-    __fini_array_end__ = .;
+    . = ALIGN(__SYS_ALIGN);
+    __fini_array_start = .;
+    KEEP(*(.fini_array))
+    KEEP(*(SORT(.fini_array*)))
+    . = ALIGN(__SYS_ALIGN);
+    __fini_array_end = .;
   } > FLASH_BK1
 
-  /* CM7 ITCM Section */
-  .cm7_itcm  :
-  {
-    . = ALIGN(4);
-    __cm7_itcm_start__ = .;
-    *(.cm7_itcm)
-    *(.cm7_itcm.*)
-    . = ALIGN(4);
-    __cm7_itcm_end__ = .;
-  } > CM7_ITCM AT > FLASH_BK1
-  __cm7_itcm_dst__ = LOADADDR(.cm7_itcm);
-
-  /* Kernel stack for CM7 core */
-  .cm7_kstack : 
-  {
-    . = ALIGN(__STACK_ALIGNMENT__);
-    __cm7_kstack_start__ = .;
-    . += __KSTACK_SIZE__;
-    . = ALIGN(__STACK_ALIGNMENT__);
-    __cm7_kstack_end__ = .;
-  } > CM7_DTCM
-
-  /* CM7 DTCM Section */
-  .cm7_dtcm :
-  {
-    . = ALIGN(4);
-    __cm7_dtcm_start__ = .;
-    *(.cm7_dtcm)
-    *(.cm7_dtcm.*)
-    . = ALIGN(4);
-    __cm7_dtcm_end__ = .;
-  } > CM7_DTCM AT > FLASH_BK1
-  __cm7_dtcm_dst__ = LOADADDR(.cm7_dtcm);
-
-  /* Kernel memory */
-  .kmem :
-  {
-    . = ALIGN(4);
-    __kmem_start__ = .;
-    *(.kmem)
-    *(.kmem.*)
-    . = ALIGN(4);
-    __kmem_end__ = .;
-  } > SRAM4 AT > FLASH_BK1
-  __kmem_dst__ = LOADADDR(.kmem);
-
-  /* Program constant data section */
+  /* Read-only (const) program data. */
   .rodata :
   {
-    . = ALIGN(4);
-    __rodata_start__ = .;
-    *(.rodata)
-    *(.rodata*)
-    . = ALIGN(4);
-    __rodata_end__ = .;
+    . = ALIGN(__SYS_ALIGN);
+    __rodata_start = .;
+    *(.rodata .rodata* .gnu.linkonce.r.*)
+    . = ALIGN(__SYS_ALIGN);
+    __rodata_end = .;
   } > FLASH_BK1
 
-  /* Initialized data section */
-  .data :
-  {
-    . = ALIGN(4);
-    __data_start__ = .;
-    *(.data)
-    *(.data*)
-    . = ALIGN(4);
-    __data_end__ = .;
-  } > AXI_SRAM AT > FLASH_BK1
-  __data_dst__ = LOADADDR(.data);
-
-  /* User flash section (bank 1) */
-  __user_flash_bk1_start__ = __data_end__;
-  __user_flash_bk1_end__ = ORIGIN(FLASH_BK1) + LENGTH(FLASH_BK1);
-
-  /* Uninitialized data section */
-  .bss :
-  {
-    . = ALIGN(4);
-    __bss_start__ = .;
-    *(.bss)
-    *(.bss*)
-    *(COMMON)
-    . = ALIGN(4);
-    __bss_end__ = .;
-  } > AXI_SRAM
-
-  /* Program text (code) section */
+  /* Program text (code) */
   .text :
   {
-    . = ALIGN(4);
-    __text_start__ = .;
-    *(.text)
-    *(.text*)
-    *(.glue_7)
-    *(.glue_7t)
-    *(.eh_frame)
-    KEEP (*(.init))
-    KEEP (*(.fini))
-    . = ALIGN(4);
-    __text_end__ = .;
+    . = ALIGN(__SYS_ALIGN);
+    __text_start = .;
+    *(.text .text.* .gnu.linkonce.t.*)
+    . = ALIGN(__SYS_ALIGN);
+    __text_end = .;
   } > FLASH_BK2
 
-  /* User flash section (bank 2) */
-  __user_flash_bk2_start__ = __text_end__;
-  __user_flash_bk2_end__ = ORIGIN(FLASH_BK2) + LENGTH(FLASH_BK2);
-
-  /* Kernel stack for CM4 core */
-  .cm4_kstack : 
+  .data :
   {
-    . = ALIGN(__STACK_ALIGNMENT__);
-    __cm4_kstack_start__ = .;
-    . += __KSTACK_SIZE__;
-    . = ALIGN(__STACK_ALIGNMENT__);
-    __cm4_kstack_end__ = .;
+    . = ALIGN(__SYS_ALIGN);
+    __data_start = .;
+    *(.data .data.*)
+    . = ALIGN(__SYS_ALIGN);
+    __data_end = .;
+  } > AXI_SRAM AT > FLASH_BK1
+  __data_dst = LOADADDR(.data);
+
+  /* Program bss (uninitialized data) */
+  .bss :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __bss_start = .;
+    *(.bss .bss.*)
+    *(COMMON)
+    . = ALIGN(__SYS_ALIGN);
+    __bss_end = .;
+  } > AXI_SRAM
+
+  /* CM7 kernal stack (clear). */
+  .cm7_kstack :
+  {
+    . = ALIGN(__STACK_ALIGN);
+    __cm7_kstack_start = .;
+    . += __CM7_KSTACK_SIZE;
+    . = ALIGN(__STACK_ALIGN);
+    __cm7_kstack_end = .;
+  } > CM7_DTCM
+
+  /* CM4 kernal stack (clear). */
+  .cm4_kstack :
+  {
+    . = ALIGN(__STACK_ALIGN);
+    __cm4_kstack_start = .;
+    . += __CM4_KSTACK_SIZE;
+    . = ALIGN(__STACK_ALIGN);
+    __cm4_kstack_end = .;
   } > SRAM123
 
-  /* Heap section (TODO) */
+  /* CM7 instruction tightly coupled memory (load). */
+  .cm7_itcm_load :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __cm7_itcm_load_start = .;
+    *(.cm7_itcm_load .cm7_itcm_load.*)
+    . = ALIGN(__SYS_ALIGN);
+    __cm7_itcm_load_end = .;
+  } > CM7_ITCM AT > FLASH_BK1
+  __cm7_itcm_load_dst = LOADADDR(.cm7_itcm_load);
+
+  /* CM7 instruction tightly coupled memory (clear). */
+  .cm7_itcm_clear :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __cm7_itcm_clear_start = .;
+    *(.cm7_itcm_clear .cm7_itcm_clear.*)
+    . = ALIGN(__SYS_ALIGN);
+    __cm7_itcm_clear_end = .;
+  } > CM7_ITCM
+
+  /* CM7 data tightly coupled memory (load). */
+  .cm7_dtcm_load :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __cm7_dtcm_load_start = .;
+    *(.cm7_dtcm_load .cm7_dtcm_load.*)
+    . = ALIGN(__SYS_ALIGN);
+    __cm7_dtcm_load_end = .;
+  } > CM7_DTCM AT > FLASH_BK1
+  __cm7_dtcm_load_dst = LOADADDR(.cm7_dtcm_load);
+
+  /* CM7 data tightly coupled memory (clear). */
+  .cm7_dtcm_clear :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __cm7_dtcm_clear_start = .;
+    *(.cm7_dtcm_clear .cm7_dtcm_clear.*)
+    . = ALIGN(__SYS_ALIGN);
+    __cm7_dtcm_clear_end = .;
+  } > CM7_DTCM
+
+  /* SRAM 4 (load). */
+  .sram4_load :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __sram4_load_start = .;
+    *(.sram4_load .sram4_load.*)
+    . = ALIGN(__SYS_ALIGN);
+    __sram4_load_end = .;
+  } > SRAM4 AT > FLASH_BK1
+  __sram4_load_dst = LOADADDR(.sram4_load);
+
+  /* SRAM 4 (clear). */
+  .sram4_clear :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __sram4_clear_start = .;
+    *(.sram4_clear .sram4_clear.*)
+    . = ALIGN(__SYS_ALIGN);
+    __sram4_clear_end = .;
+  } > SRAM4
+
+  /* Backup ram (load). */
+  .bkup_ram_load :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __bkup_ram_load_start = .;
+    *(.bkup_ram_load .bkup_ram_load.*)
+    . = ALIGN(__SYS_ALIGN);
+    __bkup_ram_load_end = .;
+  } > BKUP_RAM AT > FLASH_BK1
+  __bkup_ram_load_dst = LOADADDR(.bkup_ram_load);
+
+  /* Backup ram (clear). */
+  .bkup_ram_clear :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __bkup_ram_clear_start = .;
+    *(.bkup_ram_clear .bkup_ram_clear.*)
+    . = ALIGN(__SYS_ALIGN);
+    __bkup_ram_clear_end = .;
+  } > BKUP_RAM
+
+  /* Table of regions to load into ram */
+  .load_table :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __load_table_start = .;
+    LONG(__data_start);
+    LONG(__data_end);
+    LONG(__data_dst);
+    LONG(__cm7_itcm_load_start);
+    LONG(__cm7_itcm_load_end);
+    LONG(__cm7_itcm_load_dst);
+    LONG(__cm7_dtcm_load_start);
+    LONG(__cm7_dtcm_load_end);
+    LONG(__cm7_dtcm_load_dst);
+    LONG(__sram4_load_start);
+    LONG(__sram4_load_end);
+    LONG(__sram4_load_dst);
+    LONG(__bkup_ram_load_start);
+    LONG(__bkup_ram_load_end);
+    LONG(__bkup_ram_load_dst);
+    . = ALIGN(__SYS_ALIGN);
+    __load_table_end = .;
+  } > FLASH_BK1
+
+  .clear_table :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __clear_table_start = .;
+    LONG(__bss_start);
+    LONG(__bss_end);
+    LONG(__cm7_itcm_clear_start);
+    LONG(__cm7_itcm_clear_end);
+    LONG(__cm7_dtcm_clear_start);
+    LONG(__cm7_dtcm_clear_end);
+    LONG(__sram4_clear_start);
+    LONG(__sram4_clear_end);
+    LONG(__bkup_ram_clear_start);
+    LONG(__bkup_ram_clear_end);
+    . = ALIGN(__SYS_ALIGN);
+    __clear_table_end = .;
+  } > FLASH_BK2
+
+  /* User flash bank 1. */
+  .flash_bk1_end :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __user_flash_bk1_start = .;
+    . = ORIGIN(FLASH_BK1) + LENGTH(FLASH_BK1);
+    . = ALIGN(__SYS_ALIGN);
+    __user_flash_bk1_end = .;
+  } > FLASH_BK1
+
+  /* User flash bank 2. */
+  .flash_bk2_end :
+  {
+    . = ALIGN(__SYS_ALIGN);
+    __user_flash_bk2_start = .;
+    . = ORIGIN(FLASH_BK2) + LENGTH(FLASH_BK2);
+    . = ALIGN(__SYS_ALIGN);
+    __user_flash_bk2_end = .;
+  } > FLASH_BK2
+
+  /* Internal heap. */
   .heap :
   {
-    . = ALIGN(__HEAP_ALIGNMENT__);
-    __heap_start__ = .;
-    end = __heap_start__;
-    _end = __heap_start__;
-    __end = __heap_start__;
-    KEEP(*(.heap))
-    . = ALIGN(__HEAP_ALIGNMENT__);
-    __heap_end__ = .;
-    __HeapLimit__ = __heap_end__;
+    . = ALIGN(__SYS_ALIGN);
+    __heap_start = .;
+    . = ORIGIN(SRAM123) + LENGTH(SRAM123);
+    . = ALIGN(__SYS_ALIGN);
+    __heap_end = .;
   } > SRAM123
 
 }

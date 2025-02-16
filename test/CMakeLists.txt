@@ -32,7 +32,7 @@ message(VERBOSE "TITAN: Test port configuration file/preset: ${TITAN_TEST_PORT_C
 
 # Get list of source files for test target
 set(TI_TEST_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
-file(GLOB_RECURSE TITAN_TEST_SOURCES "${TI_TEST_SRC_DIR}/*.c ${TI_TEST_SRC_DIR}/*.h")
+file(GLOB_RECURSE TITAN_TEST_SOURCES "${TI_TEST_SRC_DIR}/*.c" "${TI_TEST_SRC_DIR}/*.h")
 
 # Initialize test target and link to titan library
 add_executable(TITAN_TEST ${TITAN_TEST_SOURCES})

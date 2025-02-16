@@ -70,7 +70,8 @@ function(_ti_create_port_lib LIB_NAME PORT_LIB_NAME PORT_CONFIG)
     target_compile_options("${PORT_LIB_NAME}" INTERFACE
       "-mcpu=cortex-m4" "-mthumb" "-mfpu=fpv4-sp-d16")
     target_link_options("${PORT_LIB_NAME}" INTERFACE
-      "-T${TI_PORT_BASE_PATH}/linker_scripts/gnu_link.ld")
+      "-T${TI_PORT_BASE_PATH}/linker_scripts/gnu_link.ld"
+      "-mcpu=cortex-m4" "-mthumb" "-mfpu=fpv4-sp-d16")
 
   # Set compiler/linker flags for ICC-based compilers
   elseif("${CMAKE_C_COMPILER_ID}" IN_LIST TI_PORT_ICC_ID_LIST)
@@ -78,7 +79,8 @@ function(_ti_create_port_lib LIB_NAME PORT_LIB_NAME PORT_CONFIG)
     target_compile_options("${PORT_LIB_NAME}" INTERFACE
       "--cpu=Cortex-M4" "--thumb" "--fpu=FPv4-SP-D16")
     target_link_options("${PORT_LIB_NAME}" INTERFACE
-      "--config ${TI_PORT_BASE_PATH}/linker_scripts/icc_link.icf")
+      "--config ${TI_PORT_BASE_PATH}/linker_scripts/icc_link.icf"
+      "--cpu=Cortex-M4" "--thumb" "--fpu=FPv4-SP-D16")
 
   else() # Error on unsupported compiler.
     message(NOTICE "TITAN: Unsupported compiler: ${CMAKE_C_COMPILER_ID}.")

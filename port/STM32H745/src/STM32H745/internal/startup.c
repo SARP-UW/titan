@@ -26,222 +26,257 @@
 #include "STM32H745/internal/mmio.h"
 #include "STM32H745/internal/interrupt.h"
 
+#ifdef __IAR_SYSTEMS_ICC__
+  #pragma language = extended
+#endif
+
 #ifdef __cplusplus
   extern "C" {
 #endif
 
   /************************************************************************************************
-   * Memory Initialization/Finalization Routines
-   ************************************************************************************************/
-
-  // Initializes CM7 ITCM section
-  static void init_cm7_itcm(void) {
-    extern uint32_t __cm7_itcm_start__;
-    extern uint32_t __cm7_itcm_dst__;
-    extern uint32_t __cm7_itcm_end__;
-    uint32_t* itcm_src = &__cm7_itcm_start__;
-    uint32_t* itcm_dst = &__cm7_itcm_dst__;
-    uint32_t* const itcm_end = &__cm7_itcm_end__;
-    while (itcm_dst < itcm_end) {
-      *itcm_dst++ = *itcm_src++;
-    }
-  }
-
-  // Initializes CM7 DTCM section
-  static void init_cm7_dtcm(void) {
-    extern uint32_t __cm7_dtcm_start__;
-    extern uint32_t __cm7_dtcm_dst__;
-    extern uint32_t __cm7_dtcm_end__;
-    uint32_t* dtcm_src = &__cm7_dtcm_start__;
-    uint32_t* dtcm_dst = &__cm7_dtcm_end__;
-    uint32_t* const dtcm_end = &__cm7_dtcm_dst__;
-    while (dtcm_dst < dtcm_end) {
-      *dtcm_dst++ = *dtcm_src++;
-    }
-  }
-
-  // Initializes kernal memory section
-  static void init_kmem(void) {
-    extern uint32_t __kmem_start__;
-    extern uint32_t __kmem_dst__;
-    extern uint32_t __kmem_end__;
-    uint32_t* kmem_src = &__kmem_start__;
-    uint32_t* kmem_dst = &__kmem_dst__;
-    uint32_t* const kmem_end = &__kmem_end__;
-    while (kmem_dst < kmem_end) {
-      *kmem_dst++ = *kmem_src++;
-    }
-  }
-
-  // Initializes .bss section (zeros it)
-  static void init_bss(void) {
-    extern uint32_t __cm4_bss_start__;
-    extern uint32_t __cm4_bss_end__;
-    uint32_t* bss_current = &__cm4_bss_start__;
-    uint32_t* const bss_end = &__cm4_bss_end__;
-    while (bss_current < bss_end) {
-      *bss_current++ = 0U;
-    }
-  }
-
-  // Initializes .data section
-  static void init_data(void) {
-    extern uint32_t __data_start__;
-    extern uint32_t __data_dst__;
-    extern uint32_t __data_end__;
-    uint32_t* data_src = &__data_start__;
-    uint32_t* data_dst = &__data_dst__;
-    uint32_t* const data_end = &__data_end__;
-    while (data_dst < data_end) {
-      *data_dst++ = *data_src++;
-    }
-  }
-
-  // Initializes heap section (zeros it)
-  static void init_heap(void) {
-    extern uint32_t __heap_start__;
-    extern uint32_t __heap_end__;
-    uint32_t* heap_current = &__heap_start__;
-    uint32_t* const heap_end = &__heap_end__;
-    while(heap_current < heap_end) {
-      *heap_current++ = 0U;
-    }
-  }
-
-  /************************************************************************************************
    * Program Initialization/Finialization Routines
    ************************************************************************************************/
 
-  // Invokes pre-constructor functions
-  static void invoke_preinit(void) {
-    typedef void (*func_t)(void);
-    extern func_t __preinit_array_start__;
-    extern func_t __preinit_array_end__;
-    func_t* current_fn = &__preinit_array_start__;
-    func_t* const end_fn = &__preinit_array_end__;
-    while (current_fn < end_fn) {
-      (*current_fn++)();
+  // Loads data from flash to RAM
+  static void _load_mem(void) {
+
+    // Type of entries in the load table.
+    typedef struct {
+      const uint32_t *start; // Start of section to load
+      const uint32_t *end;   // End of section to load
+      uint32_t *dst;         // Start of location to load section to.
+    } load_tbl_t;
+
+    // "Load table" location (defined by linker script)
+    extern load_tbl_t __load_table_start[];
+    extern load_tbl_t __load_table_end[];
+
+    // Iterate through sections in the load table
+    const int32_t length = __load_table_end - __load_table_start;
+    for (int32_t i = 0; i < length; i++) {
+
+      // Copy each word in the section from flash (start) to RAM (dst)
+      const int32_t size = __load_table_start[i].end - __load_table_start[i].start;
+      for (int32_t j = 0; j < size; j++) {
+        __load_table_start[i].dst[j] = __load_table_start[i].start[j];
+      }
     }
   }
 
-  // Invokes constructor functions
-  static void invoke_init(void) {
-    typedef void (*func_t)(void);
-    extern func_t __init_array_start__;
-    extern func_t __init_array_end__;
-    func_t* current_fn = &__init_array_start__;
-    func_t* const end_fn = &__init_array_end__;
-    while (current_fn < end_fn) {
-      (*current_fn++)();
+  // Clears required regions in RAM
+  static void _clear_mem(void) {
+
+    // Type of entries in the clear table.
+    typedef struct {
+      uint32_t *start; // Start of section to clear
+      uint32_t *end;   // End of section to clear
+    } clear_tbl_t;
+
+    // "Clear table" location (defined by linker script)
+    extern clear_tbl_t __clear_table_start[];
+    extern clear_tbl_t __clear_table_end[];
+
+    // Iterate through entries in the clear table
+    const int32_t length = __clear_table_end - __clear_table_start;
+    for (int32_t i = 0; i < length; i++) {
+
+      // Assign 0 to each word in the section (clear it)
+      const int32_t size = __clear_table_start[i].end - __clear_table_start[i].start;
+      for (int32_t j = 0; j < size; j++) {
+        __clear_table_start[i].start[j] = 0U;
+      }
     }
   }
 
-  // Invokes destructor functions
-  static void invoke_fini(void) {
-    typedef void (*func_t)(void);
-    extern func_t __fini_array_start__;
-    extern func_t __fini_array_end__;
-    func_t* current_fn = &__fini_array_start__;
-    func_t* const end_fn = &__fini_array_end__;
-    while (current_fn < end_fn) {
-      (*current_fn++)();
+  // newlib/picolib provide init_array and fini_array functions
+  #if !defined(__NEWLIB__) && !defined(__PICOLIB__)
+
+    // Invokes pre-initialization functions
+    static void _invoke_preinit(void) {
+
+      // Pre-initialization function prototype
+      typedef void (*preinit_func_t)(void);
+
+      // Pre-initialization function table location (defined by linker script)
+      extern preinit_func_t __preinit_array_start[];
+      extern preinit_func_t __preinit_array_end[];
+
+      // Iterate through the preinit function table and invoke functions
+      const int32_t length = __preinit_array_end - __preinit_array_start;
+      for (int32_t i = 0; i < length; i++) {
+        if (__preinit_array_start[i] != NULL) {
+          __preinit_array_start[i]();
+        }
+      }
     }
-  }
+
+    // Invokes initialization functions
+    static void _invoke_init(void) {
+
+      // Initialization function prototype
+      typedef void (*init_func_t)(void);
+
+      // Initialization function table location (defined by linker script)
+      extern init_func_t __init_array_start[];
+      extern init_func_t __init_array_end[];
+
+      // Iterate through the init function table and invoke functions
+      const int32_t length = __init_array_end - __init_array_start;
+      for (int32_t i = 0; i < length; i++) {
+        if (__init_array_start[i] != NULL) {
+          __init_array_start[i]();
+        }
+      }
+    }
+
+    // Invokes finalization functions
+    static void _invoke_fini(void) {
+
+      // Finalization function prototype
+      typedef void (*fini_func_t)(void);
+
+      // Finalization function table location (defined by linker script)
+      extern fini_func_t __fini_array_start[];
+      extern fini_func_t __fini_array_end[];
+
+      // Iterate through the fini function table and invoke functions
+      const int32_t length = __fini_array_end - __fini_array_start;
+      for (int32_t i = 0; i < length; i++) {
+        if (__fini_array_start[i] != NULL) {
+          __fini_array_start[i]();
+        }
+      }
+    }
+
+  #endif
 
   /************************************************************************************************
    * Peripheral Initialization Routines
    ************************************************************************************************/
 
-  // Initializes the clock system
-  // static void init_clock_system(void) {
-  //   WRITE_FIELD(RCC_CR, RCC_CR_HSION, 1U);
-  //   while (READ_FIELD(RCC_CR, RCC_CR_HSIRDY) == 0U);
-  // }
+  // Quick wake enable
+  #define TI_PCFG_PWR_QUICK_WAKE false
+
+  // LDO regulator enable
+  #define TI_PCFG_PWR_LDO_ENABLE true
+
+  // SMPS regulator enable
+  #define TI_PCFG_PWR_SMPS_ENABLE true
+
+  // SMPS regulator external input enable
+  #define TI_PCFG_PWR_SMPS_EXTERNAL false
+
+  // Battery power enable
+  #define TI_PCFG_PWR_BAT_ENABLE true
+
+  // Battery charging enable
+  #define TI_PCFG_PWR_BAT_CHARGING false
+
+  // Battery resistor value (only relevant if charging enabled)
+  #define TI_PCFG_PWR_BAT_RESISTOR 5000
+
+  // USB voltage regulator enable (5v input)
+  #define TI_PCFG_PWR_USB_REG_ENABLE false
+
+
+  // Initializes power system
+  void _init_pwr(void) {
+
+
+
+
+
+
+  }
+
+  // Initializes clock system
+  void _init_clk(void) {
+
+  }
 
   /************************************************************************************************
-   * Reset Handler Implementation
+   * Reset Handler Entry Functions
+   ************************************************************************************************/
+
+  // Entry point for CM7 reset handler
+  __attribute__((naked)) 
+  void cm7_reset_exc_handler() {
+    __asm__ volatile (
+      "cpsid i                       \n\t" // Disable interrupts
+      "ldr r0, =__cm7_kstack_start   \n\t" // Address of start of stack section
+      "ldr r1, =__cm7_kstack_end     \n\t" // Address of end of stack section
+      "ldr r2, =0x0                  \n\t" // Clear r2 (used for zeroing memory)
+      "cm7_rst_loop1:                \n\t" 
+      "cmp r1, r0                    \n\t"
+      "bcc cm7_rst_end               \n\t" // If at end of stack section, end loop
+      "str r2, [r0]                  \n\t" // Assign 0 (word) to the current memory location
+      "add r0, r0, 0x4               \n\t" // Increment the memory location by 4 (size of word)
+      "b cm7_rst_loop1               \n\t"
+      "cm7_rst_end:                  \n\t"
+      "bl alt_cm7_reset_exc_handler  \n\t" // "Call" the main reset handler (below)
+      "cm7_rst_loop2:                \n\t" // Infinite loop
+      "wfi                           \n\t" // Wait for interrupt (likely reset interrupt)
+      "b cm7_rst_loop2               \n\t"
+      ::: "r0", "r1", "r2", "memory"
+    );
+  }
+
+  // Entry point for CM4 reset handler
+  __attribute__((naked))
+  void cm4_reset_exc_handler() {
+    __asm__ volatile (
+      "cpsid i                       \n\t" // Disable interrupts
+      "ldr r0, =__cm4_kstack_start   \n\t" // Address of start of stack section
+      "ldr r1, =__cm4_kstack_end     \n\t" // Address of end of stack section
+      "ldr r2, =0x0                  \n\t" // Clear r2 (used for zeroing memory)
+      "cm4_rst_loop1:                \n\t" 
+      "cmp r1, r0                    \n\t"
+      "bcc cm4_rst_end               \n\t" // If at end of stack section, end loop
+      "str r2, [r0]                  \n\t" // Assign 0 (word) to the current memory location
+      "add r0, r0, 0x4               \n\t" // Increment the memory location by 4 (size of word)
+      "b cm4_rst_loop1               \n\t"
+      "cm4_rst_end:                  \n\t"
+      "bl alt_cm4_reset_exc_handler  \n\t" // "Call" the main reset handler (below)
+      "cm4_rst_loop2:                \n\t" // Infinite loop
+      "wfi                           \n\t" // Wait for interrupt (likely reset interrupt)
+      "b cm4_rst_loop2               \n\t"
+      ::: "r0", "r1", "r2", "memory"
+    );
+  }
+
+  /************************************************************************************************
+   * Primary Reset Handlers
    ************************************************************************************************/
 
   // Main function prototype
   extern void main(void);
 
-  // Reset handler logic for the CM7 core
+  // Primary reset handler for the CM7 core
+  __attribute__((used))
   void alt_cm7_reset_exc_handler(void) {
-    init_cm7_itcm();
-    init_cm7_dtcm();
-    init_kmem();
-    init_data();
-    init_bss();
-    init_heap();
-    invoke_preinit();
-    invoke_init();
+    _load_mem();
+    _clear_mem();
+    #if (__NEWLIB__) || (__PICOLIB__)
+      __libc_init_array();
+    #else
+      _invoke_preinit();
+      _invoke_init();
+    #endif
     main();
-    invoke_fini();
+    #if (__NEWLIB__) || (__PICOLIB__)
+      __libc_fini_array();
+    #else
+      _invoke_fini();
+    #endif
   }
 
-  // Reset handler logic for the CM4 core
+  // Primary reset handler for the CM4 core
+  __attribute__((used))
   void alt_cm4_reset_exc_handler(void) {
-    while (true) {
-      __asm__ ("nop");
+    while (true) { 
+      __asm__ ("nop"); 
     }
-  }
-
-  // Entry point for reset handler (CM7 core)
-  // Zeros kernal stack - used by init functions
-  __attribute__((naked)) 
-  void cm7_reset_exc_handler() {
-    __asm__ volatile (
-      "cpsid i          \n\t"
-      "ldr r0, cm7_kstack_start \n\t"
-      "ldr r1, cm7_kstack_end \n\t"
-      "mov r2, #4       \n\t"
-      "cm7_rst_loop1:   \n\t"
-      "cmp r1, r0       \n\t"
-      "bcc end          \n\t"
-      "str r2, [r0]     \n\t"
-      "add r0, r0, #4   \n\t"
-      "bl cm7_rst_loop1 \n\t"
-      "cm7_rst_end:     \n\t"
-      "bl alt_cm7_reset_exc_handler \n\t"
-      "cpsie i          \n\t"
-      "cm7_rst_loop2:   \n\t"
-      "wfi              \n\t"
-      "bl cm7_rst_loop2 \n\t"
-      "cm7_kstack_start: \n\t"
-      ".word __cm7_kstack_start__ \n\t"
-      "cm7_kstack_end: \n\t"
-      ".weak .word __cm7_kstack_end__ \n\t"
-      ::: "r0", "r1", "r2", "memory"
-    );
-  }
-
-  // Entry point for reset handler (CM4 core)
-  // Zeros kernal stack - used by init functions
-  __attribute__((naked))
-  void cm4_reset_exc_handler() {
-    __asm__ volatile (
-      "cpsid i          \n\t"
-      "ldr r0, cm4_kstack_start \n\t"
-      "ldr r1, cm4_kstack_end \n\t"
-      "mov r2, #4       \n\t"
-      "cm4_rst_loop:    \n\t"
-      "cmp r1, r0       \n\t"
-      "bcc end          \n\t"
-      "str r2, [r0]     \n\t"
-      "add r0, r0, #4   \n\t"
-      "bl cm4_rst_loop  \n\t"
-      "cm4_rst_end:     \n\t"
-      "bl alt_cm4_reset_exc_handler \n\t"
-      "cpsie i          \n\t"
-      "cm4_rst_loop2:   \n\t"
-      "wfi              \n\t"
-      "bl cm4_rst_loop2 \n\t"
-      "cm4_kstack_start: \n\t"
-      ".word __cm4_kstack_start__ \n\t"
-      "cm4_kstack_end: \n\t"
-      ".word __cm4_kstack_end__ \n\t"
-      ::: "r0", "r1", "r2", "memory"
-    );
   }
 
 #ifdef __cplusplus

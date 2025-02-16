@@ -32,7 +32,7 @@ message(VERBOSE "TITAN: Dev port configuration file/preset: ${TITAN_DEV_PORT_CON
 
 # Get list of source files for dev target
 set(TI_DEV_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
-file(GLOB_RECURSE TITAN_DEV_SOURCES "${TI_DEV_SRC_DIR}/*.c ${TI_DEV_SRC_DIR}/*.h")
+file(GLOB_RECURSE TITAN_DEV_SOURCES "${TI_DEV_SRC_DIR}/*.c" "${TI_DEV_SRC_DIR}/*.h")
 
 # Initialize dev target and link to titan library
 add_executable(TITAN_DEV ${TITAN_DEV_SOURCES})
@@ -49,7 +49,7 @@ set(TI_DEV_ICC_ID_LIST "ICC" "IAR" "TI" "ARMCC")
 if("${CMAKE_C_COMPILER_ID}" IN_LIST TI_DEV_GNU_ID_LIST)
   message(DEBUG "TITAN (DEV): Using GNU compiler configuration for dev target.")
   target_compile_options(TITAN_DEV PUBLIC 
-    "-Wall" "-Wextra" "-flto" "-nostdlib" "-ffreestanding")
+    "-Wall" "-Wextra" "-nostdlib" "-ffreestanding")
   target_link_options(TITAN_DEV PUBLIC 
     "-Wl,-gc-sections" "-Wl,-print-memory-usage")
 

@@ -260,8 +260,8 @@
    ***************************************************************************************************/
 
   /** @brief Interrupt vector table (CM7 core). */
-  __attribute__((section(".cm7_vtable")))
-  const uint32_t vm7_vtable[255] = {
+  __attribute__((used, section(".cm7_vtable")))
+  static const uint32_t cm7_vtable[255] = {
     [0]   = (uint32_t)&cm7_reset_exc_handler,              /** @brief reset exception (CM7 core). */
     [1]   = (uint32_t)&cm7_nmi_exc_handler,                /** @brief Non-maskable interrupt (CM7 core). */
     [2]   = (uint32_t)&cm7_hard_fault_exc_handler,         /** @brief Hard fault (CM7 core). */
@@ -418,7 +418,7 @@
 
   /** @brief Interrupt vector table (CM4 core) */
   __attribute__((used, section(".cm4_vtable")))
-  const uint32_t cm4_vtable[255] = {
+  static const uint32_t cm4_vtable[255] = {
     [0]   = (uint32_t)&cm4_reset_exc_handler,       /** @brief Reset exception (CM4 core). */
     [1]   = (uint32_t)&cm4_nmi_exc_handler,         /** @brief Non-maskable interrupt (CM4 core). */
     [2]   = (uint32_t)&cm4_hard_fault_exc_handler,  /** @brief Hard fault (CM4 core). */

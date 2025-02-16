@@ -27,7 +27,7 @@
       "type": "shell",
       "label": "configure",
       "detail": "Configures titan project.",
-      "command": "cmake -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=DEBUG -D TITAN_DEV_TARGET=ON -D TITAN_DEV_PORT=STM32H745 -D TITAN_DEV_LIB_CONFIG=${workspaceFolder}/dev/resource/lib_config.json -D TITAN_DEV_PORT_CONFIG=${workspaceFolder}/dev/resource/port_config.json -D TITAN_TEST_TARGET=ON -D TITAN_TEST_PORT=STM32H745 -D TITAN_TEST_LIB_CONFIG=${workspaceFolder}/dev/resource/lib_config.json -D TITAN_TEST_PORT_CONFIG=${workspaceFolder}/dev/resource/port_config.json --toolchain dev/resource/toolchain.cmake --log-level=VERBOSE",
+      "command": "cmake -G Ninja -B build -S . -D CMAKE_BUILD_TYPE=DEBUG -D TITAN_DEV_TARGET=ON -D TITAN_DEV_PORT=STM32H745 -D TITAN_DEV_LIB_CONFIG=${workspaceFolder}/dev/resource/lib_config.json -D TITAN_DEV_PORT_CONFIG=${workspaceFolder}/dev/resource/port_config.json -D TITAN_TEST_TARGET=ON -D TITAN_TEST_PORT=STM32H745 -D TITAN_TEST_LIB_CONFIG=${workspaceFolder}/dev/resource/lib_config.json -D TITAN_TEST_PORT_CONFIG=${workspaceFolder}/dev/resource/port_config.json --toolchain dev/resource/toolchain.cmake --log-level=VERBOSE",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     },
@@ -73,34 +73,34 @@
     },
     {
       "type": "shell",
-      "label": "xbuild_dev",
-      "detail": "Configures and builds dev code.",
-      "dependsOn": [ "configure", "build_dev" ],
+      "label": "cbuild_dev",
+      "detail": "Cleans, configures and builds dev code.",
+      "dependsOn": [ "clean_configure", "build_dev" ],
       "dependsOrder": "sequence",
       "problemMatcher": []
     },
     {
       "type": "shell",
-      "label": "xbuild_test",
-      "detail": "Configures and builds test code.",
-      "dependsOn": [ "configure", "build_test" ],
+      "label": "cbuild_test",
+      "detail": "Cleans, configures and builds test code.",
+      "dependsOn": [ "clean_configure", "build_test" ],
       "dependsOrder": "sequence",
       "problemMatcher": []
     },
     {
       "type": "shell",
-      "label": "xflash_dev",
-      "detail": "Configures, builds and flashes dev code.",
-      "dependsOn": [ "xbuild_dev", "flash_dev" ],
+      "label": "bflash_dev",
+      "detail": "Builds and flashes dev code.",
+      "dependsOn": [ "build_dev", "flash_dev" ],
       "dependsOrder": "sequence",
       "group": { "kind": "build", "isDefault": true },
       "problemMatcher": []
     },
     {
       "type": "shell",
-      "label": "xflash_test",
-      "detail": "Configures, builds and flashes test code.",
-      "dependsOn": [ "xbuild_test", "flash_test" ],
+      "label": "bflash_test",
+      "detail": "Builds and flashes test code.",
+      "dependsOn": [ "build_test", "flash_test" ],
       "dependsOrder": "sequence",
       "group": { "kind": "test", "isDefault": true },
       "problemMatcher": []
