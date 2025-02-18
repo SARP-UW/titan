@@ -34,9 +34,6 @@
   extern "C" {
 #endif
 
-  // REMOVE
-  #undef __NEWLIB__
-
   /************************************************************************************************
    * Program Initialization/Finialization Routines
    ************************************************************************************************/
@@ -155,11 +152,43 @@
   #endif
 
   /************************************************************************************************
-   * Peripheral Initialization Routines
+   * Core Initialization/Finalization Routines
    ************************************************************************************************/
 
-  // Initializes clock system
-  void _init_clk(void) {
+  #define _CORE_CM7_CACHE_SIZE
+  #define _CORE_CM7_CACHE_LINE_SIZE
+
+  void init_core_cm7(void) {
+
+    // Set thread mode to privileged
+    __asm__ volatile (
+      "mrs r0, CONTROL \n\t"
+      "orr r0, r0, 0x1 \n\t"
+      "msr CONTROL, r0 \n\t"
+    );
+
+    // Enable the FPU
+    SET_FIELD(FPU_CPACR, FPU_CPACR_CP);
+
+    // Enable the instruction cache
+    SET_FIELD(SCB_CCR, SCB_CCR_IC);
+
+    // Enable the data cache
+
+
+  }
+
+  void init_core_cm4(void) {
+
+    // Set thread mode to privileged
+    __asm__ volatile (
+      "mrs r0, CONTROL \n\t"
+      "orr r0, r0, 0x1 \n\t"
+      "msr CONTROL, r0 \n\t"
+    );
+
+    // Enable the FPU
+    SET_FIELD(FPU_CPACR, FPU_CPACR_CP);
 
   }
 
