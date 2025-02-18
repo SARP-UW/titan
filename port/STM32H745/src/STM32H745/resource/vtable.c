@@ -1,5 +1,5 @@
 /**
- * This file is part of the Titan HAL
+ * This file is part of the Titan Library.
  * Copyright (c) 2025 UW SARP
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -15,12 +15,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @internal
- * @file src/STM32H745_CM7/vtable.c
+ * @file src/STM32H745_CM7/resource/vtable.c
  * @authors Aaron McBride
- * @brief Contains weak interrupt handlers and the vector table for both cores.
+ * @brief Weak interrupt handlers and vector table definition.
+ * @warning - This file should not be included by any other file.
  */
 
 #include <stdint.h>
+
+#ifdef __IAR_SYSTEMS_ICC__
+  #pragma language = extended
+#endif
 
 #ifdef __cplusplus
   extern "C" {
@@ -170,8 +175,8 @@
   _CM7_IRQ_ATTR void eth_irq_handler();                      /** @brief Ethernet global interrupt. */
   _CM7_IRQ_ATTR void eth_wkup_irq_handler();                 /** @brief Ethernet wakeup through EXTI. */
   _CM7_IRQ_ATTR void fdcan_cal_irq_handler();                /** @brief CAN2TX interrupts. */
-  _CM4_IRQ_ATTR void cpu1_sev_it_irq_handler();              /** @brief Arm cortex-m7 (cpu 1) send event interrupt (used by CM4 core). */
-  _CM7_IRQ_ATTR void cpu2_sev_it_irq_handler();              /** @brief Arm cortex-m4 (cpu 2) send event interrupt (used by CM7 core). */
+  _CM4_IRQ_ATTR void cpu1_sev_irq_handler();                 /** @brief Arm cortex-m7 (cpu 1) send event interrupt (used by CM4 core). */
+  _CM7_IRQ_ATTR void cpu2_sev_irq_handler();                 /** @brief Arm cortex-m4 (cpu 2) send event interrupt (used by CM7 core). */
   _CM7_IRQ_ATTR void dma2_str5_irq_handler();                /** @brief DMA2 stream5 interrupt. */
   _CM7_IRQ_ATTR void dma2_str6_irq_handler();                /** @brief DMA2 stream6 interrupt. */
   _CM7_IRQ_ATTR void dma2_str7_irq_handler();                /** @brief DMA2 stream7 interrupt. */
@@ -185,8 +190,8 @@
   _CM7_IRQ_ATTR void dcmi_irq_handler();                     /** @brief DCMI global interrupt. */
   _CM7_IRQ_ATTR void cryp_irq_handler();                     /** @brief CRYP global interrupt. */
   _CM7_IRQ_ATTR void hash_rng_irq_handler();                 /** @brief HASH and RNG. */
-  _CM7_IRQ_ATTR void cpu1_fpu_irq_handler();                  /** @brief Floating point unit interrupt (CM7 core). */
-  _CM4_IRQ_ATTR void cpu2_fpu_irq_handler();                  /** @brief Floating point unit interrupt (CM4 core). */
+  _CM7_IRQ_ATTR void cpu1_fpu_irq_handler();                 /** @brief Floating point unit interrupt (CM7 core). */
+  _CM4_IRQ_ATTR void cpu2_fpu_irq_handler();                 /** @brief Floating point unit interrupt (CM4 core). */
   _CM7_IRQ_ATTR void uart7_irq_handler();                    /** @brief UART7 global interrupt. */
   _CM7_IRQ_ATTR void uart8_irq_handler();                    /** @brief UART8 global interrupt. */
   _CM7_IRQ_ATTR void spi4_irq_handler();                     /** @brief SPI4 global interrupt. */
@@ -251,8 +256,8 @@
   _CM7_IRQ_ATTR void wwdg2_rst_irq_handler();                /** @brief Window watchdog reset interrupt (used by CM7 core). */
   _CM7_IRQ_ATTR void crs_irq_handler();                      /** @brief Clock recovery system global interrupt. */
   _CM7_IRQ_ATTR void sai4_irq_handler();                     /** @brief SAI4 global interrupt. */
-  _CM7_IRQ_ATTR void cpu1_hold_core_irq_handler();            /** @brief Hold core interrupt (CM7 core). */
-  _CM4_IRQ_ATTR void cpu2_hold_core_irq_handler();            /** @brief Hold core interrupt (CM4 core). */
+  _CM7_IRQ_ATTR void cpu1_hold_core_irq_handler();           /** @brief Hold core interrupt (CM7 core). */
+  _CM4_IRQ_ATTR void cpu2_hold_core_irq_handler();           /** @brief Hold core interrupt (CM4 core). */
   _CM7_IRQ_ATTR void wkup_irq_handler();                     /** @brief WKUP1 to WKUP6 pins. */
 
   /***************************************************************************************************
@@ -335,7 +340,7 @@
     [76]  = (uint32_t)&eth_irq_handler,                    /** @brief Ethernet global interrupt. */
     [77]  = (uint32_t)&eth_wkup_irq_handler,               /** @brief Ethernet wakeup through EXTI. */
     [78]  = (uint32_t)&fdcan_cal_irq_handler,              /** @brief CAN2TX interrupts. */
-    [80]  = (uint32_t)&cpu2_sev_it_irq_handler,            /** @brief Arm cortex-m4 send even interrupt (used by CM7 core). */
+    [80]  = (uint32_t)&cpu2_sev_irq_handler,            /** @brief Arm cortex-m4 send even interrupt (used by CM7 core). */
     [83]  = (uint32_t)&dma2_str5_irq_handler,              /** @brief DMA2 stream5 interrupt. */
     [84]  = (uint32_t)&dma2_str6_irq_handler,              /** @brief DMA2 stream6 interrupt. */
     [85]  = (uint32_t)&dma2_str7_irq_handler,              /** @brief DMA2 stream7 interrupt. */
@@ -492,7 +497,7 @@
     [76]  = (uint32_t)&_empty_handler,              /** @brief Not implemented (handler is nop) */
     [77]  = (uint32_t)&_empty_handler,              /** @brief Not implemented (handler is nop) */
     [78]  = (uint32_t)&_empty_handler,              /** @brief Not implemented (handler is nop) */
-    [79]  = (uint32_t)&cpu1_sev_it_irq_handler,     /** @brief Arm cortex-m7 (cpu 1) send event interrupt (used by CM4 core). */
+    [79]  = (uint32_t)&cpu1_sev_irq_handler,     /** @brief Arm cortex-m7 (cpu 1) send event interrupt (used by CM4 core). */
     [83]  = (uint32_t)&_empty_handler,              /** @brief Not implemented (handler is nop) */
     [84]  = (uint32_t)&_empty_handler,              /** @brief Not implemented (handler is nop) */
     [85]  = (uint32_t)&_empty_handler,              /** @brief Not implemented (handler is nop) */

@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @internal
- * @file src/STM32H745_CM7/startup.c
+ * @file src/STM32H745_CM7/subsys/startup.c
  * @authors Aaron McBride
  * @brief Reset handler and program startup code.
  */
@@ -23,8 +23,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "STM32H745/internal/mmio.h"
-#include "STM32H745/internal/interrupt.h"
+#include "STM32H745/resource/mmio.h"
+#include "STM32H745/resource/interrupt.h"
 
 #ifdef __IAR_SYSTEMS_ICC__
   #pragma language = extended
@@ -33,6 +33,9 @@
 #ifdef __cplusplus
   extern "C" {
 #endif
+
+  // REMOVE
+  #undef __NEWLIB__
 
   /************************************************************************************************
    * Program Initialization/Finialization Routines
@@ -154,41 +157,6 @@
   /************************************************************************************************
    * Peripheral Initialization Routines
    ************************************************************************************************/
-
-  // Quick wake enable
-  #define TI_PCFG_PWR_QUICK_WAKE false
-
-  // LDO regulator enable
-  #define TI_PCFG_PWR_LDO_ENABLE true
-
-  // SMPS regulator enable
-  #define TI_PCFG_PWR_SMPS_ENABLE true
-
-  // SMPS regulator external input enable
-  #define TI_PCFG_PWR_SMPS_EXTERNAL false
-
-  // Battery power enable
-  #define TI_PCFG_PWR_BAT_ENABLE true
-
-  // Battery charging enable
-  #define TI_PCFG_PWR_BAT_CHARGING false
-
-  // Battery resistor value (only relevant if charging enabled)
-  #define TI_PCFG_PWR_BAT_RESISTOR 5000
-
-  // USB voltage regulator enable (5v input)
-  #define TI_PCFG_PWR_USB_REG_ENABLE false
-
-
-  // Initializes power system
-  void _init_pwr(void) {
-
-
-
-
-
-
-  }
 
   // Initializes clock system
   void _init_clk(void) {

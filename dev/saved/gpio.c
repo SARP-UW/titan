@@ -1,5 +1,5 @@
 #include "titan/gpio.h"
-#include "STM32H745/internal/mmio.h"
+#include "STM32H745/resource/mmio.h"
 
 #define PORTS 11
 #define PINS 16

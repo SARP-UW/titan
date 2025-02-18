@@ -1,9 +1,0 @@
-# Ignore all directories named "build" anywhere in the repository
-**/build/
-build/
-
-# Ignore .vscode directory
-.vscode/
-
-# Ignore dev directory
-dev/

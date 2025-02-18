@@ -1,0 +1,5 @@
+# ninja log v6
+13	63	7615357047214025	dev/CMakeFiles/TITAN_DEV.dir/src/dev/main.c.obj	61e8503ffad52964
+16	73	7615357047253915	dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/resource/vtable.c.obj	a637e0cb98d5cc0a
+19	265	7615357047283843	dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/subsys/startup.c.obj	3247c3f47f168e70
+265	491	7615357049737429	dev/TITAN_DEV.elf	59dcf14fc81cada4

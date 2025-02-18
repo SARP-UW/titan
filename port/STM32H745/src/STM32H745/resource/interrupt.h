@@ -1,5 +1,5 @@
 /**
- * This file is part of the Titan Flight Computer Project
+ * This file is part of the Titan Library.
  * Copyright (c) 2024 UW SARP
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -15,13 +15,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @internal
- * @file src/STM32H745_CM7/interrupt.h
+ * @file src/STM32H745_CM7/resource/interrupt.h
  * @authors Aaron McBride
  * @brief Reference information for system interrupts.
  */
 
 #pragma once
 #include <stdint.h>
+
+#ifdef __IAR_SYSTEMS_ICC__
+  #pragma language = extended
+#endif
 
 #ifdef __cplusplus
   extern "C" {
@@ -119,9 +123,9 @@
     [2] = 0,     /** @brief Window watchdog interrupt (CM4 core). */
   };
 
-  static const int32_t CPUx_SEV_IT_IRQ_NUM[3] = {
+  static const int32_t CPUx_SEV_IRQ_NUM[3] = {
     [1] = 64,    /** @brief Arm cortex-m7 send event interrupt (used by CM4). */
-    [2] = 64,    /** @brief Arm cortex-m4 send event interrupt (used by CM7). */
+    [2] = 65,    /** @brief Arm cortex-m4 send event interrupt (used by CM7). */
   };
 
   static const int32_t HSEMx_IRQ_NUM[2] = {

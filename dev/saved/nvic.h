@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @internal
- * @file src/STM32H745_CM7/nvic.h
+ * @file src/STM32H745_CM7/subsys/nvic.h
  * @authors Aaron McBride
  * @brief Internal NVIC driver.
  */
@@ -24,8 +24,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "STM32H745/internal/mmio.h"
-#include "STM32H745/internal/interrupt.h" 
+#include "STM32H745/resource/mmio.h"
+#include "STM32H745/resource/interrupt.h" 
 
 #ifdef __cplusplus
   extern "C" {
