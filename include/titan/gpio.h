@@ -28,6 +28,12 @@
   extern "C" {
 #endif
 
+// REMOVE
+
+bool init_gpio(void);
+
+// REMOVE
+
 /**
  * @param pin: The single integer value of the pin, found in specific docs page 60
  * @param mode: 0 for in, 1 for general purpose output, 2 for alternate function, 3 for analog

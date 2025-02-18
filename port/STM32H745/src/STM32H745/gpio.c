@@ -49,7 +49,7 @@ static const int32_t _GPIO_PORT_COUNT = 11;
 bool init_gpio(void) {
   for (int32_t i = 0; i < _GPIO_PORT_COUNT; i++) {
     const field32_t cur_field = MAKE_FIELD(field32_t, i, 1);
-    WRITE_FIELD(RCC_AHBxRSTR[4], cur_field, 1U);
+    WRITE_FIELD(RCC_AHB4ENR, cur_field, 1U);
   }
   return true;
 }
@@ -75,7 +75,7 @@ void tal_set_drain(int pin, int drain)
   int port = v / 100;
   int index = v - 100 * port;
 
-  WRITE_FIELD(GPIOx_MODER[port], GPIOx_OTYPER_OTx[index], drain);
+  WRITE_FIELD(GPIOx_OTYPER[port], GPIOx_OTYPER_OTx[index], drain);
 }
 
 void tal_set_speed(int pin, int speed)
@@ -87,7 +87,7 @@ void tal_set_speed(int pin, int speed)
   int port = v / 100;
   int index = v - 100 * port;
 
-  WRITE_FIELD(GPIOx_MODER[port], GPIOx_OSPEEDR_OSPEEDx[index], speed);
+  WRITE_FIELD(GPIOx_OSPEEDR[port], GPIOx_OSPEEDR_OSPEEDx[index], speed);
 }
 
 
@@ -103,15 +103,15 @@ void tal_pull_pin(int pin, int pull)
   switch (pull)
   {
     case 1:{
-      WRITE_FIELD(GPIOx_MODER[port], GPIOx_PUPDR_PUPDx[index], 1);
+      WRITE_FIELD(GPIOx_PUPDR[port], GPIOx_PUPDR_PUPDx[index], 1);
       break;
     }
     case 0:{
-      WRITE_FIELD(GPIOx_MODER[port], GPIOx_PUPDR_PUPDx[index], 0);
+      WRITE_FIELD(GPIOx_PUPDR[port], GPIOx_PUPDR_PUPDx[index], 0);
       break;
     }
     case -1:{
-      WRITE_FIELD(GPIOx_MODER[port], GPIOx_PUPDR_PUPDx[index], 2);
+      WRITE_FIELD(GPIOx_PUPDR[port], GPIOx_PUPDR_PUPDx[index], 2);
       break;
     }
     
@@ -129,8 +129,7 @@ void tal_set_pin(int pin, int value)
   }
   int port = v / 100;
   int index = v - 100 * port;
-
-  WRITE_FIELD(GPIOx_MODER[port], GPIOx_ODR_ODx[index], value);
+  WRITE_FIELD(GPIOx_ODR[port], GPIOx_ODR_ODx[index], value);
 }
 
 void tal_alternate_mode(int pin, int value)
@@ -144,11 +143,11 @@ void tal_alternate_mode(int pin, int value)
 
   if(index <= 7){
     // use AFRL
-    WRITE_FIELD(GPIOx_MODER[port], GPIOx_AFRL_AFSELx[index], value);
+    WRITE_FIELD(GPIOx_AFRL[port], GPIOx_AFRL_AFSELx[index], value);
 
   }else{
     // use AFRH
-    WRITE_FIELD(GPIOx_MODER[port], GPIOx_AFRH_AFSELx[index - 8], value); 
+    WRITE_FIELD(GPIOx_AFRH[port], GPIOx_AFRH_AFSELx[index - 8], value); 
   }
 }
 

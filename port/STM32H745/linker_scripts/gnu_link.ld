@@ -120,15 +120,16 @@ SECTIONS
     __text_end = .;
   } > FLASH_BK2
 
+  /* Program data section */
   .data :
   {
     . = ALIGN(__SYS_ALIGN);
-    __data_start = .;
+    __data_dst = .;
     *(.data .data.*)
     . = ALIGN(__SYS_ALIGN);
-    __data_end = .;
   } > AXI_SRAM AT > FLASH_BK1
-  __data_dst = LOADADDR(.data);
+  __data_start = LOADADDR(.data);
+  __data_end = __data_start + SIZEOF(.data); 
 
   /* Program bss (uninitialized data) */
   .bss :
@@ -165,12 +166,12 @@ SECTIONS
   .cm7_itcm_load :
   {
     . = ALIGN(__SYS_ALIGN);
-    __cm7_itcm_load_start = .;
+    __cm7_itcm_load_dst = .;
     *(.cm7_itcm_load .cm7_itcm_load.*)
     . = ALIGN(__SYS_ALIGN);
-    __cm7_itcm_load_end = .;
   } > CM7_ITCM AT > FLASH_BK1
-  __cm7_itcm_load_dst = LOADADDR(.cm7_itcm_load);
+  __cm7_itcm_load_start = LOADADDR(.cm7_itcm_load);
+  __cm7_itcm_load_end = __cm7_itcm_load_start + SIZEOF(.cm7_itcm_load);
 
   /* CM7 instruction tightly coupled memory (clear). */
   .cm7_itcm_clear :
@@ -186,12 +187,12 @@ SECTIONS
   .cm7_dtcm_load :
   {
     . = ALIGN(__SYS_ALIGN);
-    __cm7_dtcm_load_start = .;
+    __cm7_dtcm_load_dst = .;
     *(.cm7_dtcm_load .cm7_dtcm_load.*)
     . = ALIGN(__SYS_ALIGN);
-    __cm7_dtcm_load_end = .;
   } > CM7_DTCM AT > FLASH_BK1
-  __cm7_dtcm_load_dst = LOADADDR(.cm7_dtcm_load);
+  __cm7_dtcm_load_start = LOADADDR(.cm7_dtcm_load);
+  __cm7_dtcm_load_end = __cm7_dtcm_load_start + SIZEOF(.cm7_dtcm_load);
 
   /* CM7 data tightly coupled memory (clear). */
   .cm7_dtcm_clear :
@@ -207,12 +208,12 @@ SECTIONS
   .sram4_load :
   {
     . = ALIGN(__SYS_ALIGN);
-    __sram4_load_start = .;
+    __sram4_load_dst = .;
     *(.sram4_load .sram4_load.*)
     . = ALIGN(__SYS_ALIGN);
-    __sram4_load_end = .;
   } > SRAM4 AT > FLASH_BK1
-  __sram4_load_dst = LOADADDR(.sram4_load);
+  __sram4_load_start = LOADADDR(.sram4_load);
+  __sram4_load_end = __sram4_load_start + SIZEOF(.sram4_load);
 
   /* SRAM 4 (clear). */
   .sram4_clear :
@@ -228,12 +229,12 @@ SECTIONS
   .bkup_ram_load :
   {
     . = ALIGN(__SYS_ALIGN);
-    __bkup_ram_load_start = .;
+    __bkup_ram_load_dst = .;
     *(.bkup_ram_load .bkup_ram_load.*)
     . = ALIGN(__SYS_ALIGN);
-    __bkup_ram_load_end = .;
   } > BKUP_RAM AT > FLASH_BK1
-  __bkup_ram_load_dst = LOADADDR(.bkup_ram_load);
+  __bkup_ram_load_start = LOADADDR(.bkup_ram_load);
+  __bkup_ram_load_end = __bkup_ram_load_start + SIZEOF(.bkup_ram_load);
 
   /* Backup ram (clear). */
   .bkup_ram_clear :
@@ -285,7 +286,7 @@ SECTIONS
     LONG(__bkup_ram_clear_end);
     . = ALIGN(__SYS_ALIGN);
     __clear_table_end = .;
-  } > FLASH_BK2
+  } > FLASH_BK1
 
   /* User flash bank 1. */
   .flash_bk1_end :

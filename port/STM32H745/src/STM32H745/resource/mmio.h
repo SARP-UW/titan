@@ -69,7 +69,7 @@
   #define MAKE_FIELD(ftype, _pos, width) \
   __extension__ ({ \
     const int32_t __pos = (_pos); \
-    const int32_t _width = (_width); \
+    const int32_t _width = (width); \
     (ftype) { \
       .msk = ((UINT64_C(1) << (_width)) - 1U) << (__pos), \
       .pos = (__pos) \
@@ -1285,7 +1285,9 @@
   static const field32_t I2Cx_PECR_PEC          = {.msk = 0x000000FFU, .pos = 0};    /** @brief Packet error checking register this field contains the internal PEC when PECEN=1. The PEC is cleared by hardware when PE=0. */
   static const field32_t I2Cx_RXDR_RXDATA       = {.msk = 0x000000FFU, .pos = 0};    /** @brief 8-bit receive data data byte received from the I2C bus. */
   static const field32_t I2Cx_TXDR_TXDATA       = {.msk = 0x000000FFU, .pos = 0};    /** @brief 8-bit transmit data data byte to be transmitted to the I2C bus. Note: these bits can be written only when TXE=1. */
-
+  static const field32_t I2Cx_CR2_SADD_7BIT     = {.msk = 0x000000FCU, .pos = 1};    /** @todo */
+  static const field32_t I2Cx_CR2_SADD_9BIT     = {.msk = 0x000003FFU, .pos = 0};    /** @todo */
+  
   /**** @subsection Enumerated I2Cx Register Field Definitions ****/
 
   static field32_t const I2Cx_CR2_SADDx[10] = {
@@ -1625,6 +1627,17 @@
   };
 
   static field32_t const GPIOx_AFRL_AFSELx[8] = {
+    [0] = {.msk = 0x0000000FU, .pos = 0},    /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [1] = {.msk = 0x000000F0U, .pos = 4},    /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [2] = {.msk = 0x00000F00U, .pos = 8},    /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [3] = {.msk = 0x0000F000U, .pos = 12},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [4] = {.msk = 0x000F0000U, .pos = 16},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [5] = {.msk = 0x00F00000U, .pos = 20},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [6] = {.msk = 0x0F000000U, .pos = 24},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+    [7] = {.msk = 0xF0000000U, .pos = 28},   /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
+  };
+
+  static field32_t const GPIOx_AFRH_AFSELx[8] = {
     [0] = {.msk = 0x0000000FU, .pos = 0},    /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
     [1] = {.msk = 0x000000F0U, .pos = 4},    /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
     [2] = {.msk = 0x00000F00U, .pos = 8},    /** @brief [3:0]: alternate function selection for port x pin y (y = 0..7) these bits are written by software to configure alternate function i/os afsely selection:. */
