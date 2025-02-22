@@ -14,19 +14,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file common/platform/usart.h
+ * @file common/platform/usart.h /// @todo UPDATE THIS
  * @authors Joanna Zhou
  * @brief USART Driver
  */
 
-#pragma once
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 #include "resource/mmio.h"
-#include "include/titan/gpio.h"
-#include "include/titan/usart.h"
+#include "titan/gpio.h"
+#include "titan/usart.h"
 
 #if defined(__cplusplus)
   extern "C" {
@@ -54,6 +53,8 @@
 // TODO read: overrun error, noise, framing error, clock deviation tolerance
 // uint32_t baud_rate = 115200;
 
+#define CLK_FREQ 64000000
+
 bool usart_init(int usart_num, int tx_pin, int rx_pin, uint32_t baud_rate) {
     tal_set_mode(tx_pin, 2);
     tal_set_mode(rx_pin, 2);
@@ -79,13 +80,13 @@ bool usart_init(int usart_num, int tx_pin, int rx_pin, uint32_t baud_rate) {
                 tal_alternate_mode(rx_pin, 7);
                 break;
         }
-        WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_FIFOEN, 1);
-        WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[1], 1);
-        WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_PCE, 1);
-        WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_PS, 1);
-        WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_UE, 1);
-        WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_TE, 1);
-        WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_RE, 1);
+        WRITE_FIELD(USARTx_BRR[usart_num], USARTx_BRR_BRR_4_15, (CLK_FREQ / baud_rate));
+        WRITE_FIELD(USARTx_CR1[usart_num], USARTx_CR1_FIFOEN, 1);
+        WRITE_FIELD(USARTx_CR1[usart_num], USARTx_CR1_Mx[1], 1);
+        WRITE_FIELD(USARTx_CR1[usart_num], USARTx_CR1_PCE, 1);
+        WRITE_FIELD(USARTx_CR1[usart_num], USARTx_CR1_UE, 1);
+        WRITE_FIELD(USARTx_CR1[usart_num], USARTx_CR1_TE, 1);
+        WRITE_FIELD(USARTx_CR1[usart_num], USARTx_CR1_RE, 1);
         return true;
 
     } else if (usart_num == 4 || usart_num == 5 || usart_num == 7 || usart_num == 8) {
@@ -134,13 +135,13 @@ bool usart_init(int usart_num, int tx_pin, int rx_pin, uint32_t baud_rate) {
                 tal_alternate_mode(tx_pin, 8);
                 tal_alternate_mode(rx_pin, 8);
         }
-        WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_FIFOEN, 1);
-        WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[1], 1);
-        WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_PCE, 1);
-        WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_PS, 1);
-        WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_UE, 1);
-        WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_TE, 1);
-        WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_RE, 1);
+        WRITE_FIELD(UARTx_BRR[usart_num], UARTx_BRR_BRR_4_15, (CLK_FREQ / baud_rate));
+        WRITE_FIELD(UARTx_CR1[usart_num], UARTx_CR1_FIFOEN, 1);
+        WRITE_FIELD(UARTx_CR1[usart_num], UARTx_CR1_Mx[1], 1);
+        WRITE_FIELD(UARTx_CR1[usart_num], UARTx_CR1_PCE, 1);
+        WRITE_FIELD(UARTx_CR1[usart_num], UARTx_CR1_UE, 1);
+        WRITE_FIELD(UARTx_CR1[usart_num], UARTx_CR1_TE, 1);
+        WRITE_FIELD(UARTx_CR1[usart_num], UARTx_CR1_RE, 1);
         return true;
     } else {
         return false;
@@ -205,16 +206,6 @@ bool usart_init(int usart_num, int tx_pin, int rx_pin, uint32_t baud_rate) {
 uint32_t TIMEOUT = 10000;
 bool read_timeout = false;
 
-bool usart_write(int usart_num, uint8_t* data, uint32_t length) {
-    for (uint32_t i = 0; i < length; i++) {
-        bool write_timeout = usart_write_byte(usart_num, data[i]);
-        if (!write_timeout) {
-            return false;
-        }
-    }
-    return true;
-}
-
 static bool usart_write_byte(int usart_num, uint8_t data) {
     // for test only
     uint32_t count = 0;
@@ -252,16 +243,6 @@ static bool usart_write_byte(int usart_num, uint8_t data) {
     // break character?
 }
 
-void usart_read(int usart_num, uint8_t* data_array, uint32_t size) { 
-    for (uint32_t i = 0; i < size; i++) {
-        uint8_t result = usart_read_byte(usart_num);
-        if (read_timeout == true) {
-            return;
-        }
-        data_array[i] = result;
-    }
-}
-
 static uint8_t usart_read_byte(int usart_num) {
     // for test only
     uint32_t count = 0;
@@ -291,6 +272,26 @@ static uint8_t usart_read_byte(int usart_num) {
         
         uint8_t data = READ_FIELD(UARTx_RDR[usart_num], UARTx_RDR_RDR);
         return data;
+    }
+}
+
+bool usart_write(int usart_num, uint8_t* data, uint32_t length) {
+    for (uint32_t i = 0; i < length; i++) {
+        bool write_timeout = usart_write_byte(usart_num, data[i]);
+        if (!write_timeout) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void usart_read(int usart_num, uint8_t* data_array, uint32_t size) { 
+    for (uint32_t i = 0; i < size; i++) {
+        uint8_t result = usart_read_byte(usart_num);
+        if (read_timeout == true) {
+            return;
+        }
+        data_array[i] = result;
     }
 }
 

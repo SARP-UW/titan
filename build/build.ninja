@@ -118,6 +118,16 @@ build test/CMakeFiles/TITAN_TEST.dir/__/port/STM32H745/src/STM32H745/subsys/star
   TARGET_COMPILE_PDB = test\CMakeFiles\TITAN_TEST.dir\
   TARGET_PDB = test\TITAN_TEST.pdb
 
+build test/CMakeFiles/TITAN_TEST.dir/__/port/STM32H745/src/STM32H745/usart.c.obj: C_COMPILER__TITAN_TEST_unscanned_DEBUG C$:/Users/AJM42/Documents/sarp/tal/port/STM32H745/src/STM32H745/usart.c || cmake_object_order_depends_target_TITAN_TEST
+  DEFINES = -DMACRO_DEFS -DTI_PORT_STM32H745
+  DEP_FILE = test\CMakeFiles\TITAN_TEST.dir\__\port\STM32H745\src\STM32H745\usart.c.obj.d
+  FLAGS = -g3 -Og -DDEBUG -Wall -Wextra -nostdlib -ffreestanding -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16
+  INCLUDES = -IC:/Users/AJM42/Documents/sarp/tal/test/src -IC:/Users/AJM42/Documents/sarp/tal/include -IC:/Users/AJM42/Documents/sarp/tal/port/STM32H745/include -IC:/Users/AJM42/Documents/sarp/tal/port/STM32H745/src
+  OBJECT_DIR = test\CMakeFiles\TITAN_TEST.dir
+  OBJECT_FILE_DIR = test\CMakeFiles\TITAN_TEST.dir\__\port\STM32H745\src\STM32H745
+  TARGET_COMPILE_PDB = test\CMakeFiles\TITAN_TEST.dir\
+  TARGET_PDB = test\TITAN_TEST.pdb
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target TITAN_TEST
@@ -126,7 +136,7 @@ build test/CMakeFiles/TITAN_TEST.dir/__/port/STM32H745/src/STM32H745/subsys/star
 #############################################
 # Link the executable test\TITAN_TEST.elf
 
-build test/TITAN_TEST.elf: C_EXECUTABLE_LINKER__TITAN_TEST_DEBUG test/CMakeFiles/TITAN_TEST.dir/src/test/main.c.obj test/CMakeFiles/TITAN_TEST.dir/__/port/STM32H745/src/STM32H745/gpio.c.obj test/CMakeFiles/TITAN_TEST.dir/__/port/STM32H745/src/STM32H745/resource/vtable.c.obj test/CMakeFiles/TITAN_TEST.dir/__/port/STM32H745/src/STM32H745/subsys/startup.c.obj || test/TITAN_TEST_LIB_STM32H745
+build test/TITAN_TEST.elf: C_EXECUTABLE_LINKER__TITAN_TEST_DEBUG test/CMakeFiles/TITAN_TEST.dir/src/test/main.c.obj test/CMakeFiles/TITAN_TEST.dir/__/port/STM32H745/src/STM32H745/gpio.c.obj test/CMakeFiles/TITAN_TEST.dir/__/port/STM32H745/src/STM32H745/resource/vtable.c.obj test/CMakeFiles/TITAN_TEST.dir/__/port/STM32H745/src/STM32H745/subsys/startup.c.obj test/CMakeFiles/TITAN_TEST.dir/__/port/STM32H745/src/STM32H745/usart.c.obj || test/TITAN_TEST_LIB_STM32H745
   FLAGS = -g3 -Og -DDEBUG
   LINK_FLAGS = -Wl,-gc-sections -Wl,-print-memory-usage -TC:/Users/AJM42/Documents/sarp/tal/port/STM32H745/linker_scripts/gnu_link.ld -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16
   LINK_LIBRARIES = -Wl,--whole-archive  -Wl,--no-whole-archive
@@ -221,6 +231,16 @@ build dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/subsys/startu
   TARGET_COMPILE_PDB = dev\CMakeFiles\TITAN_DEV.dir\
   TARGET_PDB = dev\TITAN_DEV.pdb
 
+build dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/usart.c.obj: C_COMPILER__TITAN_DEV_unscanned_DEBUG C$:/Users/AJM42/Documents/sarp/tal/port/STM32H745/src/STM32H745/usart.c || cmake_object_order_depends_target_TITAN_DEV
+  DEFINES = -DMACRO_DEFS -DTI_PORT_STM32H745
+  DEP_FILE = dev\CMakeFiles\TITAN_DEV.dir\__\port\STM32H745\src\STM32H745\usart.c.obj.d
+  FLAGS = -g3 -Og -DDEBUG -Wall -Wextra -nostdlib -ffreestanding -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16
+  INCLUDES = -IC:/Users/AJM42/Documents/sarp/tal/dev/src -IC:/Users/AJM42/Documents/sarp/tal/include -IC:/Users/AJM42/Documents/sarp/tal/port/STM32H745/include -IC:/Users/AJM42/Documents/sarp/tal/port/STM32H745/src
+  OBJECT_DIR = dev\CMakeFiles\TITAN_DEV.dir
+  OBJECT_FILE_DIR = dev\CMakeFiles\TITAN_DEV.dir\__\port\STM32H745\src\STM32H745
+  TARGET_COMPILE_PDB = dev\CMakeFiles\TITAN_DEV.dir\
+  TARGET_PDB = dev\TITAN_DEV.pdb
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target TITAN_DEV
@@ -229,7 +249,7 @@ build dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/subsys/startu
 #############################################
 # Link the executable dev\TITAN_DEV.elf
 
-build dev/TITAN_DEV.elf: C_EXECUTABLE_LINKER__TITAN_DEV_DEBUG dev/CMakeFiles/TITAN_DEV.dir/src/dev/main.c.obj dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/gpio.c.obj dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/resource/vtable.c.obj dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/subsys/startup.c.obj || dev/TITAN_DEV_LIB_STM32H745
+build dev/TITAN_DEV.elf: C_EXECUTABLE_LINKER__TITAN_DEV_DEBUG dev/CMakeFiles/TITAN_DEV.dir/src/dev/main.c.obj dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/gpio.c.obj dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/resource/vtable.c.obj dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/subsys/startup.c.obj dev/CMakeFiles/TITAN_DEV.dir/__/port/STM32H745/src/STM32H745/usart.c.obj || dev/TITAN_DEV_LIB_STM32H745
   FLAGS = -g3 -Og -DDEBUG
   LINK_FLAGS = -Wl,-gc-sections -Wl,-print-memory-usage -TC:/Users/AJM42/Documents/sarp/tal/port/STM32H745/linker_scripts/gnu_link.ld -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16
   LINK_LIBRARIES = -Wl,--whole-archive  -Wl,--no-whole-archive
