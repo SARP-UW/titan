@@ -23,38 +23,101 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "internal/mmio.h"
+#include <string.h>
 #include "gpio.h"
+#include "rtc.h"
+
+int SECTOR_SIZE = 512;
 
 # if defined(__cplusplus)
 extern "C" {
 # endif
   //////////// HAL HEADER /////////////
 
-  bool hal_init_SDMMC();
+  typedef char* FILE;
 
-  bool hal_open_file_SDMMC(char* filename);
+  FILE hal_open_file_SDMMC(char* filename);
   
-  bool hal_write_file_SDMMC(char* filename, uint32_t* data);
-
-  bool hal_close_file_SDMMC(char* filename);
+  bool hal_write_file_SDMMC(FILE file, uint32_t* data);
 
   //////////// SDMMC DRIVER HEADER /////////////
 
   bool driver_init_SDMMC();
 
+
+  // Returns heap allocated sector of data.
+  FILE read_sector_SDMMC(void *address);
+
   //////////// HAL IMPLEMENTATION /////////////
 
-  bool hal_create_filesystem() {
+  // Returns the adddress to the directory entry of the file if found
+  // in the root directory, otherwise returns null.
+  FILE find_file(char *filename) {
+    // Go to root directory
+    void *root_directory = (BPB_ResvdSecCnt + (BPB_NumFATs * PBPFATSz16)) * SECTOR_SIZE;
+    // Iterate through the files
+    FILE sector = read_sector_SDMMC(root_directory);
+    for (int offset = 0; sector[offset] != 0x00 && offset < SECTOR_SIZE; offset += 32) {
+      // Check name of file at entry.
+      char *name = sector + offset;
+      if (!strcmp(filename, name)) {
+        // If same as desired filename return its address.
+        int cluster_num = *((uint8_t *) sector + offset + 26); // Cluster num is 26 offset 2 byte number.
+        FILE file_address = cluster_num * BPB_SecPerClus * BPB_BytsPerSec ;
+        return file_address;
+      }
+    }
+    // If found return address
+    return NULL;
+  }
 
+  void copy_arr(char *src, char *dest, int32_t bytes) {
+    for (int i = 0; i < bytes; i++) {
+      dest[i] = src[i];
+    }
+  }
+
+  struct DirEntry {
+    char *DIR_Name;
+
+  }
+
+  FILE create_file(char *filename) {
+    // Find first free slot in the root directory
+    void *root_directory = (BPB_ResvdSecCnt + (BPB_NumFATs * PBPFATSz16)) * SECTOR_SIZE;
+    FILE sector = read_sector_SDMMC(root_directory);
+    int offset = 0;
+    while (sector[offset] != 0x00) {
+      offset += 32;
+    }
+    // Copy the whole root directory sector
+    FILE new_sector = malloc(BPB_BytesPerSec);
+    copy_arr(sector, new_sector, BPB_BytesPerSec);
+    // Add the entry
+    RTC_DateTime tal_read_RTC();
+    struct DirEntry new_entry = {
+      .DIR_Name = filename,
+      .DIR_Attr = 0x20, // ATTR_ARCHIVE -- has been modified since last backup
+      .DIR_CrtTimeTenth = 
+    }
+    initialize_direntry(new_sector, offset, new_entry);
+    // Re-write whole directory sector
+
+
+  }
+
+  FILE hal_open_file_SDMMC(char* filename) {
+    FILE file = find_file(filename);
+    if (file == NULL) {
+      file = create_file(filename);
+    }
+    return file;
+  }
+  
+  bool hal_write_file_SDMMC(FILE file, uint32_t* data) {
     return true;
   }
 
-  bool hal_init_SDMMC() {
-    driver_init_SDMMC();
-    hal_create_filesystem();
-    return true;
-  }
- 
   //////////// SDMMC DRIVER IMPLEMENTATION /////////////
 
   bool driver_init_SDMMC() {
