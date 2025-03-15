@@ -47,11 +47,14 @@ extern "C" {
 
   // Returns heap allocated sector of data.
   FILE read_sector_SDMMC(void *address);
+  
+  // Returns whether write operations succeeded
+  bool write_sector_SDMMC(void *address, void *data);
 
   //////////// HAL IMPLEMENTATION /////////////
 
-  // Returns the adddress to the directory entry of the file if found
-  // in the root directory, otherwise returns null.
+  // Returns the adddress to the first data cluster of the searched file.
+  // otherwise returns null.
   FILE find_file(char *filename) {
     // Go to root directory
     void *root_directory = (BPB_ResvdSecCnt + (BPB_NumFATs * PBPFATSz16)) * SECTOR_SIZE;
@@ -77,14 +80,57 @@ extern "C" {
     }
   }
 
-  struct DirEntry {
+  typedef struct DirEntry {
     char *DIR_Name;
+    int8_t DIR_Attr;
+    int8_t DIR_CrtTimeTenth;
+    int16_t DIR_CrtTime;
+    int16_t DIR_CrtDate;
+    int16_t DIR_LstAccDate;
+    int16_t DIR_WrtTime;
+    int16_t DIR_WrtDate;
+    int16_t DIR_FstClusLO;
+    int32_t DIR_FileSize;
+  } DirEntry;
+
+  // Returns cluster number of first cluster in the FAT that is free to
+  // be allocated. Returns -1 if not found.
+  int32_t find_free_cluster() {
+    // Go to the FAT
+    void *fat_address = BPB_ResvdSecCnt * BPBBytsPerSec;
+    FILE sector = read_sector_SDMMC(fat_address);
+    // Iterate through entries
+    for (int offset = 0; offset < BPBBytsPerSec; offset += 2) {
+      // Return when free entry found
+      if (*((int16_t *) sector + offset) == 0) {
+        return (offset / 2);
+      }
+    }
+    // Free entry not found.
+    return -1;
+  }
+
+  void initialize_direntry(FILE dir, int32_t entry_offset, DirEntry entry) {
+      strcpy(dir + entry_offset, entry.DIR_Name);
+      *((uint8_t *)dir + entry_offset + 11) = entry.DIR_Attr;
+      *((uint8_t *)dir + entry_offset + 12) = 0;
+      *((uint8_t *)dir + entry_offset + 13) = entry.DIR_CrtTimeTenth;
+      *((uint8_t *)dir + entry_offset + 14) = entry.DIR_CrtTime;
+      *((uint8_t *)dir + entry_offset + 16) = entry.DIR_CrtDate;
+      *((uint8_t *)dir + entry_offset + 18) = entry.DIR_LstAccDate;
+      *((uint8_t *)dir + entry_offset + 20) = 0;
+      *((uint8_t *)dir + entry_offset + 22) = entry.DIR_WrtTime;
+      *((uint8_t *)dir + entry_offset + 24) = entry.DIR_WrtDate;
+      *((uint8_t *)dir + entry_offset + 26) = entry.DIR_FstClusLO;
+      *((uint8_t *)dir + entry_offset + 28) = entry.DIR_FileSize;
 
   }
 
+  // Creates a file w/ given filename, returns address of first data cluster
+  // of the file
   FILE create_file(char *filename) {
     // Find first free slot in the root directory
-    void *root_directory = (BPB_ResvdSecCnt + (BPB_NumFATs * PBPFATSz16)) * SECTOR_SIZE;
+    void *root_directory = (BPB_ResvdSecCnt + (BPB_NumFATs * PBPFATSz16)) * BPBBytsPerSec;
     FILE sector = read_sector_SDMMC(root_directory);
     int offset = 0;
     while (sector[offset] != 0x00) {
@@ -94,16 +140,32 @@ extern "C" {
     FILE new_sector = malloc(BPB_BytesPerSec);
     copy_arr(sector, new_sector, BPB_BytesPerSec);
     // Add the entry
-    RTC_DateTime tal_read_RTC();
+    RTC_DateTime cur_time = tal_read_RTC();
+    int16_t cur_time_fmt = 
+        (cur_time.hours * 60 * 60 +
+         cur_time.mins * 60 +
+         cur_time.secs) / 2;
+    int16_t cur_date_fmt = cur_time.date |
+        (cur_time.month << 5) |
+        ((cur_time.years - 1980) << 9);
+    int32_t first_free_cluster = find_free_cluster();
+    if (first_free_cluster == -1) return NULL;
     struct DirEntry new_entry = {
       .DIR_Name = filename,
       .DIR_Attr = 0x20, // ATTR_ARCHIVE -- has been modified since last backup
-      .DIR_CrtTimeTenth = 
-    }
+      .DIR_CrtTimeTenth = (10 * cur_time.subsec),// Subsec Tenths are 10 * subsec.
+      .DIR_CrtTime = cur_time_fmt,
+      .DIR_CrtDate = cur_date_fmt,
+      .DIR_LstAccDate = cur_date_fmt,
+      .DIR_WrtTime = cur_time_fmt,
+      .DIR_WrtDate = cur_date_fmt,
+      .DIR_FstClusLO = first_free_cluster,
+      .DIR_FileSize = 0,
+    };
+
     initialize_direntry(new_sector, offset, new_entry);
     // Re-write whole directory sector
-
-
+    write_sector_SDMMC(root_directory, new_sector);
   }
 
   FILE hal_open_file_SDMMC(char* filename) {
@@ -113,7 +175,7 @@ extern "C" {
     }
     return file;
   }
-  
+
   bool hal_write_file_SDMMC(FILE file, uint32_t* data) {
     return true;
   }
@@ -123,7 +185,7 @@ extern "C" {
   bool driver_init_SDMMC() {
     // SDMMC1 and SDMMC1 Delay Block enable
     WRITE_FIELD(RCC_AHBxENR[3], RCC_AHBxENR_SDMMC1EN, 1);
-   
+
     // Configuring "PD2"
     int sdmmc_cmd_pin = 114;
     tal_set_mode(sdmmc_cmd_pin, 2);
