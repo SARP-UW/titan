@@ -14,19 +14,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file common/platform/usart.h
+ * @file common/platform/usart.h /// @todo UPDATE THIS
  * @authors Joanna Zhou
  * @brief USART Driver
  */
 
-#pragma once
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 #include "resource/mmio.h"
-#include "include/titan/gpio.h"
-#include "include/titan/usart.h"
+#include "titan/gpio.h"
+#include "titan/usart.h"
 
 #if defined(__cplusplus)
   extern "C" {
@@ -276,16 +275,6 @@ bool usart_init(int usart_num, int tx_pin, int rx_pin, uint32_t baud_rate, int d
 // For test only (For real use, replace with a timer-based delay.)
 uint32_t TIMEOUT = 10000;
 
-bool usart_write(int usart_num, uint8_t* data, uint32_t length) {
-    for (uint32_t i = 0; i < length; i++) {
-        bool write_timeout = usart_write_byte(usart_num, data[i]);
-        if (!write_timeout) {
-            return false;
-        }
-    }
-    return true;
-}
-
 static bool usart_write_byte(int usart_num, uint8_t data) {
     // for test only
     uint32_t count = 0;
@@ -360,6 +349,26 @@ static uint8_t usart_read_byte(int usart_num) {
         
         uint8_t data = READ_FIELD(UARTx_RDR[usart_num], UARTx_RDR_RDR);
         return data;
+    }
+}
+
+bool usart_write(int usart_num, uint8_t* data, uint32_t length) {
+    for (uint32_t i = 0; i < length; i++) {
+        bool write_timeout = usart_write_byte(usart_num, data[i]);
+        if (!write_timeout) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void usart_read(int usart_num, uint8_t* data_array, uint32_t size) { 
+    for (uint32_t i = 0; i < size; i++) {
+        uint8_t result = usart_read_byte(usart_num);
+        if (read_timeout == true) {
+            return;
+        }
+        data_array[i] = result;
     }
 }
 
