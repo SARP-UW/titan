@@ -33,28 +33,9 @@
 #endif
 
 
-// #define USART_1_BASE 0x40011000
-// #define USART_CR1_OFFSET 0x00
-// #define USART_CR2_OFFSET 0x04
-// #define USART_BRR_OFFSET 0x0C
-// #define USART_RDR_OFFSET 0x24
-// #define USART_TDR_OFFSET 0x28
-// #define USART_ISR_OFFSET 0x1C
-
-
-// #define USART_1_CR1 *((volatile uint32_t *)(USART_1_BASE + USART_CR1_OFFSET))
-// #define USART_1_CR2 *((volatile uint32_t *)(USART_1_BASE + USART_CR2_OFFSET))
-// #define USART_1_BRR *((volatile uint32_t *)(USART_1_BASE + USART_BRR_OFFSET))
-// #define USART_1_RDR *((volatile uint32_t *)(USART_1_BASE + USART_RDR_OFFSET))
-// #define USART_1_TDR *((volatile uint32_t *)(USART_1_BASE + USART_TDR_OFFSET))
-// #define USART_1_ISR *((volatile uint32_t *)(USART_1_BASE + USART_ISR_OFFSET))
-
-
-
 // TODO read: overrun error, noise, framing error, clock deviation tolerance
-// uint32_t baud_rate = 115200;
 
-bool usart_init(int usart_num, int tx_pin, int rx_pin, uint32_t baud_rate) {
+bool usart_init(int usart_num, int tx_pin, int rx_pin, uint32_t baud_rate, int data_len, int parity) {
     tal_set_mode(tx_pin, 2);
     tal_set_mode(rx_pin, 2);
     if (usart_num == 1 || usart_num == 2 || usart_num == 3 || usart_num == 6) {
@@ -79,10 +60,56 @@ bool usart_init(int usart_num, int tx_pin, int rx_pin, uint32_t baud_rate) {
                 tal_alternate_mode(rx_pin, 7);
                 break;
         }
+
+        // hard-coded clock freq, needs to be changed
+        WRITE_FIELD(USARTx_BRR[usart_num], USARTx_BRR_BRR_4_15, 64000000/baud_rate);
+
+
         WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_FIFOEN, 1);
-        WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[1], 1);
-        WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_PCE, 1);
-        WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_PS, 1);
+
+        // // Set data length (7 - M10, 8 - M00 or 9 - M01) M0: bit 12 and M1: bit 28 in USART_CR1
+        if (parity != 0) {
+            switch (data_len) {
+                case 7:
+                    WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[0], 0);
+                    WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[1], 0);
+                    break;
+                case 8:
+                    WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[0], 0);
+                    WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[1], 1);
+                    break;
+                default:
+                    return false;
+                    break;
+            }
+            WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_PCE, 1);
+
+            if (parity == 1) {
+                WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_PS, 1);
+            } else if (parity == 2) {
+                WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_PS, 0);
+            }
+            
+        } else {
+            switch (data_len) {
+                case 7:
+                    WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[0], 1);
+                    WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[1], 0);
+                    break;
+                case 8:
+                    WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[0], 0);
+                    WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[1], 0);
+                    break;
+                case 9:
+                    WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[0], 0);
+                    WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_Mx[1], 1);
+                    break;
+                default:
+                    return false;
+                    break;
+            }
+        }
+        
         WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_UE, 1);
         WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_TE, 1);
         WRITE_FIELD(USARTx_CRx[usart_num][1], USARTx_CRx_RE, 1);
@@ -134,10 +161,55 @@ bool usart_init(int usart_num, int tx_pin, int rx_pin, uint32_t baud_rate) {
                 tal_alternate_mode(tx_pin, 8);
                 tal_alternate_mode(rx_pin, 8);
         }
+
+
+        WRITE_FIELD(UARTx_BRR[usart_num], UARTx_BRR_BRR_4_15, 64000000/baud_rate);
+
         WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_FIFOEN, 1);
-        WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[1], 1);
-        WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_PCE, 1);
-        WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_PS, 1);
+       
+        if (parity != 0) {
+            switch (data_len) {
+                case 7:
+                    WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[0], 0);
+                    WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[1], 0);
+                    break;
+                case 8:
+                    WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[0], 0);
+                    WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[1], 1);
+                    break;
+                default:
+                    return false;
+                    break;
+            }
+            WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_PCE, 1);
+
+            if (parity == 1) {
+                WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_PS, 1);
+            } else if (parity == 2) {
+                WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_PS, 0);
+            }
+            
+        } else {
+            switch (data_len) {
+                case 7:
+                    WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[0], 1);
+                    WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[1], 0);
+                    break;
+                case 8:
+                    WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[0], 0);
+                    WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[1], 0);
+                    break;
+                case 9:
+                    WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[0], 0);
+                    WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_Mx[1], 1);
+                    break;
+                default:
+                    return false;
+                    break;
+            }
+        }
+
+
         WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_UE, 1);
         WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_TE, 1);
         WRITE_FIELD(UARTx_CRx[usart_num][1], UARTx_CRx_RE, 1);
@@ -203,7 +275,6 @@ bool usart_init(int usart_num, int tx_pin, int rx_pin, uint32_t baud_rate) {
 
 // For test only (For real use, replace with a timer-based delay.)
 uint32_t TIMEOUT = 10000;
-bool read_timeout = false;
 
 bool usart_write(int usart_num, uint8_t* data, uint32_t length) {
     for (uint32_t i = 0; i < length; i++) {
@@ -255,7 +326,7 @@ static bool usart_write_byte(int usart_num, uint8_t data) {
 void usart_read(int usart_num, uint8_t* data_array, uint32_t size) { 
     for (uint32_t i = 0; i < size; i++) {
         uint8_t result = usart_read_byte(usart_num);
-        if (read_timeout == true) {
+        if (result == -1) {
             return;
         }
         data_array[i] = result;
@@ -272,7 +343,6 @@ static uint8_t usart_read_byte(int usart_num) {
     if (usart_num == 1 || usart_num == 2 || usart_num == 3 || usart_num == 6) {
         while (READ_FIELD(USARTx_ISR[usart_num], USARTx_ISR_RXNE) != 1) {
             if (count == TIMEOUT) {
-                read_timeout = true;
                 return -1;
             }
             count++;
@@ -283,7 +353,6 @@ static uint8_t usart_read_byte(int usart_num) {
     } else {
         while (READ_FIELD(UARTx_ISR[usart_num], UARTx_ISR_RXNE) != 1) {
             if (count == TIMEOUT) {
-                read_timeout = true;
                 return -1;
             }
             count++;
