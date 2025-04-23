@@ -131,11 +131,22 @@ bool CAN_init(int CAN_num, int tx_pin, int rx_pin, uint32_t baud_rate, uint32_t 
         // index FDCAN_TXFQS.TFQPI (0 … 31) to the Tx buffer start address FDCAN_TXBC.TBSA.
         uint32_t tx_addr = addr + (index * 4);
 
-        // TODO: Write standard ID
+        uint32_t tx_addr = (addr + (index * 16)); // Each buffer is 16 bytes (4 words * 4 bytes)
+        
+        volatile uint32_t *tx_buffer = (volatile uint32_t*)tx_addr;
 
-        // TODO: Write DLC (Data Length Code) & flags
+        // Write ID (11-bit standard)
+        tx_buffer[0] = (id & 0x7FF) << 18; // STID[10:0] in bits 28:18
 
-        // TODO: Write data, update data & len
+        // Write DLC (4-bit Data Length Code) and flags
+        uint8_t chunk_len = len > 8 ? 8 : len;
+        tx_buffer[1] = (chunk_len & 0xF) << 16; // DLC[3:0] in bits 19:16
+
+        // Write data (8 bytes)
+        uint8_t *tx_data_ptr = (uint8_t*)(tx_addr + 8); // Data starts at offset 8
+        for (int i = 0; i < chunk_len; i++) {
+            tx_data_ptr[i] = data[i];
+        }
 
         //Request transmission
         WRITE_FIELD(FDCANx_FDCAN_TXBAR[CAN_num], FDCANx_FDCAN_TXBAR[CAN_num], (1 << index));
@@ -153,8 +164,14 @@ void CAN_receive(int CAN_num, uint32_t* id, uint8_t* data, uint8_t* len) {
     // Get index of next message
     uint32_t index = READ_FIELD(FDCANx_FDCAN_RXF0S[CAN_num], FDCANx_FDCAN_RXF0S_F0G);
 
-    // TODO: Calculate addr
-    // TODO: extract ID & DLC & data
+    // Get Rx FIFO 0 start address (in 32-bit word units)
+    uint32_t addr = READ_FIELD(FDCANx_FDCAN_RXF0C[CAN_num], FDCANx_FDCAN_RXF0C_F0SA); + (index * 4); 
+
+    // Extract ID, DLC, and data
+    volatile uint32_t *rx_buffer = (volatile uint32_t*)addr;
+    *id = (rx_buffer[0] >> 18) & 0x7FF; // Standard ID
+    uint8_t dlc = (rx_buffer[1] >> 16) & 0xF;
+    *len = dlc > 8 ? 8 : dlc;
 
     // Acknowledge reception
     WRITE_FIELD(FDCANx_FDCAN_RXF0A[CAN_num], FDCANx_FDCAN_RXF0A_FA01, (1 << index));
