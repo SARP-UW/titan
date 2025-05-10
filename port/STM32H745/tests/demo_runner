@@ -1,0 +1,11 @@
+#!/bin/sh
+
+umount /mnt/fatimg 2>/dev/null
+./demo "$@"
+mount -o loop fat16.img /mnt/fatimg
+
+for file in /mnt/fatimg/*; do
+  echo "contents of $(basename "$file"):"
+  cat "$file"
+  echo
+done
