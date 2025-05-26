@@ -93,7 +93,7 @@ bool CAN_init(int CAN_num, int tx_pin, int rx_pin, uint32_t baud_rate, uint32_t 
  
     // TX FIFO operation
     WRITE_FIELD(FDCANx_FDCAN_TXBC[CAN_num], FDCANx_FDCAN_TXBC_TFQM, 0);
-    // No TX buffer, all allocated to FIFO (little bit confused on this tbh)
+    // No TX buffer, all allocated to FIFO
     WRITE_FIELD(FDCANx_FDCAN_TXBC[CAN_num], FDCANx_FDCAN_TXBC_TFQS, 32);
     WRITE_FIELD(FDCANx_FDCAN_TXBC[CAN_num], FDCANx_FDCAN_TXBC_NDTB, 0);
 
@@ -106,7 +106,7 @@ bool CAN_init(int CAN_num, int tx_pin, int rx_pin, uint32_t baud_rate, uint32_t 
     // up to 2560 words in the message RAM. It is not necessary to configure each of the sections 
     // listed in Figure 780, nor is there any restriction with respect to the sequence of the sections.
     WRITE_FIELD(FDCANx_FDCAN_TXBC[CAN_num], FDCANx_FDCAN_TXBC_TBSA, addr);
-    WRITE_FIELD(FDCANx_FDCAN_RXF1C[CAN_num], FDCANx_FDCAN_RXF0C_F0SA, addr + 32 * 4);
+    WRITE_FIELD(FDCANx_FDCAN_RXF1C[CAN_num], FDCANx_FDCAN_RXF0C_F0SA, addr + 4);
 
     // Clear INIT to finish software initialization
     // CCE bit in FDCAN_CCCR register is automatically cleared when INIT bit in FDCAN_CCCR is cleared.
@@ -115,23 +115,30 @@ bool CAN_init(int CAN_num, int tx_pin, int rx_pin, uint32_t baud_rate, uint32_t 
 }
  
  // For test only (For real use, replace with a timer-based delay.)
- uint32_t TIMEOUT = 10000;
+ uint32_t TIMEOUT = 100000;
  
  // TODO: update with checking with free space and load at once
  void CAN_send(int CAN_num, uint32_t id, uint8_t* data, uint8_t len) {
-    uint32 addr = READ_FIELD(FDCANx_FDCAN_TXBC[CAN_num], FDCANx_FDCAN_TXBC_TBSA);
+    uint32_t addr = READ_FIELD(FDCANx_FDCAN_TXBC[CAN_num], FDCANx_FDCAN_TXBC_TBSA);
 
-    while (len > 0) {
+    uint8_t  remaining = len;
+    uint8_t *ptr = data;
+
+    while (remaining) {
         // Find the next available TX FIFO index
-        while (READ_FIELD(FDCANx_FDCAN_TXFQS[CAN_num], FDCANx_FDCAN_TXFQS_TFQF));
+        int count = 0;
+        while (READ_FIELD(FDCANx_FDCAN_TXFQS[CAN_num], FDCANx_FDCAN_TXFQS_TFQF)) {
+            if (count > TIMEOUT) {
+                return;
+            }
+            count++;
+        }
         uint32_t index = READ_FIELD(FDCANx_FDCAN_TXFQS[CAN_num], FDCAN_TXFQS_TFQPI);
 
         // Calculate address of TX buffer in RAM
         // the start address of the next available (free) Tx FIFO buffer is calculated by adding four times the put 
         // index FDCAN_TXFQS.TFQPI (0 … 31) to the Tx buffer start address FDCAN_TXBC.TBSA.
         uint32_t tx_addr = addr + (index * 4);
-
-        uint32_t tx_addr = (addr + (index * 16)); // Each buffer is 16 bytes (4 words * 4 bytes)
         
         volatile uint32_t *tx_buffer = (volatile uint32_t*)tx_addr;
 
@@ -139,17 +146,20 @@ bool CAN_init(int CAN_num, int tx_pin, int rx_pin, uint32_t baud_rate, uint32_t 
         tx_buffer[0] = (id & 0x7FF) << 18; // STID[10:0] in bits 28:18
 
         // Write DLC (4-bit Data Length Code) and flags
-        uint8_t chunk_len = len > 8 ? 8 : len;
+        uint8_t chunk_len = remaining > 8 ? 8 : remaining;
         tx_buffer[1] = (chunk_len & 0xF) << 16; // DLC[3:0] in bits 19:16
 
         // Write data (8 bytes)
         uint8_t *tx_data_ptr = (uint8_t*)(tx_addr + 8); // Data starts at offset 8
         for (int i = 0; i < chunk_len; i++) {
-            tx_data_ptr[i] = data[i];
+            tx_data_ptr[i] = ptr[i];
         }
 
         //Request transmission
         WRITE_FIELD(FDCANx_FDCAN_TXBAR[CAN_num], FDCANx_FDCAN_TXBAR[CAN_num], (1 << index));
+
+        ptr += chunk_len;
+        remaining -= chunk_len;
 
     }
     
@@ -165,7 +175,7 @@ void CAN_receive(int CAN_num, uint32_t* id, uint8_t* data, uint8_t* len) {
     uint32_t index = READ_FIELD(FDCANx_FDCAN_RXF0S[CAN_num], FDCANx_FDCAN_RXF0S_F0G);
 
     // Get Rx FIFO 0 start address (in 32-bit word units)
-    uint32_t addr = READ_FIELD(FDCANx_FDCAN_RXF0C[CAN_num], FDCANx_FDCAN_RXF0C_F0SA); + (index * 4); 
+    uint32_t addr = READ_FIELD(FDCANx_FDCAN_RXF0C[CAN_num], FDCANx_FDCAN_RXF0C_F0SA) + (index * 4); 
 
     // Extract ID, DLC, and data
     volatile uint32_t *rx_buffer = (volatile uint32_t*)addr;
