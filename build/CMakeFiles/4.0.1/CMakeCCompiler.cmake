@@ -1,7 +1,7 @@
-set(CMAKE_C_COMPILER "C:/Users/AJM42/Desktop/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-gcc.exe")
+set(CMAKE_C_COMPILER "/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin/arm-none-eabi-gcc")
 set(CMAKE_C_COMPILER_ARG1 "")
 set(CMAKE_C_COMPILER_ID "GNU")
-set(CMAKE_C_COMPILER_VERSION "13.3.1")
+set(CMAKE_C_COMPILER_VERSION "14.2.1")
 set(CMAKE_C_COMPILER_VERSION_INTERNAL "")
 set(CMAKE_C_COMPILER_WRAPPER "")
 set(CMAKE_C_STANDARD_COMPUTED_DEFAULT "17")
@@ -22,11 +22,11 @@ set(CMAKE_C_SIMULATE_VERSION "")
 
 
 
-set(CMAKE_AR "C:/Users/AJM42/Desktop/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-ar.exe")
-set(CMAKE_C_COMPILER_AR "C:/Users/AJM42/Desktop/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-gcc-ar.exe")
-set(CMAKE_RANLIB "C:/Users/AJM42/Desktop/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-ranlib.exe")
-set(CMAKE_C_COMPILER_RANLIB "C:/Users/AJM42/Desktop/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-gcc-ranlib.exe")
-set(CMAKE_LINKER "C:/Users/AJM42/Desktop/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/bin/arm-none-eabi-ld.exe")
+set(CMAKE_AR "/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin/arm-none-eabi-ar")
+set(CMAKE_C_COMPILER_AR "/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin/arm-none-eabi-gcc-ar")
+set(CMAKE_RANLIB "/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin/arm-none-eabi-ranlib")
+set(CMAKE_C_COMPILER_RANLIB "/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin/arm-none-eabi-gcc-ranlib")
+set(CMAKE_LINKER "/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/bin/arm-none-eabi-ld")
 set(CMAKE_LINKER_LINK "")
 set(CMAKE_LINKER_LLD "")
 set(CMAKE_C_COMPILER_LINKER "NOTFOUND")
@@ -46,7 +46,9 @@ set(CMAKE_C_COMPILER_ID_RUN 1)
 set(CMAKE_C_SOURCE_FILE_EXTENSIONS c;m)
 set(CMAKE_C_IGNORE_EXTENSIONS h;H;o;O;obj;OBJ;def;DEF;rc;RC)
 set(CMAKE_C_LINKER_PREFERENCE 10)
-set(CMAKE_C_LINKER_DEPFILE_SUPPORTED FALSE)
+set(CMAKE_C_LINKER_DEPFILE_SUPPORTED )
+set(CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED )
+set(CMAKE_C_LINKER_PUSHPOP_STATE_SUPPORTED )
 
 # Save compiler ABI information.
 set(CMAKE_C_SIZEOF_DATA_PTR "4")
@@ -75,7 +77,7 @@ endif()
 
 
 
-set(CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES "C:/Users/AJM42/Desktop/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/lib/gcc/arm-none-eabi/13.3.1/include;C:/Users/AJM42/Desktop/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/lib/gcc/arm-none-eabi/13.3.1/include-fixed;C:/Users/AJM42/Desktop/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/arm-gnu-toolchain-13.3.rel1-mingw-w64-i686-arm-none-eabi/arm-none-eabi/include")
+set(CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES "/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/lib/gcc/arm-none-eabi/14.2.1/include;/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/lib/gcc/arm-none-eabi/14.2.1/include-fixed;/Applications/ArmGNUToolchain/14.2.rel1/arm-none-eabi/arm-none-eabi/include")
 set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
 set(CMAKE_C_IMPLICIT_LINK_DIRECTORIES "")
 set(CMAKE_C_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES "")

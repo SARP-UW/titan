@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/garvmaheshwari/Documents/Coding_Projects/SARP/titan/build/cmake_install.cmake",
+		"/Users/garvmaheshwari/Documents/Coding_Projects/SARP/titan/build/test/cmake_install.cmake",
+		"/Users/garvmaheshwari/Documents/Coding_Projects/SARP/titan/build/dev/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

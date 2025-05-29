@@ -32,7 +32,7 @@ void i2c_test(void) {
 void usart_test(void) {
   SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_USARTxEN[1]);
   __asm__ volatile ("bkpt #0");
-  usart_init(2, 39, 40, );
+  //usart_init(2, 39, 40, );
   __asm__ volatile ("bkpt #0");
 
 
