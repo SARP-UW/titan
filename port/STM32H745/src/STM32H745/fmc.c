@@ -172,33 +172,28 @@ void simple_delay(volatile uint32_t count) {
     while(count--);
 }
 
-void config_fmc_pin(int port_idx, int pin_idx) {
-    // Basic validation (optional)
-    if (port_idx < 0 || port_idx > 10 || pin_idx < 0 || pin_idx > 15) {
-        // Handle error: Invalid port/pin index
-        return;
-    }
+void config_fmc_pin(int port_index, int pin_index) {
+    //port_index = index of the GPIO port
+    //pin_index: index of the pin WITHIN the port
 
-    // 1. Set Mode to Alternate Function (0b10)
-    // Assumes mmio.h defines: GPIOx_MODER[port_idx], GPIOx_MODER_MODEx[pin_idx]
-    WRITE_FIELD(GPIOx_MODER[port_idx], GPIOx_MODER_MODEx[pin_idx], 0b10);
-    // 2. Set Output Type to Push-Pull (0)
-    // Assumes mmio.h defines: GPIOx_OTYPER[port_idx], GPIOx_OTYPER_OTx[pin_idx]
-    CLR_FIELD(GPIOx_OTYPER[port_idx], GPIOx_OTYPER_OTx[pin_idx]);
-    // 3. Set Speed to Very High Speed (0b11)
-    // Assumes mmio.h defines: GPIOx_OSPEEDR[port_idx], GPIOx_OSPEEDR_OSPEEDx[pin_idx]
-    WRITE_FIELD(GPIOx_OSPEEDR[port_idx], GPIOx_OSPEEDR_OSPEEDx[pin_idx], 0b11);
-    // 4. Set Pull-up/Pull-down to None (0b00)
-    // Assumes mmio.h defines: GPIOx_PUPDR[port_idx], GPIOx_PUPDR_PUPDx[pin_idx]
-    WRITE_FIELD(GPIOx_PUPDR[port_idx], GPIOx_PUPDR_PUPDx[pin_idx], 0b00);
-    // 5. Configure Alternate Function (AF12 = 12 for FMC)
-    // Assumes mmio.h defines: GPIOx_AFRL/H[port_idx], GPIOx_AFRL/H_AFSELx[pin_idx or pin_idx-8]
-    if (pin_idx < 8) {
-        // Use AFRL register for pins 0-7
-        WRITE_FIELD(GPIOx_AFRL[port_idx], GPIOx_AFRL_AFSELx[pin_idx], 12);
-    } else {
-        // Use AFRH register for pins 8-15
-        WRITE_FIELD(GPIOx_AFRH[port_idx], GPIOx_AFRH_AFSELx[pin_idx - 8], 12);
+    //sets the mode of the pin to Alternate Function (0b10)
+    //FMC uses alternate function mode to take control of the pin for memory interface signals
+    //00 > input, 01 > output, 10 > alternate function, 11 > analog
+    WRITE_FIELD(GPIOx_MODER[port_index], GPIOx_MODER_MODEx[pin_index], 0b10);
+    //Clears the output for the pin, setting it to Push-Pull (0)
+    CLR_FIELD(GPIOx_OTYPER[port_index], GPIOx_OTYPER_OTx[pin_index]);
+    //Sets the output speed to very high speed (which is 0b11)
+    // 00 > low speed, 01 > medium speed, 10 > high speed, 11 > very high speed
+    WRITE_FIELD(GPIOx_OSPEEDR[port_index], GPIOx_OSPEEDR_OSPEEDx[pin_index], 0b11);
+    //Configures the pull up and pull down registers to None (0b00)
+    //external memory signals shouldn't have internate pull resistors to avoid interference
+    WRITE_FIELD(GPIOx_PUPDR[port_index], GPIOx_PUPDR_PUPDx[pin_index], 0b00);
+    //AFRL for pins 0-7, AFRH for pins 8-15 > this all represents alternate function selection
+    if (pin_index < 8) {
+        WRITE_FIELD(GPIOx_AFRL[port_index], GPIOx_AFRL_AFSELx[pin_index], 12);
+    }
+    else {
+        WRITE_FIELD(GPIOx_AFRH[port_index], GPIOx_AFRH_AFSELx[pin_index - 8], 12);
     }
 }
 
@@ -286,30 +281,6 @@ static void configure_fmc_gpio() {
     config_fmc_pin(FMC_NBL3_PORT_IDX, FMC_NBL3_PIN_IDX);
 }
 
-void config_fmc_pin(int port_index, int pin_index) {
-    //port_index = index of the GPIO port
-    //pin_index: index of the pin WITHIN the port
-
-    //sets the mode of the pin to Alternate Function (0b10)
-    //FMC uses alternate function mode to take control of the pin for memory interface signals
-    //00 > input, 01 > output, 10 > alternate function, 11 > analog
-    WRITE_FIELD(GPIOx_MODER[port_index], GPIOx_MODER_MODEx[pin_index], 0b10);
-    //Clears the output for the pin, setting it to Push-Pull (0)
-    CLR_FIELD(GPIOx_OTYPER[port_index], GPIOx_OTYPER_OTx[pin_index]);
-    //Sets the output speed to very high speed (which is 0b11)
-    // 00 > low speed, 01 > medium speed, 10 > high speed, 11 > very high speed
-    WRITE_FIELD(GPIOx_OSPEEDR[port_index], GPIOx_OSPEEDR_OSPEEDx[pin_index], 0b11);
-    //Configures the pull up and pull down registers to None (0b00)
-    //external memory signals shouldn't have internate pull resistors to avoid interference
-    WRITE_FIELD(GPIOx_PUPDR[port_index], GPIOx_PUPDR_PUPDx[pin_index], 0b00);
-    //AFRL for pins 0-7, AFRH for pins 8-15 > this all represents alternate function selection
-    if (pin_index < 8) {
-        WRITE_FIELD(GPIOx_AFRL[port_index], GPIOx_AFRL_AFSELx[pin_index], 12);
-    }
-    else {
-        WRITE_FIELD(GPIOx_AFRH[port_index], GPIOx_AFRH_AFSELx[pin_index - 8], 12);
-    }
-}
 /**
  * @brief Waits until the FMC SDRAM controller is not busy.
  * @note mmio.h provided does not define FMC_SDSR_BUSY field, using direct access.
