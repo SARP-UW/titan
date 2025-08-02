@@ -14,7 +14,8 @@
             ],
             "includePath": [
                 "${workspaceFolder}",
-                "${workspaceFolder}/include"
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/src",
             ],
             "compilerPath": "${env:ARM_GNU_TOOLCHAIN}/bin/arm-none-eabi-gcc",
             "defines": [
