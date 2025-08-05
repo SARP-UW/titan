@@ -33,6 +33,12 @@
 
 #define NUM_SENSORS 1
 
+// Fetch peripheral configurations.
+extern spi_config_t spi1_config;
+extern spi_dma_config_t spi1_dma_tx_config;
+extern spi_dma_config_t spi1_dma_rx_config;
+extern temp_sensor_config_t temp_sensor_config;
+
 /**************************************************************************************************
  * @section Static Variables
  **************************************************************************************************/
@@ -72,16 +78,24 @@ static void data_logger_callback(tal_err_t *err) {
 }
 
 /*******************************************************************
- * @section Sensor Callbacks
+ * @section Communication Protocol Callbacks
  ******************************************************************/
 
-static void temp_sensor_callback(bool success) {
-    sensor_data_ready.temp_sensor = success;
+static void spi1_callback(bool success, void *context) {
+    spi_device_t *spi_device = context;
+    // Check which device it was
+    if (spi_device->gpio_pin == temp_sensor_config.ss_gpio) // Repeat for all sensors
+        sensor_data_ready.temp_sensor = success;
+    
+    // Update device ready
+    // Check if we are ready to collect the data
     g_sensors_ready_count++;
     if (g_sensors_ready_count == NUM_SENSORS) {
         // All sensors have attempted data retrieval, we can start the data collection loop
         data_collector_start(&sensor_data_ready);
     }
+
+    transfer_complete = true;
 }
 
 /**************************************************************************************************
@@ -89,6 +103,8 @@ static void temp_sensor_callback(bool success) {
  **************************************************************************************************/
 
 tal_err_t *system_manager_init(void) {
+    // SPI initialization
+    spi_init(&g_system_errors, &spi1_config, spi1_callback, &spi1_dma_tx_config, &spi1_dma_rx_config);
 
     // Data collector initialization
     tal_err_t *collector_err = data_collector_init(data_collector_callback);
@@ -110,7 +126,7 @@ tal_err_t *system_manager_init(void) {
     }
 
     // Sensor initialization
-    sensor_available.temp_sensor = temp_sensor_init(&g_system_errors, temp_sensor_callback);
+    sensor_available.temp_sensor = temp_sensor_init(&g_system_errors);
 
     error_handler_log_non_critical(&g_system_errors);
     g_system_errors = (tal_flag_t){0}; // Reset the error flag after logging

@@ -29,17 +29,25 @@
 // Sensor callback function type
 typedef void (*temp_sensor_callback_t)(bool success);
 
+// Typedef for sensor configuration
+typedef struct {
+    spi_instance_t spi_instance;
+    uint32_t ss_gpio;
+    char *command;
+    void *rx_buff;
+} temp_sensor_config_t;
+
 /**
  * @brief Initializes the ADT7311 sensor.
  *
- * This function performs a hardware check and configures the sensor with the
- * provided settings. It allocates a new sensor instance handle and returns it.
+ * Initializes the SPI device for the temperature sensor.
+ * spi_init for the spi instance must be called before this function.
  *
  * @param config Pointer to a configuration structure.
  * @param sensor_handle Pointer to a variable where the new sensor instance handle will be stored.
  * @return bool Returns true if the sensor was successfully initialized, false otherwise.
  */
- bool temp_sensor_init(tal_flag_t *flag, temp_sensor_callback_t sensor_callback);
+ bool temp_sensor_init(tal_flag_t *flag);
 
 /**
  * @brief Reads the latest temperature measurement from the sensor.

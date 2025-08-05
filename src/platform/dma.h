@@ -1,26 +1,3 @@
-/**
- * This file is part of the Titan Library.
- * Copyright (c) 2025 UW SARP
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 3.
- * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- * 
- * @internal
- * @file src/platform/dma.h
- * @authors Charles Faisandier
- * @brief DMA Driver Public Interface
- * @note Currently only designed for DMA 1/2. Should be expanded to support MDMA during implementation
- *       of data_collector submodule.
- */
 #pragma once
 
 #include <stdint.h>
@@ -34,6 +11,7 @@
 typedef enum {
     DMA1 = DMA_INSTANCE_MIN,
     DMA2,
+    MDMA, 
     DMA_INSTANCE_COUNT
 } dma_instance_t;
 
@@ -99,8 +77,7 @@ typedef enum {
 } dma_fifo_threshold_t;
 
 // Callback function type for DMA events
-// context: a pointer to the calling peripheral's instance data (e.g., UART_Handle_t*)
-typedef void (*dma_callback_t)(bool success);
+typedef void (*dma_callback_t)(bool success, void *context);
 
 // Configuration structure for a DMA stream
 typedef struct {
@@ -110,8 +87,6 @@ typedef struct {
     dma_direction_t  direction;
     dma_data_size_t  src_data_size; // Source data width
     dma_data_size_t  dest_data_size; // Destination data width
-    bool             src_inc_enabled;
-    bool             dest_inc_enabled;
     dma_priority_t   priority;
     bool             fifo_enabled;   // Generally disabled for sending instructions to peripherals,
                                         // but enabled for high-throughput transfers
@@ -149,4 +124,4 @@ bool dma_configure_stream(tal_flag_t *flag, const dma_config_t* config);
  * @param size Number of bytes to transfer.
  * @return bool, whether the transfer was successfully started.
  */
-bool dma_start_transfer(tal_flag_t *flag, dma_instance_t instance, dma_stream_t stream, const void* src, void* dest, size_t size);
+bool dma_start_transfer(tal_flag_t *flag, dma_instance_t instance, dma_stream_t stream, const void* src, void* dest, size_t size, void *context);

@@ -55,6 +55,21 @@
 //   {0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  }, // K
 // };
 
+// Define an enum for the GPIO ports for readability
+typedef enum {
+    GPIO_PORT_A,
+    GPIO_PORT_B,
+    GPIO_PORT_C,
+    GPIO_PORT_D,
+    GPIO_PORT_E,
+    GPIO_PORT_F,
+    GPIO_PORT_G,
+    GPIO_PORT_H,
+    GPIO_PORT_I,
+    GPIO_PORT_J,
+    GPIO_PORT_K,
+} gpio_port_t;
+
 /**
  * port_index_from_pin[overall pin #] = 100 * port + PIN # Within Port
  * -1 if pin doesn't exist

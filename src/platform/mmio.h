@@ -231,6 +231,12 @@
     (*_src & _field.msk) == 0U; \
   })
 
+  /**
+   * @brief Clears the contents of a 32-bit register.
+   * @param[in] REG The memory-mapped register to be cleared.
+   */
+  #define CLEAR_REGISTER(REG)     ((*REG) = (uint32_t)0U)
+
   /**********************************************************************************************
    * @section COMP1 Definitions
    **********************************************************************************************/
@@ -8439,6 +8445,11 @@
     },
   };
 
+  static rw_reg32_t const DMAx_S0CR[3] = {
+    [1] = (rw_reg32_t)0x40020010U,   /** @brief Stream x configuration register. */
+    [2] = (rw_reg32_t)0x40020410U,   /** @brief Stream x configuration register. */
+  };
+
   static rw_reg32_t const DMAx_S1CR[3] = {
     [1] = (rw_reg32_t)0x40020028U,   /** @brief Stream x configuration register. */
     [2] = (rw_reg32_t)0x40020428U,   /** @brief Stream x configuration register. */
@@ -8476,6 +8487,25 @@
 
   /**** @subsection DMAx Register Field Definitions ****/
 
+  static const field32_t DMAx_SxCR_MBURST = {.msk = 0x01800000U, .pos = 23};   /** @brief Memory burst transfer configuration. */
+  static const field32_t DMAx_SxCR_PBURST = {.msk = 0x00600000U, .pos = 21};   /** @brief Peripheral burst transfer configuration. */
+  static const field32_t DMAx_SxCR_CT     = {.msk = 0x00080000U, .pos = 19};   /** @brief Current target (only in double buffer mode). */
+  static const field32_t DMAx_SxCR_DBM    = {.msk = 0x00040000U, .pos = 18};   /** @brief Double buffer mode. */
+  static const field32_t DMAx_SxCR_PL     = {.msk = 0x00030000U, .pos = 16};   /** @brief Priority level. */
+  static const field32_t DMAx_SxCR_PINCOS = {.msk = 0x00008000U, .pos = 15};   /** @brief Peripheral increment offset size. */
+  static const field32_t DMAx_SxCR_MSIZE  = {.msk = 0x00006000U, .pos = 13};   /** @brief Memory data size. */
+  static const field32_t DMAx_SxCR_PSIZE  = {.msk = 0x00001800U, .pos = 11};   /** @brief Peripheral data size. */
+  static const field32_t DMAx_SxCR_MINC   = {.msk = 0x00000400U, .pos = 10};   /** @brief Memory increment mode. */
+  static const field32_t DMAx_SxCR_PINC   = {.msk = 0x00000200U, .pos = 9};    /** @brief Peripheral increment mode. */
+  static const field32_t DMAx_SxCR_CIRC   = {.msk = 0x00000100U, .pos = 8};    /** @brief Circular mode. */
+  static const field32_t DMAx_SxCR_DIR    = {.msk = 0x000000C0U, .pos = 6};    /** @brief Data transfer direction. */
+  static const field32_t DMAx_SxCR_PFCTRL = {.msk = 0x00000020U, .pos = 5};    /** @brief Peripheral flow controller. */
+  static const field32_t DMAx_SxCR_TCIE   = {.msk = 0x00000010U, .pos = 4};    /** @brief Transfer complete interrupt enable. */
+  static const field32_t DMAx_SxCR_HTIE   = {.msk = 0x00000008U, .pos = 3};    /** @brief Half transfer interrupt enable. */
+  static const field32_t DMAx_SxCR_TEIE   = {.msk = 0x00000004U, .pos = 2};    /** @brief Transfer error interrupt enable. */
+  static const field32_t DMAx_SxCR_DMEIE  = {.msk = 0x00000002U, .pos = 1};    /** @brief Direct mode error interrupt enable. */
+  static const field32_t DMAx_SxCR_EN     = {.msk = 0x00000001U, .pos = 0};    /** @brief Stream enable / flag stream ready when read low. */
+
   static const field32_t DMAx_S0CR_MBURST = {.msk = 0x01800000U, .pos = 23};   /** @brief Memory burst transfer configuration. */
   static const field32_t DMAx_S0CR_PBURST = {.msk = 0x00600000U, .pos = 21};   /** @brief Peripheral burst transfer configuration. */
   static const field32_t DMAx_S0CR_CT     = {.msk = 0x00080000U, .pos = 19};   /** @brief Current target (only in double buffer mode). */
@@ -8494,11 +8524,6 @@
   static const field32_t DMAx_S0CR_TEIE   = {.msk = 0x00000004U, .pos = 2};    /** @brief Transfer error interrupt enable. */
   static const field32_t DMAx_S0CR_DMEIE  = {.msk = 0x00000002U, .pos = 1};    /** @brief Direct mode error interrupt enable. */
   static const field32_t DMAx_S0CR_EN     = {.msk = 0x00000001U, .pos = 0};    /** @brief Stream enable / flag stream ready when read low. */
-  static const field32_t DMAx_SxNDTR_NDT  = {.msk = 0x0000FFFFU, .pos = 0};    /** @brief Number of data items to transfer. */
-  static const field32_t DMAx_SxFCR_FEIE  = {.msk = 0x00000080U, .pos = 7};    /** @brief FIFO error interrupt enable. */
-  static const field32_t DMAx_SxFCR_FS    = {.msk = 0x00000038U, .pos = 3};    /** @brief FIFO status. */
-  static const field32_t DMAx_SxFCR_DMDIS = {.msk = 0x00000004U, .pos = 2};    /** @brief Direct mode disable. */
-  static const field32_t DMAx_SxFCR_FTH   = {.msk = 0x00000003U, .pos = 0};    /** @brief FIFO threshold selection. */
   static const field32_t DMAx_S1CR_MBURST = {.msk = 0x01800000U, .pos = 23};   /** @brief Memory burst transfer configuration. */
   static const field32_t DMAx_S1CR_PBURST = {.msk = 0x00600000U, .pos = 21};   /** @brief Peripheral burst transfer configuration. */
   static const field32_t DMAx_S1CR_ACK    = {.msk = 0x00100000U, .pos = 20};   /** @brief ACK. */
@@ -8632,6 +8657,12 @@
   static const field32_t DMAx_S7CR_TEIE   = {.msk = 0x00000004U, .pos = 2};    /** @brief Transfer error interrupt enable. */
   static const field32_t DMAx_S7CR_DMEIE  = {.msk = 0x00000002U, .pos = 1};    /** @brief Direct mode error interrupt enable. */
   static const field32_t DMAx_S7CR_EN     = {.msk = 0x00000001U, .pos = 0};    /** @brief Stream enable / flag stream ready when read low. */
+
+  static const field32_t DMAx_SxNDTR_NDT  = {.msk = 0x0000FFFFU, .pos = 0};    /** @brief Number of data items to transfer. */
+  static const field32_t DMAx_SxFCR_FEIE  = {.msk = 0x00000080U, .pos = 7};    /** @brief FIFO error interrupt enable. */
+  static const field32_t DMAx_SxFCR_FS    = {.msk = 0x00000038U, .pos = 3};    /** @brief FIFO status. */
+  static const field32_t DMAx_SxFCR_DMDIS = {.msk = 0x00000004U, .pos = 2};    /** @brief Direct mode disable. */
+  static const field32_t DMAx_SxFCR_FTH   = {.msk = 0x00000003U, .pos = 0};    /** @brief FIFO threshold selection. */
 
   /**** @subsection Enumerated DMAx Register Field Definitions ****/
 

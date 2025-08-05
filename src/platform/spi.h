@@ -23,36 +23,20 @@
  #include "tal/error.h"
  #include "platform/dma.h"
 
+// Syncronization flag
+extern volatile bool transfer_complete;
+
 /**************************************************************************************************
  * @section Type definitions
  **************************************************************************************************/
-/**
- * @brief SPI DMA Config structure.
- *
- * Exact copy of spi_dma_config_t, but w/o the request_id field.
- * The driver should be able to figure out request_id based on the SPI instance.
- */
-typedef struct {
-    dma_instance_t   instance;      // DMA1, DMA2, MDMA, BDMA
-    dma_stream_t     stream;        // Specific stream/channel (0-7 for DMA1/2)
-    dma_direction_t  direction;
-    dma_data_size_t  src_data_size; // Source data width
-    dma_data_size_t  dest_data_size; // Destination data width
-    bool             src_inc_enabled; // Source address increment
-    bool             dest_inc_enabled; // Destination address increment
-    dma_priority_t   priority;
-    bool             fifo_enabled;    // For DMA1/2
-    uint32_t         fifo_threshold; // FIFO threshold for DMA1/2 (e.g., DMA_FIFO_THRESHOLD_FULL)
-    dma_callback_t   callback;
-} spi_dma_config_t;
-
 /**
  * @brief Enumeration of the four standard SPI modes.
  *
  * Each mode is a unique combination of CPOL and CPHA settings.
  */
+#define SPI_MODE_MIN 0
 typedef enum {
-    SPI_MODE_0 = 0, // CPOL=0, CPHA=0
+    SPI_MODE_0 = SPI_MODE_MIN, // CPOL=0, CPHA=0
     SPI_MODE_1,     // CPOL=0, CPHA=1
     SPI_MODE_2,     // CPOL=1, CPHA=0
     SPI_MODE_3,     // CPOL=1, CPHA=1
@@ -64,8 +48,9 @@ typedef enum {
  *
  * Each instance is a unique SPI peripheral on the microcontroller.
  */
+#define SPI_INSTANCE_MIN 1
 typedef enum {
-    SPI1 = 0,
+    SPI1 = SPI_INSTANCE_MIN,
     SPI2,
     SPI3,
     SPI4,
@@ -79,8 +64,9 @@ typedef enum {
  *
  * Each data size represents the number of bits in a single SPI transfer.
  */
+#define SPI_DATA_SIZE_MIN 0
 typedef enum {
-    SPI_DATA_SIZE_8BIT = 0, // 8 bits per transfer
+    SPI_DATA_SIZE_8BIT = SPI_DATA_SIZE_MIN, // 8 bits per transfer
     SPI_DATA_SIZE_16BIT,    // 16 bits per transfer
     SPI_DATA_SIZE_COUNT
 } spi_data_size_t;
@@ -91,8 +77,9 @@ typedef enum {
  * This divides the SPI clock source to achieve the desired baudrate.
  * The resulting baudrate is F_SPI / prescaler_value.
  */
+#define SPI_BAUDRATE_PRESCALER_MIN 0
 typedef enum {
-    SPI_BAUDRATE_PRESCALER_2 = 0,
+    SPI_BAUDRATE_PRESCALER_2 = SPI_BAUDRATE_PRESCALER_MIN,
     SPI_BAUDRATE_PRESCALER_4,
     SPI_BAUDRATE_PRESCALER_8,
     SPI_BAUDRATE_PRESCALER_16,
@@ -109,13 +96,48 @@ typedef enum {
  * This determines the order in which data bits are transmitted and received.
  * MSB first is the default and most common setting.
  */
+#define SPI_FIRST_BIT_MIN 0
 typedef enum {
-    SPI_FIRST_BIT_MSB = 0, // Most Significant Bit first
+    SPI_FIRST_BIT_MSB = SPI_FIRST_BIT_MIN, // Most Significant Bit first
     SPI_FIRST_BIT_LSB,     // Least Significant Bit first
     SPI_FIRST_BIT_COUNT
 } spi_first_bit_t;
 
-// SPI configuration structure
+/**
+ * @brief Description struct for SPI device
+ * 
+ * Used to describe which SPI instance and CS line to use for SPI transactions
+ */
+typedef struct {
+    spi_instance_t instance;
+    int32_t gpio_pin;
+} spi_device_t;
+
+/**
+ * @brief SPI DMA Config structure.
+ *
+ * Exact copy of spi_dma_config_t, but w/o the request_id field.
+ * The driver should be able to figure out request_id based on the SPI instance.
+ */
+typedef struct {
+    dma_instance_t   instance;      // DMA1, DMA2, MDMA, BDMA
+    dma_stream_t     stream;        // Specific stream/channel (0-7 for DMA1/2)
+    dma_direction_t  direction;
+    dma_data_size_t  src_data_size; // Source data width
+    dma_data_size_t  dest_data_size; // Destination data width
+    bool             src_inc_enabled; // Source address increment
+    bool             dest_inc_enabled; // Destination address increment
+    dma_priority_t   priority;
+    bool             fifo_enabled;
+    uint32_t         fifo_threshold;  // FIFO threshold for RX stream. Currently left defined by
+                                      // the caller, might become internal depending on usecase.
+} spi_dma_config_t;
+
+/**
+ * @brief SPI Config structure.
+ *
+ * Used to configure the SPI controller specified by the instance field.
+ */
 typedef struct {
     spi_instance_t instance;
     spi_mode_t mode;     
@@ -124,32 +146,41 @@ typedef struct {
     spi_first_bit_t first_bit;                   // Whether the first bit is sent first or last
 } spi_config_t;
 
-// Struct for specifying SPI transfer parameters
+/**
+ * @brief SPI transfer specifier structure.
+ *
+ * Specifies parameters used to define an SPI transfer.
+ */
 typedef struct {
-    spi_instance_t instance; // SPI instance to use
-    dma_instance_t rx_instance; // DMA instance for receive
-    dma_instance_t tx_instance; // DMA instance for transmit
-    dma_stream_t tx_stream;  // DMA stream for transmit
-    dma_stream_t rx_stream;  // DMA stream for receive  
+    spi_device_t *device; // SPI device to use
     uint8_t *tx_data; // Pointer to transmit data buffer
     uint8_t *rx_data; // Pointer to receive data buffer
-    size_t length;    // Length of data to transfer
+    size_t size;    // size of data to transfer 
 } spi_transfer_t;
 
 /**************************************************************************************************
  * @section Function Definitions
  **************************************************************************************************/
 /**
- * @brief Initialize an SPI instance. This instance will connected to a single CS pin. Allowing for
- * only one device to be connected to the SPI instance at a time. This function also sets up the
- * DMA for the SPI instance.
+ * @brief Initializes an SPI controller. Configures a TX and RX DMA stream for the SPI peripheral. 
+ * It's important to choose SPI parameters that are compatible with all devices that will share the
+ * controller.
+ * 
+ * @param flag Flag pointer for error heandling
+ * @param config Point to config structure
+ * @param tx_stream DMA configuration for TX stream
+ * @param rx_stream DMA configuration for RX stream
+ */
+bool spi_init(tal_flag_t *flag, spi_config_t *config, dma_callback_t callback,
+             spi_dma_config_t *tx_stream, spi_dma_config_t *rx_stream);
+
+/**
+ * @brief Initialize an SPI Device. This sets up the CS line for the device
  * @param flag Pointer to the flag structure
- * @param spi_callback Callback function to be called on SPI events
- * @param config Pointer to the SPI configuration structure
+ * @param device Pointer to the specific SPI device
  * @return true if initialization was successful, false otherwise.
  */
- bool spi_init(tal_flag_t *flag, spi_config_t *config, 
-              dma_config_t *tx_stream, dma_config_t *out_stream);
+ bool spi_device_init(tal_flag_t *flag, spi_device_t *device);
 
 /**
  * @brief Transmit data over SPI, receives a command through tx_data, and stores the response in rx_data.
