@@ -26,19 +26,13 @@
 
 #define DATA_REG_SIZE 32
 #define NUM_REQUESTS_PER_SPI 2
+// Maximum number of devices per SPI instance
+#define MAX_DEVICES_PER_INSTANCE 5
 
 /**************************************************************************************************
  * @section Internal Data Structures
  **************************************************************************************************/
-
-// Used to know what DMA RX/TX Instance/Streams belong to what SPI instances
-typedef struct {
-    dma_instance_t rx_instance; // TODO: Perhaps simplify this so only one instance
-    dma_instance_t tx_instance;
-    dma_stream_t rx_stream;
-    dma_stream_t tx_stream;
-} spi_streaminfo_t;
-volatile spi_streaminfo_t spi_to_dma[SPI_INSTANCE_COUNT] = {0};
+volatile dma_periph_streaminfo_t spi_to_dma[SPI_INSTANCE_COUNT] = {0};
 
 // Used to look up SPI DMAMUX request numbers
 // Note: SPI6 Does not seem to have requests
@@ -66,7 +60,11 @@ const static uint8_t spi_dmamux_req[SPI_INSTANCE_COUNT][NUM_REQUESTS_PER_SPI] = 
     }
 };
 
-volatile bool transfer_complete = false;
+// Used to make sure we wait that transfers are complete before starting a new one
+bool spi_busy[SPI_INSTANCE_COUNT] = {0};
+
+// Stores SPI contexts
+static spi_context_t spi_context_arr[SPI_INSTANCE_COUNT][MAX_DEVICES_PER_INSTANCE] = {0};
 
 /**************************************************************************************************
  * @section Private Function Implementations
@@ -100,38 +98,6 @@ inline static bool check_spi_config_validity(tal_flag_t *flag, spi_config_t *con
     return true;
 }
 
-inline static bool check_spi_dma_config_validity(tal_flag_t *flag, spi_dma_config_t *dma_config) {
-    if (dma_config == NULL) {
-        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: DMA config pointer is NULL");
-        return false;
-    }
-    if (dma_config->instance < 0 || dma_config->instance >= DMA_INSTANCE_COUNT) {
-        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid DMA instance");
-        return false;
-    }
-    if (dma_config->stream < 0 || dma_config->stream >= DMA_STREAM_COUNT) {
-        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid DMA stream");
-        return false;
-    }
-    if (dma_config->direction < 0 || dma_config->direction >= DMA_DIR_COUNT ) {
-        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid DMA direction");
-        return false;
-    }
-    if (dma_config->src_data_size < 0 || dma_config->src_data_size >= DMA_DATA_SIZE_COUNT) {
-        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid source data size");
-        return false;
-    }
-    if (dma_config->dest_data_size < 0 || dma_config->dest_data_size >= DMA_DATA_SIZE_COUNT) {
-        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid destination data size");
-        return false;
-    }
-    if (dma_config->priority < 0 || dma_config->priority >= DMA_PRIORITY_COUNT) {
-        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid DMA priority");
-        return false;
-    }
-    return true;
-}
-
 /**************************************************************************************************
  * @section Public Function Implementations
  **************************************************************************************************/
@@ -145,7 +111,7 @@ inline static bool check_spi_dma_config_validity(tal_flag_t *flag, spi_dma_confi
  * @param tx_stream DMA configuration for TX stream
  * @param rx_stream DMA configuration for RX stream
  */
-bool spi_init(tal_flag_t *flag, spi_config_t *config, dma_callback_t callback, spi_dma_config_t *tx_stream, spi_dma_config_t *rx_stream) {
+bool spi_init(tal_flag_t *flag, spi_config_t *config, dma_callback_t callback, periph_dma_config_t *tx_stream, periph_dma_config_t *rx_stream) {
     // Parameter checking
     if (flag == NULL) {
         return false;
@@ -258,7 +224,7 @@ bool spi_init(tal_flag_t *flag, spi_config_t *config, dma_callback_t callback, s
     SET_FIELD(SPIx_CR1[config->instance], SPIx_CR1_SPE);
 
     // Set up internal DMA tracking
-    spi_streaminfo_t info = {
+    dma_periph_streaminfo_t info = {
         .rx_instance = rx_stream->instance,
         .tx_instance = tx_stream->instance,
         .rx_stream = rx_stream->stream,
@@ -300,87 +266,245 @@ bool spi_init(tal_flag_t *flag, spi_config_t *config, dma_callback_t callback, s
 
 bool spi_device_init(tal_flag_t *flag, spi_device_t *device) {
     // Enable GPIO port clock
-    gpio_port_t port = port_index_from_pin[device->gpio_pin] / 100;
-    switch (port) {
-        case (GPIO_PORT_A): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOAEN);
-            break;
-        case (GPIO_PORT_B): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOBEN);
-            break;
-        case (GPIO_PORT_C): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOCEN);
-            break;
-        case (GPIO_PORT_D): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIODEN);
-            break;
-        case (GPIO_PORT_E): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOEEN);
-            break;
-        case (GPIO_PORT_F): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOFEN);
-            break;
-        case (GPIO_PORT_G): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOGEN);
-            break;
-        case (GPIO_PORT_H): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOHEN);
-            break;
-        case (GPIO_PORT_I): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOIEN);
-            break;
-        case (GPIO_PORT_J): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOJEN);
-            break;
-        case (GPIO_PORT_K): // 
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOKEN);
-            break;
-    }
+    tal_enable_clock(device->gpio_pin);
+    
     // Configure pin mode as output
     tal_set_mode(device->gpio_pin, 1);
+
+    // Set up device context
+    for (int i = 0; i < MAX_DEVICES_PER_INSTANCE; i++) {
+        if (spi_context_arr[device->instance][i].device == NULL) {
+            spi_context_arr[device->instance][i].device = device;
+            spi_context_arr[device->instance][i].busy = &(spi_busy[device->instance]);
+            break;
+        }
+    }
 
     // Set initial state
     tal_pull_pin(device->gpio_pin, 1);
     tal_set_pin(device->gpio_pin, 1);
 }
 
-/**
- * @brief Transmit data over SPI, receives a command through tx_data, and stores the response in rx_data.
- * @param flag Pointer to the flag structure
- * @param instance The SPI instance to use
- * @param tx_data Pointer to the data to transmit
- * @param rx_data Pointer to the buffer for received data
- * @param length The length of the data to transmit
- */
- void spi_transmit(tal_flag_t *flag, spi_transfer_t *transfer) {
-    // Reset flag to prepare for new transfer
-    transfer_complete = false;
-    // Assert the CS pin for the specified device
-    tal_set_pin(transfer->device->gpio_pin, 0);
+ /**
+  * @brief Writes data over SPI asyncronously
+  * @param flag Error flag
+  * @param device Spi device to use
+  * @param source Pointer to source data
+  * @param size Size of source data in bytes
+  */
+ bool spi_write_async(tal_flag_t *flag, spi_device_t *device, void *source, size_t size) {
+    spi_instance_t instance = device->instance;
+    // Check if SPI instance is available
+    // TODO: make this an atomic operation with a mutex
+    if (spi_busy[instance]) {
+        tal_raise(flag, "SPI is busy");
+        return false;
+    }
+    spi_busy[instance] = true;
 
-    spi_instance_t cur_instance = transfer->device->instance;
-    // Start TX transfer
-    // TODO: Figure out command register
-    rw_reg32_t command_reg = SPIx_TXDR[transfer->device->instance];
-    dma_start_transfer(flag, spi_to_dma[cur_instance].tx_instance,
-                       spi_to_dma[cur_instance].tx_stream, transfer->tx_data,
-                       command_reg, transfer->size, (void *) transfer->device);
+    // Pull SS line low
+    tal_set_pin(device->gpio_pin, 0);
+
+    // Get context
+    spi_context_t *context;
+    for (int i = 0; i < MAX_DEVICES_PER_INSTANCE; i++) {
+        if (spi_context_arr[instance][i].device->instance == device->instance &&
+            spi_context_arr[instance][i].device->gpio_pin == device->gpio_pin) {
+            context = &(spi_context_arr[instance][i]);
+        }
+    }
+    // TODO: Check if context was initialized, return error if not.
     
-    // Start RX Transfer
-    // TODO: Figure out data register
-    rw_reg32_t data_reg = SPIx_RXDR[transfer->device->instance];
-    dma_start_transfer(flag, spi_to_dma[cur_instance].rx_instance,
-                       spi_to_dma[cur_instance].rx_stream, data_reg,
-                       transfer->rx_data, transfer->size, (void *) transfer->device);
-                       // ^ TODO: Verify transfer->size
+    // TX Transfer
+    dma_transfer_t tx_transfer = {
+        .instance = spi_to_dma[instance].tx_instance,
+        .stream = spi_to_dma[instance].tx_stream,
+        .src = source,
+        .dest = SPIx_TXDR[instance],
+        .size = size,
+        .context = context,
+        .disable_mem_inc = false,
+    };
+    dma_start_transfer(flag, &tx_transfer);
 
-    // Enable DMA requests (SPI CR Register)
-    SET_FIELD(SPIx_CFG1[transfer->device->instance], SPIx_CFG1_RXDMAEN);
-    SET_FIELD(SPIx_CFG1[transfer->device->instance], SPIx_CFG1_TXDMAEN);
+    // TX Transfer
+    uint8_t dummy_buffer;
+    dma_transfer_t rx_transfer = {
+        .instance = spi_to_dma[instance].rx_instance,
+        .stream = spi_to_dma[instance].rx_stream,
+        .src = SPIx_RXDR[instance],
+        .dest = &dummy_buffer,
+        .size = size,
+        .context = context,
+        .disable_mem_inc = true,
+    };
+    dma_start_transfer(flag, &rx_transfer);
 
-    // Wait for transfer to be complete
-    while (!transfer_complete);
+    // Enable DMA requests
+    SET_FIELD(SPIx_CFG1[instance], SPIx_CFG1_RXDMAEN);
+    SET_FIELD(SPIx_CFG1[instance], SPIx_CFG1_TXDMAEN);
 
-    // De-assert CS pin
-    tal_set_pin(transfer->device->gpio_pin, 1);
+    return true;
+ }
+
+ /**
+  * @brief Writes data over SPI asyncronously
+  * @param flag Error flag
+  * @param device Spi device to use
+  * @param dest Pointer to rx data buffer
+  * @param size Size of rx data in bytes
+  */
+ bool spi_read_async(tal_flag_t *flag, spi_device_t *device, void *dest, size_t size) {
+    spi_instance_t instance = device->instance;
+    // Check if SPI instance is available
+    // TODO: make this an atomic operation with a mutex
+    if (spi_busy[instance]) {
+        tal_raise(flag, "SPI is busy");
+        return false;
+    }
+    spi_busy[instance] = true;
+
+    // Pull SS line low
+    tal_set_pin(device->gpio_pin, 0);
+
+    // Get context
+    spi_context_t *context;
+    for (int i = 0; i < MAX_DEVICES_PER_INSTANCE; i++) {
+        if (spi_context_arr[instance][i].device->instance == device->instance &&
+            spi_context_arr[instance][i].device->gpio_pin == device->gpio_pin) {
+            context = &(spi_context_arr[instance][i]);
+        }
+    }
+    // TODO: Check if context was initialized, return error if not.
+    
+    // TX Transfer
+    uint8_t dummy_buffer;
+    dma_transfer_t tx_transfer = {
+        .instance = spi_to_dma[instance].tx_instance,
+        .stream = spi_to_dma[instance].tx_stream,
+        .src = &dummy_buffer,
+        .dest = SPIx_TXDR[instance],
+        .size = size,
+        .context = context,
+        .disable_mem_inc = true,
+    };
+    dma_start_transfer(flag, &tx_transfer);
+
+    // TX Transfer
+    dma_transfer_t rx_transfer = {
+        .instance = spi_to_dma[instance].rx_instance,
+        .stream = spi_to_dma[instance].rx_stream,
+        .src = SPIx_RXDR[instance],
+        .dest = dest,
+        .size = size,
+        .context = context,
+        .disable_mem_inc = false,
+    };
+    dma_start_transfer(flag, &rx_transfer);
+
+    // Enable DMA requests
+    SET_FIELD(SPIx_CFG1[instance], SPIx_CFG1_RXDMAEN);
+    SET_FIELD(SPIx_CFG1[instance], SPIx_CFG1_TXDMAEN);
+
+    return true;
+ }
+
+bool spi_write_blocking(tal_flag_t *flag, spi_device_t *device, void *source, size_t size) {
+    // Parameter validation
+    if (flag == NULL || source == NULL || size == 0) {
+        tal_raise(flag, "Invalid parameters for spi_write_blocking");
+        return false;
+    }
+
+    spi_instance_t instance = device->instance;
+    if (spi_busy[instance]) {
+        tal_raise(flag, "SPI is busy");
+        return false;
+    }
+    spi_busy[instance] = true;
+
+    uint8_t *tx_data = (uint8_t *)source;
+
+    // Pull SS line low to select the device
+    tal_set_pin(device->gpio_pin, 0);
+
+    // Dummy variable to hold received data
+    uint8_t dummy_rx_data;
+
+    // Loop through each byte of the data to transmit
+    for (size_t i = 0; i < size; ++i) {
+        // Wait for the TX buffer to be empty before writing the next byte.
+        // This is the correct flag to check inside a byte-by-byte loop.
+        while (!(READ_FIELD(SPIx_SR[instance], SPIx_SR_TXP)));
+
+        // Write the data to the SPI data register.
+        // This automatically starts the transfer.
+        *SPIx_TXDR[instance] = tx_data[i];
+
+        // Wait for the RX buffer to receive data.
+        // This is a blocking read to prevent a receive buffer overrun.
+        while (!(READ_FIELD(SPIx_SR[instance], SPIx_SR_RXP)));
+
+        // Read the dummy data from the RX register to clear the RXNE flag
+        // and prepare for the next incoming byte.
+        dummy_rx_data = *((uint8_t *)SPIx_RXDR[instance]);
+    }
+
+    // Wait for the entire transmission to be completed.
+    // The TXC flag is the correct one to check for this.
+    while (!(READ_FIELD(SPIx_SR[instance], SPIx_SR_TXC)));
+
+    // Pull SS line high to deselect the device
+    tal_set_pin(device->gpio_pin, 1);
+
+    spi_busy[instance] = false;
+    return true;
+ }
+
+ bool spi_read_blocking(tal_flag_t *flag, spi_device_t *device, void *dest, size_t size) {
+  // Parameter validation
+    if (flag == NULL || dest == NULL || size == 0) {
+        tal_raise(flag, "Invalid parameters for spi_read_blocking");
+        return false;
+    }
+
+    // Check if SPI instance is busy
+    spi_instance_t instance = device->instance;
+    if (spi_busy[instance]) {
+        tal_raise(flag, "SPI is busy");
+        return false;
+    }
+    spi_busy[instance] = true;
+
+    uint8_t *rx_data = (uint8_t *)dest;
+
+    // Pull SS line low to select the device
+    tal_set_pin(device->gpio_pin, 0);
+
+    // Loop through each byte to receive.
+    for (size_t i = 0; i < size; ++i) {
+        // Wait for the TxFIFO to have at least one empty slot before writing the next byte.
+        // This is crucial for a read, as we must send a dummy byte to clock the slave.
+        while (!(READ_FIELD(SPIx_SR[instance], SPIx_SR_TXP)));
+
+        // Write a dummy byte to the SPI data register to start the transfer.
+        // The value (e.g., 0xFF) does not matter for the slave's response.
+        *SPIx_TXDR[instance] = 0xFF;
+
+        // Wait for the RxFIFO to have data.
+        // The RXP (Rx-Packet) flag is the correct one to check for this.
+        while (!(READ_FIELD(SPIx_SR[instance], SPIx_SR_RXP)));
+        
+        // Read the valid data from the RX register and store it in the destination buffer.
+        rx_data[i] = *SPIx_RXDR[instance];
+    }
+
+    // Wait for the entire transmission of the last dummy byte to be completed.
+    // The TXC flag is the correct one to check for this.
+    while (!(READ_FIELD(SPIx_SR[instance], SPIx_SR_TXC)));
+
+    // Pull SS line high to deselect the device
+    tal_set_pin(device->gpio_pin, 1);
+    spi_busy[instance] = false;
+    return true;
  }

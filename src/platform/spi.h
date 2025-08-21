@@ -23,9 +23,6 @@
  #include "tal/error.h"
  #include "platform/dma.h"
 
-// Syncronization flag
-extern volatile bool transfer_complete;
-
 /**************************************************************************************************
  * @section Type definitions
  **************************************************************************************************/
@@ -114,26 +111,6 @@ typedef struct {
 } spi_device_t;
 
 /**
- * @brief SPI DMA Config structure.
- *
- * Exact copy of spi_dma_config_t, but w/o the request_id field.
- * The driver should be able to figure out request_id based on the SPI instance.
- */
-typedef struct {
-    dma_instance_t   instance;      // DMA1, DMA2, MDMA, BDMA
-    dma_stream_t     stream;        // Specific stream/channel (0-7 for DMA1/2)
-    dma_direction_t  direction;
-    dma_data_size_t  src_data_size; // Source data width
-    dma_data_size_t  dest_data_size; // Destination data width
-    bool             src_inc_enabled; // Source address increment
-    bool             dest_inc_enabled; // Destination address increment
-    dma_priority_t   priority;
-    bool             fifo_enabled;
-    uint32_t         fifo_threshold;  // FIFO threshold for RX stream. Currently left defined by
-                                      // the caller, might become internal depending on usecase.
-} spi_dma_config_t;
-
-/**
  * @brief SPI Config structure.
  *
  * Used to configure the SPI controller specified by the instance field.
@@ -144,6 +121,7 @@ typedef struct {
     spi_data_size_t data_size; 
     spi_baudrate_prescaler_t baudrate_prescaler; // Controls communication speed
     spi_first_bit_t first_bit;                   // Whether the first bit is sent first or last
+    uint16_t dev_count;                          // Number of slaves for this spi instance
 } spi_config_t;
 
 /**
@@ -157,6 +135,13 @@ typedef struct {
     uint8_t *rx_data; // Pointer to receive data buffer
     size_t size;    // size of data to transfer 
 } spi_transfer_t;
+
+// Passed to DMA streams to un-init the SPI transfer
+typedef struct {
+    bool *busy;
+    spi_device_t *device;
+    uint8_t num_complete; // Number of DMA streams complete
+} spi_context_t;
 
 /**************************************************************************************************
  * @section Function Definitions
@@ -172,7 +157,7 @@ typedef struct {
  * @param rx_stream DMA configuration for RX stream
  */
 bool spi_init(tal_flag_t *flag, spi_config_t *config, dma_callback_t callback,
-             spi_dma_config_t *tx_stream, spi_dma_config_t *rx_stream);
+             periph_dma_config_t *tx_stream, periph_dma_config_t *rx_stream);
 
 /**
  * @brief Initialize an SPI Device. This sets up the CS line for the device
@@ -182,12 +167,39 @@ bool spi_init(tal_flag_t *flag, spi_config_t *config, dma_callback_t callback,
  */
  bool spi_device_init(tal_flag_t *flag, spi_device_t *device);
 
-/**
- * @brief Transmit data over SPI, receives a command through tx_data, and stores the response in rx_data.
- * @param flag Pointer to the flag structure
- * @param instance The SPI instance to use
- * @param tx_data Pointer to the data to transmit
- * @param rx_data Pointer to the buffer for received data
- * @param length The length of the data to transmit
- */
- void spi_transmit(tal_flag_t *flag, spi_transfer_t *transfer);
+ /**
+  * @brief Writes data over SPI asyncronously
+  * @param flag Error flag
+  * @param device Spi device to use
+  * @param source Pointer to source data
+  * @param size Size of source data in bytes
+  * @returns Whether the SPI write successfuly started, false if device is busy.
+  */
+ bool spi_write_async(tal_flag_t *flag, spi_device_t *device, void *source, size_t size);
+
+ /**
+  * @brief Writes data over SPI asyncronously
+  * @param flag Error flag
+  * @param device Spi device to use
+  * @param dest Pointer to rx data buffer
+  * @param size Size of rx data in bytes
+  */
+ bool spi_read_async(tal_flag_t *flag, spi_device_t *device, void *dest, size_t size);
+
+ /**
+  * @brief Writes data over SPI syncronously 
+  * @param flag Error flag
+  * @param device Spi device to use
+  * @param source Pointer to source data
+  * @param size Size of source data in bytes
+  */
+bool spi_write_blocking(tal_flag_t *flag, spi_device_t *device, void *source, size_t size);
+
+ /**
+  * @brief Writes data over SPI syncronously
+  * @param flag Error flag
+  * @param device Spi device to use
+  * @param dest Pointer to rx data buffer
+  * @param size Size of rx data in bytes
+  */
+ bool spi_read_blocking(tal_flag_t *flag, spi_device_t *device, void *dest, size_t size);

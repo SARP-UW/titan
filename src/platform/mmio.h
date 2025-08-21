@@ -718,27 +718,33 @@
 
   /**** @subsection Enumerated DMAMUXx Register Definitions ****/
 
-  static rw_reg32_t const DMAMUXx_CxCR[3][8] = {
-    [1] = {
-      [0] = (rw_reg32_t)0x40020800U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [1] = (rw_reg32_t)0x40020804U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [2] = (rw_reg32_t)0x40020808U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [3] = (rw_reg32_t)0x4002080CU,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [4] = (rw_reg32_t)0x40020810U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [5] = (rw_reg32_t)0x40020814U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [6] = (rw_reg32_t)0x40020818U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [7] = (rw_reg32_t)0x4002081CU,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-    },
-    [2] = {
-      [0] = (rw_reg32_t)0x58025800U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [1] = (rw_reg32_t)0x58025804U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [2] = (rw_reg32_t)0x58025808U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [3] = (rw_reg32_t)0x5802580CU,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [4] = (rw_reg32_t)0x58025810U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [5] = (rw_reg32_t)0x58025814U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [6] = (rw_reg32_t)0x58025818U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-      [7] = (rw_reg32_t)0x5802581CU,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
-    },
+  static rw_reg32_t const DMAMUX1_CxCR[16] = {
+    [0] = (rw_reg32_t)0x40020800U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [1] = (rw_reg32_t)0x40020804U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [2] = (rw_reg32_t)0x40020808U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [3] = (rw_reg32_t)0x4002080CU,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [4] = (rw_reg32_t)0x40020810U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [5] = (rw_reg32_t)0x40020814U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [6] = (rw_reg32_t)0x40020818U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [7] = (rw_reg32_t)0x4002081CU,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [8] = (rw_reg32_t)0x40020820U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [9] = (rw_reg32_t)0x40020824U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [10] = (rw_reg32_t)0x40020828U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [11] = (rw_reg32_t)0x4002082CU,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [12] = (rw_reg32_t)0x40020830U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [13] = (rw_reg32_t)0x40020834U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [14] = (rw_reg32_t)0x40020838U,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+    [15] = (rw_reg32_t)0x4002083CU,   /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+  };
+  static rw_reg32_t const DMAMUX2_CxCR[8] = {
+      [0] = (rw_reg32_t)0x58025800U, /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+      [1] = (rw_reg32_t)0x58025804U, /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+      [2] = (rw_reg32_t)0x58025808U, /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+      [3] = (rw_reg32_t)0x5802580CU, /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+      [4] = (rw_reg32_t)0x58025810U, /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+      [5] = (rw_reg32_t)0x58025814U, /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+      [6] = (rw_reg32_t)0x58025818U, /** @brief DMAMux - DMA request line multiplexer channel x control register. */
+      [7] = (rw_reg32_t)0x5802581CU, /** @brief DMAMux - DMA request line multiplexer channel x control register. */
   };
 
   static rw_reg32_t const DMAMUXx_RGxCR[3][8] = {
@@ -1292,7 +1298,7 @@
   static const field32_t I2Cx_RXDR_RXDATA       = {.msk = 0x000000FFU, .pos = 0};    /** @brief 8-bit receive data data byte received from the I2C bus. */
   static const field32_t I2Cx_TXDR_TXDATA       = {.msk = 0x000000FFU, .pos = 0};    /** @brief 8-bit transmit data data byte to be transmitted to the I2C bus. Note: these bits can be written only when TXE=1. */
   static const field32_t I2Cx_CR2_SADD_7BIT     = {.msk = 0x000000FCU, .pos = 1};
-  static const field32_t I2Cx_CR2_SADD_9BIT     = {.msk = 0x000003FFU, .pos = 0};
+  static const field32_t I2Cx_CR2_SADD_10BIT     = {.msk = 0x000003FFU, .pos = 0};
 
   /**** @subsection Enumerated I2Cx Register Field Definitions ****/
 

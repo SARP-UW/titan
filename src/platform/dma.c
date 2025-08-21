@@ -23,6 +23,7 @@
 #include "platform/dma.h"
 #include "platform/mmio.h"
 #include "platform/spi.h"
+#include "platform/usart.h"
 
 /**************************************************************************************************
  * @section Internal Data Structures
@@ -37,7 +38,7 @@ void *dma_callback_context[DMA_INSTANCE_COUNT][DMA_STREAM_COUNT] = {0};
 bool dma_streams_configured[DMA_INSTANCE_COUNT][DMA_STREAM_COUNT] = {0};
 
 // Keeps track of interrupt numbers for DMA events
-int32_t dma_irq_numbers[DMA_INSTANCE_COUNT][DMA_STREAM_COUNT] = {
+int32_t volatile dma_irq_numbers[DMA_INSTANCE_COUNT][DMA_STREAM_COUNT] = {
     [DMA1] = {
         [DMA_STREAM_0] = 11,
         [DMA_STREAM_1] = 12,
@@ -61,7 +62,7 @@ int32_t dma_irq_numbers[DMA_INSTANCE_COUNT][DMA_STREAM_COUNT] = {
 };
 
 // Simplifies finding the correct DMA stream control register
-static volatile rw_reg32_t dma_cr_map[3][8] = {
+static rw_reg32_t dma_cr_map[3][8] = {
     [DMA1] = {
         [DMA_STREAM_0] = DMAx_S0CR[1],
         [DMA_STREAM_1] = DMAx_S1CR[1],
@@ -83,10 +84,6 @@ static volatile rw_reg32_t dma_cr_map[3][8] = {
         [DMA_STREAM_7] = DMAx_S7CR[2],
     }
 };
-
-// Field that writes to the whole register.
-static field32_t FULL_REGISTER;
-
 
 /**************************************************************************************************
  * @section Private Functions
@@ -194,9 +191,6 @@ tal_err_t *dma_init(void) {
     CLEAR_REGISTER(DMAx_HIFCR[1]); // Clear DMA1 high interrupt flags
     CLEAR_REGISTER(DMAx_LIFCR[2]); // Clear DMA2 low interrupt flags
     CLEAR_REGISTER(DMAx_HIFCR[2]); // Clear DMA2 high interrupt flags   
-
-    // Initialize fields.
-    FULL_REGISTER = MAKE_FIELD(field32_t, 0, 32); // Assuming 'm0a' is a 32-bit field starting at position 0
 }
 
 /**
@@ -278,12 +272,11 @@ bool dma_configure_stream(tal_flag_t *flag, const dma_config_t* config) {
         WRITE_FIELD(dma_cr_map[config->instance][config->stream], DMAx_SxCR_DIR, 0b00); // Peripheral to memory
     } else if (config->direction == MEM_TO_PERIPH) {
         WRITE_FIELD(dma_cr_map[config->instance][config->stream], DMAx_SxCR_DIR, 0b01); // Memory to peripheral
-    } else if (config->direction == MEM_TO_MEM) {
-        WRITE_FIELD(dma_cr_map[config->instance][config->stream], DMAx_SxCR_DIR, 0b10); // Memory to memory
     }
 
     // Configure the request ID of the channel in the DMAMUX
-    WRITE_FIELD(DMAMUXx_CxCR[config->instance][config->stream], DMAMUXx_CxCR_DMAREQ_ID, config->request_id);
+    int dmamux_channel = ((config->instance - DMA_INSTANCE_MIN) * 7) + config->stream;
+    WRITE_FIELD(DMAMUX1_CxCR[dmamux_channel], DMAMUXx_CxCR_DMAREQ_ID, config->request_id);
 
     // Enable the IRQ for the DMA stream (in the NVIC)
     set_irq_enabled(dma_irq_numbers[config->instance][config->stream], true);
@@ -300,7 +293,13 @@ bool dma_configure_stream(tal_flag_t *flag, const dma_config_t* config) {
  * @param dest Pointer to the destination data buffer.
  * @param size Number of bytes to transfer.
  */
-bool dma_start_transfer(tal_flag_t *flag, dma_instance_t instance, dma_stream_t stream, const void* src, void* dest, size_t size, void *context) {
+bool dma_start_transfer(tal_flag_t *flag, dma_transfer_t *dma_transfer) {
+    // Quick-access
+    dma_instance_t instance = dma_transfer->instance;
+    dma_instance_t stream = dma_transfer->stream;
+    void *src = dma_transfer->src;
+    void *dest = dma_transfer->dest;
+
     // Check parameters
     if (flag == NULL)
         return false;
@@ -322,7 +321,7 @@ bool dma_start_transfer(tal_flag_t *flag, dma_instance_t instance, dma_stream_t 
     }
     
     // Configure callback context
-    dma_callback_context[instance][stream] = context;
+    dma_callback_context[instance][stream] = dma_transfer->context;
 
     // Clear interrupt flags from pervious transfers
     clear_stream_interrupts(instance, stream);
@@ -339,28 +338,106 @@ bool dma_start_transfer(tal_flag_t *flag, dma_instance_t instance, dma_stream_t 
     else 
         src_datasize = READ_FIELD(dma_cr_map[instance][stream], DMAx_SxCR_MSIZE );
     
-    WRITE_FIELD(DMAx_SxNDTR[instance][stream], DMAx_SxNDTR_NDT, size / get_size_in_bytes(src_datasize));
+    WRITE_FIELD(DMAx_SxNDTR[instance][stream], DMAx_SxNDTR_NDT, dma_transfer->size / get_size_in_bytes(src_datasize));
 
     if (stream_dir == 0b00) {
-        WRITE_FIELD(DMAx_SxPAR[instance][stream], FULL_REGISTER, src);
-        WRITE_FIELD(DMAx_SxM0AR[instance][stream], FULL_REGISTER, dest);
+        *DMAx_SxPAR[instance][stream] = src;
+        *DMAx_SxM0AR[instance][stream] = dest;
     } else {
-        WRITE_FIELD(DMAx_SxM0AR[instance][stream], FULL_REGISTER, src);
-        WRITE_FIELD(DMAx_SxPAR[instance][stream], FULL_REGISTER, dest);
+        *DMAx_SxM0AR[instance][stream] = src;
+        *DMAx_SxPAR[instance][stream] = dest;
+    }
+
+    // Disable memory incrementation if specified
+    if (dma_transfer->disable_mem_inc) {
+        CLR_FIELD(dma_cr_map[instance][stream], DMAx_SxCR_MINC);
     }
 
     // Enable the stream
     SET_FIELD(dma_cr_map[instance][stream], DMAx_SxCR_EN);
 }
 
-// Interrupt handler example (success or error)
-void irq_9_handler(void) { // Handler for DMA1 Stream 1 (for example)
-    // Trigger the callback
-    dma_callbacks[DMA1][DMA_STREAM_1](true, (void *) dma_callback_context[DMA1][DMA_STREAM_1]); // False for error
+inline static bool check_periph_dma_config_validity(tal_flag_t *flag, periph_dma_config_t *dma_config) {
+    if (dma_config == NULL) {
+        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: DMA config pointer is NULL");
+        return false;
+    }
+    if (dma_config->instance < 0 || dma_config->instance >= DMA_INSTANCE_COUNT) {
+        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid DMA instance");
+        return false;
+    }
+    if (dma_config->stream < 0 || dma_config->stream >= DMA_STREAM_COUNT) {
+        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid DMA stream");
+        return false;
+    }
+    if (dma_config->direction < 0 || dma_config->direction >= DMA_DIR_COUNT ) {
+        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid DMA direction");
+        return false;
+    }
+    if (dma_config->src_data_size < 0 || dma_config->src_data_size >= DMA_DATA_SIZE_COUNT) {
+        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid source data size");
+        return false;
+    }
+    if (dma_config->dest_data_size < 0 || dma_config->dest_data_size >= DMA_DATA_SIZE_COUNT) {
+        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid destination data size");
+        return false;
+    }
+    if (dma_config->priority < 0 || dma_config->priority >= DMA_PRIORITY_COUNT) {
+        tal_set_err(flag, "SPI_DMA_CONFIG_ERROR: Invalid DMA priority");
+        return false;
+    }
+    return true;
+}
 
+
+
+// SPI Interrupt handler example
+void irq_9_handler(void) { // Handler for DMA1 Stream 1 (for example)
     // Disable the stream and clear the dynamic parameters.
     CLR_FIELD(dma_cr_map[DMA1][DMA_STREAM_1], DMAx_SxCR_EN);
-    CLR_FIELD(DMAx_SxPAR[DMA1][DMA_STREAM_1], FULL_REGISTER);
-    CLR_FIELD(DMAx_SxM0AR[DMA1][DMA_STREAM_1], FULL_REGISTER);
+    *DMAx_SxM0AR[DMA1][DMA_STREAM_1] = 0;
+    *DMAx_SxPAR[DMA1][DMA_STREAM_1] = 0;
     CLR_FIELD(DMAx_SxNDTR[DMA1][DMA_STREAM_1], DMAx_SxNDTR_NDT);
+
+    // De-init spi dma transaction if both streams are finished.
+    spi_context_t *context = dma_callback_context[DMA1][DMA_STREAM_1];
+    context->num_complete++;
+    if (context->num_complete == 2) {
+        tal_set_pin(context->device->gpio_pin, 1);
+        // Enable DMA requests
+        CLR_FIELD(SPIx_CFG1[context->device->instance], SPIx_CFG1_RXDMAEN);
+        CLR_FIELD(SPIx_CFG1[context->device->instance], SPIx_CFG1_TXDMAEN);
+        *(context->busy) = false;
+        context->num_complete = 0;
+    }
+
+    // Trigger the callback
+    dma_callbacks[DMA1][DMA_STREAM_1](true, (void *) dma_callback_context[DMA1][DMA_STREAM_1]); // False for error
+}
+
+// UART Interrupt handler example
+void irq_10_handler(void) {
+    // Disable the stream and clear the dynamic parameters.
+    CLR_FIELD(dma_cr_map[DMA1][DMA_STREAM_2], DMAx_SxCR_EN);
+    *DMAx_SxM0AR[DMA1][DMA_STREAM_2] = 0;
+    *DMAx_SxPAR[DMA1][DMA_STREAM_2] = 0;
+    CLR_FIELD(DMAx_SxNDTR[DMA1][DMA_STREAM_2], DMAx_SxNDTR_NDT);
+
+    // De-init uart dma transactio
+    uart_context_t *context = dma_callback_context[DMA1][DMA_STREAM_2];
+    CLR_FIELD(UARTx_CRx[context->channel][3], UARTx_CR3_DMAT);
+    context->busy = false;
+}
+
+// I2C Interrupt handler example
+void irq_11_handler(void) {
+    // Disable the stream and clear the dynamic parameters.
+    CLR_FIELD(dma_cr_map[DMA1][DMA_STREAM_3], DMAx_SxCR_EN);
+    *DMAx_SxM0AR[DMA1][DMA_STREAM_3] = 0;
+    *DMAx_SxPAR[DMA1][DMA_STREAM_3] = 0;
+    CLR_FIELD(DMAx_SxNDTR[DMA1][DMA_STREAM_3], DMAx_SxNDTR_NDT);
+
+    // De-init uart dma transactio
+    bool *i2c_busy = dma_callback_context[DMA1][DMA_STREAM_3];
+    *(i2c_busy) = false;
 }

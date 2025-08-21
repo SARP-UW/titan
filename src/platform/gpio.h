@@ -173,6 +173,12 @@ void tal_alternate_mode(int pin, int value);
 */
 bool tal_read_pin(int pin);
 
+/**
+ * @param pin: The GPIO pin for which to enable the clock
+ * @return bool: True if successful false otherwise
+ */
+bool tal_enable_clock(int pin);
+
 
 void tal_set_mode(int pin, int mode)
 {
@@ -313,6 +319,45 @@ bool tal_read_pin(int pin)
 }
 
 // add read and write buffer as well
+bool tal_enable_clock(int pin) {
+    gpio_port_t port = port_index_from_pin[pin] / 100;
+    switch (port) {
+        case (GPIO_PORT_A): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOAEN);
+            return true;
+        case (GPIO_PORT_B): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOBEN);
+            return true;
+        case (GPIO_PORT_C): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOCEN);
+            return true;
+        case (GPIO_PORT_D): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIODEN);
+            return true;
+        case (GPIO_PORT_E): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOEEN);
+            return true;
+        case (GPIO_PORT_F): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOFEN);
+            return true;
+        case (GPIO_PORT_G): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOGEN);
+            return true;
+        case (GPIO_PORT_H): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOHEN);
+            return true;
+        case (GPIO_PORT_I): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOIEN);
+            return true;
+        case (GPIO_PORT_J): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOJEN);
+            return true;
+        case (GPIO_PORT_K): // 
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOKEN);
+            return true;
+    }
+    return false;
+}
 
 #if defined(__cplusplus)
   }

@@ -1,3 +1,23 @@
+/**
+ * This file is part of the Titan Flight Computer Project
+ * Copyright (c) 2024 UW SARP
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * @file src/app/dma.h
+ * @authors Charles Faisandier
+ * @brief DMA Public Interface.
+ */
 #pragma once
 
 #include <stdint.h>
@@ -11,7 +31,6 @@
 typedef enum {
     DMA1 = DMA_INSTANCE_MIN,
     DMA2,
-    MDMA, 
     DMA_INSTANCE_COUNT
 } dma_instance_t;
 
@@ -35,7 +54,6 @@ typedef enum {
 typedef enum {
     PERIPH_TO_MEM = DMA_DIRECTION_MIN,
     MEM_TO_PERIPH,
-    MEM_TO_MEM,
     DMA_DIR_COUNT
 } dma_direction_t;
 
@@ -58,15 +76,6 @@ typedef enum {
     DMA_PRIORITY_COUNT
 } dma_priority_t;
 
-// Enum for DMA events (for callbacks)
-#define DMA_EVENT_MIN 0
-typedef enum {
-    DMA_EVENT_TRANSFER_COMPLETE = DMA_EVENT_MIN,
-    DMA_EVENT_HALF_TRANSFER,
-    DMA_EVENT_TRANSFER_ERROR,
-    DMA_EVENT_COUNT
-} dma_event_t;
-
 #define DMA_FIFO_THRESHOLD_MIN 0
 typedef enum {
     DMA_FIFO_THRESHOLD_FULL = DMA_FIFO_THRESHOLD_MIN, 
@@ -81,7 +90,7 @@ typedef void (*dma_callback_t)(bool success, void *context);
 
 // Configuration structure for a DMA stream
 typedef struct {
-    dma_instance_t   instance;      // DMA1, DMA2, MDMA, BDMA
+    dma_instance_t   instance;      // DMA1, DMA2, MDMA
     dma_stream_t     stream;        // Specific stream/channel (0-7 for DMA1/2)
     uint32_t         request_id;    // DMAMUX request ID for peripheral (if applicable, e.g., DMA_REQUEST_USART1_TX)
     dma_direction_t  direction;
@@ -95,6 +104,48 @@ typedef struct {
     dma_callback_t   callback;
 } dma_config_t;
 
+/**
+ * @brief Peripheral DMA Config structure.
+ *
+ * Exact copy of spi_dma_config_t, but w/o the request_id field.
+ * The peripheral driver should be able to figure out the request_id.
+ */
+typedef struct {
+    dma_instance_t   instance;      // DMA1, DMA2, MDMA, BDMA
+    dma_stream_t     stream;        // Specific stream/channel (0-7 for DMA1/2)
+    dma_direction_t  direction;
+    dma_data_size_t  src_data_size; // Source data width
+    dma_data_size_t  dest_data_size; // Destination data width
+    bool             src_inc_enabled; // Source address increment
+    bool             dest_inc_enabled; // Destination address increment
+    dma_priority_t   priority;
+    bool             fifo_enabled;
+    uint32_t         fifo_threshold;  // FIFO threshold for RX stream. Currently left defined by
+                                      // the caller, might become internal depending on usecase.
+} periph_dma_config_t;
+
+/**
+ * @brief DMA transfer config
+ * 
+ * Specifies all necessary parameters for dma transfer.
+ */
+typedef struct {
+    dma_instance_t instance;
+    dma_stream_t stream;
+    const void* src;
+    void* dest;
+    size_t size;
+    void *context;
+    bool disable_mem_inc; // Useful for dummy spi transactions
+} dma_transfer_t;
+
+// Used to track rx/tx stream/instance for peripheral instances
+typedef struct {
+    dma_instance_t rx_instance; // TODO: Perhaps simplify this so only one instance
+    dma_instance_t tx_instance;
+    dma_stream_t rx_stream;
+    dma_stream_t tx_stream;
+} dma_periph_streaminfo_t;
 
 /**************************************************************************************************
 * @section Public Functions
@@ -124,4 +175,12 @@ bool dma_configure_stream(tal_flag_t *flag, const dma_config_t* config);
  * @param size Number of bytes to transfer.
  * @return bool, whether the transfer was successfully started.
  */
-bool dma_start_transfer(tal_flag_t *flag, dma_instance_t instance, dma_stream_t stream, const void* src, void* dest, size_t size, void *context);
+bool dma_start_transfer(tal_flag_t *flag, dma_transfer_t *dma_transfer);
+
+/**
+ * @brief Checks the validity of a DMA peripheral config
+ * @param flag Error flag.
+ * @param config The config to check.
+ * @return bool Whether the config is valid.
+ */
+inline static bool check_periph_dma_config_validity(tal_flag_t *flag, periph_dma_config_t *dma_config);
