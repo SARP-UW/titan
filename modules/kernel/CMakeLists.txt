@@ -26,7 +26,7 @@ add_library(titan_module_kernel STATIC)
 target_link_libraries(titan_module_kernel PRIVATE
   titan_interface
   titan_module_internal
-  titan_module_common
+  titan_module_util
 )
 
 target_include_directories(titan_module_kernel

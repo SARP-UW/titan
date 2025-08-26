@@ -20,7 +20,7 @@
 cmake_minimum_required(VERSION 3.19)
 
 # Add all active subdirectories
-add_subdirectory("common")
 add_subdirectory("internal")
 add_subdirectory("kernel")
 add_subdirectory("mcu")
+add_subdirectory("util")

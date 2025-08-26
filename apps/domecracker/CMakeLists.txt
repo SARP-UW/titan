@@ -31,6 +31,7 @@ target_link_libraries(titan_app_domecracker_interface INTERFACE
   titan_interface
   titan_module_kernel
   titan_module_mcu
+  titan_module_util
 )
 
 target_include_directories(titan_app_domecracker_interface INTERFACE

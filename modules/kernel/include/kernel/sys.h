@@ -14,35 +14,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file modules/kernel/include/kernel/mutex.h
+ * @file modules/kernel/include/kernel/sys.h
  * @authors Aaron McBride
- * @brief Mutex synchronization primitives.
+ * @brief System control utilities.
  */
 
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
-#include "kernel/thread.h"
 
-struct ti_mutex_t {
-  const int32_t id;
-  const void* const handle;
+enum ti_sys_sleep_mode_t {
+  TI_SYS_SLEEP_MODE_NORMAL,
+  TI_SYS_SLEEP_MODE_DEEP,
 };
 
-#define TI_MUTEX_MEM_SIZE 0
+__attribute__((noreturn)) void ti_sys_restart(void);
 
-struct ti_mutex_t ti_create_mutex(void* mem);
-
-void ti_destroy_mutex(struct ti_mutex_t mutex);
-
-bool ti_acquire_mutex(struct ti_mutex_t mutex, int64_t timeout);
-
-bool ti_release_mutex(struct ti_mutex_t mutex, int64_t timeout);
-
-bool ti_is_mutex_locked(struct ti_mutex_t mutex);
-
-struct ti_thread_t ti_get_mutex_owner(struct ti_mutex_t mutex);
-
-bool ti_is_valid_mutex(struct ti_mutex_t mutex);
-
-bool ti_is_mutex_equal(struct ti_mutex_t mutex1, struct ti_mutex_t mutex2);
+__attribute__((noreturn)) void ti_sys_sleep(enum ti_sys_sleep_mode_t mode);

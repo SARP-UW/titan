@@ -22,111 +22,62 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
-#include "common/errc.h"
+#include <stddef.h>
 
-/** @brief TODO */
-static const int32_t TI_MAX_THREAD_PRIORITY = 255;
-
-/** @brief TODO */
-static const int32_t TI_MIN_THREAD_PRIORITY = 0;
-
-/** @brief TODO */
-enum {
+enum ti_thread_state_t {
+  TI_THREAD_STATE_EXCLUSIVE,
   TI_THREAD_STATE_CRITICAL,
   TI_THREAD_STATE_RUNNING,
   TI_THREAD_STATE_READY,
   TI_THREAD_STATE_SUSPENDED,
   TI_THREAD_STATE_STOPPED,
   TI_THREAD_STATE_OVERFLOW,
-  TI_THREAD_STATE_NULL,
-} ti_thread_state_t;
+};
 
-/** @brief TODO */
-struct {
+struct ti_thread_t {
   const int32_t id;
   const void* const handle;
-} ti_thread_t;
+};
 
-/**
- * @brief TODO
- * @param entry_fn 
- * @param arg 
- * @param stack 
- * @param stack_size 
- * @param priority 
- * @return 
- */
-struct ti_thread_t ti_create_thread(void (*entry_fn)(void*), void* arg, void* stack, int32_t stack_size, int32_t priority);
+extern const int32_t TI_MAX_THREAD_PRIORITY;
+extern const int32_t TI_MIN_THREAD_PRIORITY;
 
-/**
- * @brief TODO
- * @param thread 
- */
+#define TI_THREAD_MEM_SIZE(stack_size) 0
+
+struct ti_thread_t ti_create_thread(void* mem, void (*entry_fn)(void*), void* arg, int32_t stack_size, int32_t priority);
+
 void ti_destroy_thread(struct ti_thread_t thread);
 
-/**
- * @brief TODO
- * @param thread 
- */
 void ti_suspend_thread(struct ti_thread_t thread);
 
-/**
- * @brief TODO
- * @param thread 
- */
 void ti_resume_thread(struct ti_thread_t thread);
 
-/**
- * @brief TODO
- */
 void ti_enter_critical(void);
 
-/**
- * @brief TODO
- */
 void ti_exit_critical(void);
 
-/**
- * @brief TODO
- */
+void ti_enter_exclusive(void);
+
+void ti_exit_exclusive(void);
+
 void ti_exit(void);
 
-/**
- * @brief TODO
- */
 void ti_yield(void);
 
-/**
- * @brief TODO
- * @param thread 
- * @param priority 
- */
 void ti_set_thread_priority(struct ti_thread_t thread, int32_t priority);
 
-/**
- * @brief TODO
- * @param thread 
- * @return 
- */
 int32_t ti_get_thread_priority(struct ti_thread_t thread);
 
-/**
- * @brief TODO
- * @param thread 
- * @return 
- */
 enum thread_state_t ti_get_thread_state(struct ti_thread_t thread);
 
-/**
- * @brief TODO
- * @return
- */
+void* ti_get_thread_arg(struct ti_thread_t thread);
+
+int32_t ti_get_thread_stack_size(struct ti_thread_t thread);
+
+int32_t ti_get_thread_stack_usage(struct ti_thread_t thread);
+
+bool ti_is_valid_thread(struct ti_thread_t thread);
+
 struct ti_thread_t ti_get_this_thread(void);
 
-/**
- * @brief TODO
- * @param thread_1 
- * @param thread_2 
- * @return 
- */
 bool ti_is_thread_equal(struct ti_thread_t thread_1, struct ti_thread_t thread_2);

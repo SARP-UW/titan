@@ -14,35 +14,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file modules/kernel/include/kernel/mutex.h
+ * @file modules/kernel/include/kernel/flag.h
  * @authors Aaron McBride
- * @brief Mutex synchronization primitives.
+ * @brief Flag synchronization primitives.
  */
 
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
-#include "kernel/thread.h"
 
-struct ti_mutex_t {
+struct  ti_flag_t {
   const int32_t id;
   const void* const handle;
 };
 
-#define TI_MUTEX_MEM_SIZE 0
+#define TI_FLAG_MEM_SIZE 0
 
-struct ti_mutex_t ti_create_mutex(void* mem);
+struct ti_flag_t ti_create_flag(void* mem);
 
-void ti_destroy_mutex(struct ti_mutex_t mutex);
+void ti_destroy_flag(struct ti_flag_t flag);
 
-bool ti_acquire_mutex(struct ti_mutex_t mutex, int64_t timeout);
+void ti_set_flag(struct ti_flag_t flag);
 
-bool ti_release_mutex(struct ti_mutex_t mutex, int64_t timeout);
+void ti_clear_flag(struct ti_flag_t flag);
 
-bool ti_is_mutex_locked(struct ti_mutex_t mutex);
+bool ti_get_flag(struct ti_flag_t flag);
 
-struct ti_thread_t ti_get_mutex_owner(struct ti_mutex_t mutex);
+bool ti_await_flag(struct ti_flag_t flag, bool state, int64_t timeout);
 
-bool ti_is_valid_mutex(struct ti_mutex_t mutex);
+bool ti_is_flag_valid(struct ti_flag_t flag);
 
-bool ti_is_mutex_equal(struct ti_mutex_t mutex1, struct ti_mutex_t mutex2);
+bool ti_is_flag_equal(struct ti_flag_t flag_1, struct ti_flag_t flag_2);

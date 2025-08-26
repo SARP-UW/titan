@@ -14,35 +14,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file modules/kernel/include/kernel/mutex.h
+ * @file modules/kernel/include/kernel/error.h
  * @authors Aaron McBride
- * @brief Mutex synchronization primitives.
+ * @brief Thread error handling and reporting utilities.
  */
 
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include "util/errc.h"
 #include "kernel/thread.h"
 
-struct ti_mutex_t {
-  const int32_t id;
-  const void* const handle;
+struct ti_error_t {
+  const enum ti_errc_t errc;
+  const char* msg;
+  const char* file;
+  const char* func;
+  const int32_t line; 
 };
 
-#define TI_MUTEX_MEM_SIZE 0
+#define TI_ERROR(errc, msg) ()
 
-struct ti_mutex_t ti_create_mutex(void* mem);
+#define TI_ERROR_IF(cond, errc, msg) ()
 
-void ti_destroy_mutex(struct ti_mutex_t mutex);
+bool ti_is_error(struct ti_thread_t thread);
 
-bool ti_acquire_mutex(struct ti_mutex_t mutex, int64_t timeout);
-
-bool ti_release_mutex(struct ti_mutex_t mutex, int64_t timeout);
-
-bool ti_is_mutex_locked(struct ti_mutex_t mutex);
-
-struct ti_thread_t ti_get_mutex_owner(struct ti_mutex_t mutex);
-
-bool ti_is_valid_mutex(struct ti_mutex_t mutex);
-
-bool ti_is_mutex_equal(struct ti_mutex_t mutex1, struct ti_mutex_t mutex2);
+bool ti_await_error(struct ti_thread_t thread, int64_t timeout, struct ti_error_t* error_out);

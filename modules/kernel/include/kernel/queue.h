@@ -14,35 +14,40 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file modules/kernel/include/kernel/mutex.h
+ * @file modules/kernel/include/kernel/queue.h
  * @authors Aaron McBride
- * @brief Mutex synchronization primitives.
+ * @brief Queue synchronization primitives.
  */
 
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
-#include "kernel/thread.h"
 
-struct ti_mutex_t {
+struct ti_queue_t {
   const int32_t id;
   const void* const handle;
 };
 
-#define TI_MUTEX_MEM_SIZE 0
+#define TI_QUEUE_MEM_SIZE(size, length) 0
 
-struct ti_mutex_t ti_create_mutex(void* mem);
+struct ti_queue_t create_queue(void* mem, int32_t size, int32_t length);
 
-void ti_destroy_mutex(struct ti_mutex_t mutex);
+void destroy_queue(struct ti_queue_t queue);
 
-bool ti_acquire_mutex(struct ti_mutex_t mutex, int64_t timeout);
+void ti_queue_push(struct ti_queue_t queue, const void* src);
 
-bool ti_release_mutex(struct ti_mutex_t mutex, int64_t timeout);
+void ti_queue_pop(struct ti_queue_t queue, void* dst);
 
-bool ti_is_mutex_locked(struct ti_mutex_t mutex);
+void ti_reset_queue(struct ti_queue_t queue);
 
-struct ti_thread_t ti_get_mutex_owner(struct ti_mutex_t mutex);
+int32_t ti_get_queue_size(struct ti_queue_t queue);
 
-bool ti_is_valid_mutex(struct ti_mutex_t mutex);
+int32_t ti_get_queue_length(struct ti_queue_t queue);
 
-bool ti_is_mutex_equal(struct ti_mutex_t mutex1, struct ti_mutex_t mutex2);
+int32_t ti_get_queue_count(struct ti_queue_t queue);
+
+bool ti_is_queue_full(struct ti_queue_t queue);
+
+bool ti_is_valid_queue(struct ti_queue_t queue);
+
+bool ti_is_queue_equal(struct ti_queue_t queue_1, struct ti_queue_t queue_2);

@@ -14,35 +14,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file modules/kernel/include/kernel/mutex.h
+ * @file modules/kernel/include/kernel/atomic.h
  * @authors Aaron McBride
- * @brief Mutex synchronization primitives.
+ * @brief Atomic operations.
  */
 
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
-#include "kernel/thread.h"
 
-struct ti_mutex_t {
-  const int32_t id;
-  const void* const handle;
-};
+void ti_atomic_store(volatile uint32_t* dst, uint32_t value);
 
-#define TI_MUTEX_MEM_SIZE 0
+uint32_t ti_atomic_load(volatile const uint32_t* src);
 
-struct ti_mutex_t ti_create_mutex(void* mem);
+uint32_t ti_atomic_exchange(volatile uint32_t* dst, uint32_t value);
 
-void ti_destroy_mutex(struct ti_mutex_t mutex);
+uint32_t ti_atomic_cmp_exchange(volatile uint32_t* dst, uint32_t exp, uint32_t value);
 
-bool ti_acquire_mutex(struct ti_mutex_t mutex, int64_t timeout);
+void ti_atomic_add(volatile uint32_t* dst, uint32_t value);
 
-bool ti_release_mutex(struct ti_mutex_t mutex, int64_t timeout);
+void ti_atomic_sub(volatile uint32_t* dst, uint32_t value);
 
-bool ti_is_mutex_locked(struct ti_mutex_t mutex);
+void ti_atomic_and(volatile uint32_t* dst, uint32_t value);
 
-struct ti_thread_t ti_get_mutex_owner(struct ti_mutex_t mutex);
+void ti_atomic_or(volatile uint32_t* dst, uint32_t value);
 
-bool ti_is_valid_mutex(struct ti_mutex_t mutex);
-
-bool ti_is_mutex_equal(struct ti_mutex_t mutex1, struct ti_mutex_t mutex2);
+void ti_atomic_xor(volatile uint32_t* dst, uint32_t value);

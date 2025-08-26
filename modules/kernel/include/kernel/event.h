@@ -1,6 +1,6 @@
 /**
  * This file is part of the Titan Project.
- * Copyright (c) 2024 UW SARP
+ * Copyright (c) 2025 UW SARP
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,31 +14,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
- * @file modules/common/include/common/errc.h
+ * @file modules/kernel/include/kernel/event.h
  * @authors Aaron McBride
- * @brief Error code definitions and utility functions.
+ * @brief Event synchronization primitives.
  */
 
 #pragma once
 #include <stdint.h>
+#include <stdbool.h>
 
-/** @brief TODO */
-enum {
-  TI_ERRC_NONE = 0,
-} ti_errc_t;
+struct ti_event_t {
+  const int32_t id;
+  const void* const handle;
+};
 
-void some_function(int arg, ti_errc_t* error);
+#define TI_EVENT_MEM_SIZE 0
 
-/**
- * @brief TODO
- * @param errc 
- * @param out 
- */
-char* ti_get_errc_name(enum ti_errc_t errc);
+struct ti_event_t ti_create_event(void* mem);
 
-/**
- * @brief TODO
- * @param errc
- * @param out 
- */
-char* ti_get_errc_desc(enum ti_errc_t errc);
+void ti_destroy_event(struct ti_event_t event);
+
+void ti_trigger_event(struct ti_event_t event);
+
+bool ti_await_event(struct ti_event_t event, int64_t timeout);
+
+bool ti_is_event_valid(struct ti_event_t event);
+
+bool ti_is_event_equal(struct ti_event_t event_1, struct ti_event_t event_2);

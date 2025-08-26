@@ -8,6 +8,6 @@
 - Seperate code into sections
 
 # Error Handling
-- Use ASSERT() to verify arguments passed to functions (preconditions)
+- Use ASSERT() to verify arguments passed to functions (preconditions) (MAY CHANGE...)
 - Return an error code (ti_errc_t) from a function for runtime errors.
 - Log an error every time a function returns an error code.

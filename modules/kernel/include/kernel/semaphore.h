@@ -24,11 +24,29 @@
 #include <stdbool.h>
 #include "kernel/thread.h"
 
-struct {
+struct ti_semaphore_t {
   const int32_t id;
   const void* const handle;
-} ti_semaphore_t;
+};
 
-struct ti_semaphore_t ti_create_semaphore(int32_t max_count, int32_t init_count);
+#define TI_SEMAPHORE_MEM_SIZE(capacity) 0
+
+struct ti_semaphore_t ti_create_semaphore(void* mem, int32_t capacity);
 
 void ti_destroy_semaphore(struct ti_semaphore_t semaphore);
+
+bool ti_aquire_semaphore(struct ti_semaphore_t semaphore, uint64_t timeout);
+
+bool ti_release_semaphore(struct ti_semaphore_t semaphore, uint64_t timeout);
+
+int32_t ti_get_semaphore_capacity(struct ti_semaphore_t semaphore);
+
+int32_t ti_get_semaphore_count(struct ti_semaphore_t semaphore);
+
+bool ti_is_semaphore_full(struct ti_semaphore_t semaphore);
+
+struct ti_thread_t ti_get_semaphore_owner(struct ti_semaphore_t semaphore, int32_t index);
+
+bool ti_is_valid_semaphore(struct ti_semaphore_t semaphore);
+
+bool ti_is_semaphore_equal(struct ti_semaphore_t semaphore1, struct ti_semaphore_t semaphore2);
