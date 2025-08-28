@@ -101,8 +101,8 @@ void spi_dma_callback(bool success, spi_context_t *context) {
     if (success) {
         context->num_complete++;
     } else {
-        ti_release_mutex(mutex[instance], mutex_timeouts[instance]);
         callback(false);
+        ti_release_mutex(mutex[instance], mutex_timeouts[instance]);
     }
     if (context->num_complete == 2) {
         tal_set_pin(context->device.gpio_pin, 1);
@@ -110,8 +110,8 @@ void spi_dma_callback(bool success, spi_context_t *context) {
         CLR_FIELD(SPIx_CFG1[instance], SPIx_CFG1_RXDMAEN);
         CLR_FIELD(SPIx_CFG1[instance], SPIx_CFG1_TXDMAEN);
         context->num_complete = 0;
-        ti_release_mutex(mutex[instance], mutex_timeouts[instance]);
         callback(true);
+        ti_release_mutex(mutex[instance], mutex_timeouts[instance]);
     }
 }
 

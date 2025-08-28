@@ -19,14 +19,27 @@
  * @brief Radio Implementation.
  */
 #include "outputs/radio.h"
+#include "kernel/mutex.h"
 #include "util/errc.h"
 #include "mcu/spi.h"
 #include "mcu/gpio.h"
 
+#define RADIO_MUTEX_TIMEOUT 1000
+
 /**************************************************************************************************
- * @section Private Functions
+ * @section Private Type Definitions
  **************************************************************************************************/
-struct ti_radio_config config = {0};
+struct radio_context_t {
+    void *data;
+    size_t size;
+};
+
+/**************************************************************************************************
+ * @section Private Data Structures
+ **************************************************************************************************/
+struct ti_radio_config_t config = {0};
+struct ti_mutex_t radio_mutex = {0};
+struct radio_context_t radio_context = {0};
 
 /**************************************************************************************************
  * @section Private Functions
@@ -92,10 +105,98 @@ int radio_send_command(void *command, size_t size) {
    return TI_ERRC_NONE;
 }
 
+int cancel_transaction() {
+    uint8_t cancel_command[] = {
+        0x34, // Change state
+        0x01, // Go to ready state
+    };
+    size_t cancel_size = sizeof(cancel_command);
+    int errc =  radio_send_command(&cancel_command, cancel_size);
+    ti_mutex_release(radio_mutex, RADIO_MUTEX_TIMEOUT);
+    exti_disable(config.nirq_pin);
+    return errc;
+}
+
+void spi_callback(bool success) {
+    if (!success) {
+        // TODO Log, potentially handle error
+        ti_mutex_release(radio_mutex, RADIO_MUTEX_TIMEOUT);
+        return;
+    }
+    uint8_t frr_command = 0x50;
+    uint8_t rx_data;
+    spi_block(config.spi_dev);
+    int errc = spi_transfer_sync(&(struct spi_sync_transfer_t){
+        .device = config.spi_dev,
+        .source = &frr_command,
+        .dest = &rx_data,
+        .size = 1,
+        .timeout = config.tx_write_timeout,
+        .read_inc = true,
+    });
+    if (errc != TI_ERRC_NONE) {
+        cancel_transaction();
+    }
+    uint8_t frr_size = 4;
+    uint8_t frr_results[4];
+    errc = spi_transfer_sync(&(struct spi_sync_transfer_t){
+        .device = config.spi_dev,
+        .source = &rx_data,
+        .dest = frr_results,
+        .size = frr_size,
+        .timeout = config.tx_write_timeout,
+        .read_inc = false,
+    });
+    spi_unblock(config.spi_dev);
+    if (errc != TI_ERRC_NONE) {
+        cancel_transaction();
+    }
+    uint8_t cur_state = frr_results[0];
+    uint8_t ph_pend = frr_results[1];
+    uint8_t int_chip_pending = frr_results[2];
+    uint8_t latched_rssi = frr_results[3];
+    // FIFO error or CRC error or CMD error
+    if (cur_state == 0x04 || ph_pend == 0x01 || int_chip_pending == 0x01) {
+        // TODO: Log frr results
+        cancel_transaction();
+    // READY state and PACKET_SENT
+    } else if (cur_state == 0x01 && ph_pend == 0x04) {
+        exti_disable(config.nirq_pin);
+        ti_mutex_release(radio_mutex, RADIO_MUTEX_TIMEOUT);
+    }
+    return;
+}
+
+void tx_empty_callback(void) {
+    uint8_t fifo_size = config.combined_fifo ? 129 : 64;
+    size_t bytes_avail = fifo_size - config.tx_threshold;
+    uint8_t rx_data;
+    int errc = spi_transfer_async(&(struct spi_async_transfer_t){
+        .device = config.spi_dev,
+        .source = radio_context.data,
+        .dest = &rx_data,
+        .size = bytes_avail < radio_context.size ? bytes_avail : radio_context.size,
+        .callback = spi_callback,
+        .write_fifo = true,
+        .read_fifo = false,
+        .write_mem_inc = true,
+        .read_mem_inc = false,
+    });
+    if (errc != TI_ERRC_NONE) {
+        // TODO: Log this, handle error.
+        cancel_transaction();
+        return;
+    }
+}
+
 /**************************************************************************************************
  * @section Public Functions
  **************************************************************************************************/
-int ti_radio_init(struct ti_radio_config *config) {
+int ti_radio_init(struct ti_radio_config_t *config) {
+    if (ti_mutex_lock(radio_mutex, RADIO_MUTEX_TIMEOUT) != TI_ERRC_NONE) {
+        return TI_ERRC_MUTEX_LOCKED;
+    }
+
    // configure sdn pin
    ti_gpio_clock_enable(config->sdn_pin);
    ti_gpio_set_drain(config->sdn_pin, 0);
@@ -113,33 +214,49 @@ int ti_radio_init(struct ti_radio_config *config) {
     0x01, // Normal operation
     0x00, // Internal crystal
     0x01, 0xC9, 0xC3, 0x80}; // 30MHz crystal, 4.5V
-   size_t power_on_size = sizeof(power_on_cmd) / sizeof(power_on_cmd[0]);
+   size_t power_on_size = sizeof(power_on_cmd);
    radio_send_command(&power_on_cmd, power_on_size);
+
+   // Register the interrupt
+   ti_exti_register_pin(config->nirq_pin, &tx_empty_callback, config->interupt_priority, true);
 
    // Global configuration
    uint8_t global_config_command[] = {
        0x11, // Set property
        0x00, // Group: Global
-       0x01, // Num props: 1
+       0x04, // Num props: 4
        0x00, // Start prop: GLOBAL_XO_TUNE
        config->global_xo_tune,
+       0x00, // Default clock
+       0x00, // Default low battery threshold
+       0x01 | (config->combined_fifo << 3),  // Combined FIFO and high power mode
    };
    size_t global_config_size = sizeof(global_config_command);
    int errc = radio_send_command(&global_config_command, global_config_size);
    if (errc != TI_ERRC_NONE) {
        return errc;
    }
-   
-   // Control configuration
+
+   // Interrupt configuration
+    uint8_t interrupt_config_command[] = {
+        0x11, // Set property
+        0x01, // Group: Control
+        0x02, // Num props: 2
+        0x00, // Start prop: INT_CTL_ENABLE
+        0x01, // Enable PH nIRQ
+        0x02, // TX_FIFO_ALMOST_EMPTY interrupt
+    };
+
+   // Fast Response Register Control configuration
    uint8_t control_config_command[] = {
        0x11, // Set property
-       0x01, // Group: Control
+       0x02, // Group: FRR Control
        0x04, // Num props: 4
        0x00, // Start prop: FRR_CTL_A_MODE
-       0x09, // Current state
-       0x04, // PACKET_SENT Flag
-       0x08, // Error flag
-       0x10, // Check if lots of interference
+       0x09, // Reg A: Current state
+       0x03, // Reg B: PACKET_SENT Flag
+       0x08, // Reg C: Error flag
+       0x10, // Reg D: Check if lots of interference
    };
    size_t control_config_size = sizeof(control_config_command);
    errc = radio_send_command(&control_config_command, control_config_size);
@@ -167,7 +284,94 @@ int ti_radio_init(struct ti_radio_config *config) {
        return errc;
    }
 
+   // Packet configuration
+   // TODO: Potentially add CRC
+    uint8_t packet_config_command[] = {
+        0x11, // Set property
+        0x12, // Group: Packet
+        0x0b,
+        15, // Num props: 13
+        config->tx_threshold, // TX Threshold
+        0x30, // TX Threshold: default
+        ((uint8_t *) config->f1_length)[1],
+        ((uint8_t *) config->f1_length)[0],
+        0x00, // Field 1 Config: Default
+        0x00, // Field 1 CRC Config: Default.
+        ((uint8_t *) config->f2_length)[1],
+        ((uint8_t *) config->f2_length)[0],
+        0x00, // Field 2 Config: Default
+        0x00, // Field 2 CRC Config: Default.
+        ((uint8_t *) config->f3_length)[1],
+        ((uint8_t *) config->f3_length)[0],
+        0x00, // Field 3 Config: Default
+        0x00, // Field 3 CRC Config: Default.
+        ((uint8_t *) config->f4_length)[1],
+        ((uint8_t *) config->f4_length)[0],
+        0x00, // Field 4 Config: Default
+        0x00, // Field 4 CRC Config: Default.
+        ((uint8_t *) config->f5_length)[1],
+        ((uint8_t *) config->f5_length)[0],
+    };
+    size_t packet_config_size = sizeof(packet_config_command);
+    errc = radio_send_command(&packet_config_command, packet_config_size);
+    if (errc != TI_ERRC_NONE) {
+        return errc;
+    }
+
    // TODO: Maybe add match functionality?
 
+   // TODO: Maybe configure variable length fields?
+
    return TI_ERRC_NONE;
+}
+
+int ti_radio_transmit(void *data, size_t size, uint8_t channel) {
+    if (!ti_acquire_mutex(radio_mutex, RADIO_MUTEX_TIMEOUT)) {
+        return TI_ERRC_MUTEX_LOCKED;
+    }
+    // TODO: Parameter checking
+
+    // Enable the interrupt
+    exti_enable(config.nirq_pin);
+
+    // Register context
+    radio_context.data = data;
+    radio_context.size = size; 
+
+    // Write data to TX FIFO
+    uint8_t write_fifo_command[] = {
+        0x66, // Write TX FIFO
+    };
+    uint8_t rx_data;
+    spi_block(config.spi_dev);
+    int errc = spi_transfer_sync(&(struct spi_sync_transfer_t){
+        .device = config.spi_dev,
+        .source = write_fifo_command,
+        .dest = &rx_data,
+        .size = 1,
+        .timeout = 1000,
+        .read_inc = false,
+    });
+    if (errc != TI_ERRC_NONE) {
+        spi_unblock(config.spi_dev);
+        return errc;
+    }
+
+    // Send START_TX command
+    uint8_t start_tx_command[] = {
+        0x31, // Start TX
+        channel,
+        0x30, // Enter TX mode, exit READY state, don't re-transmit.
+        ((uint8_t *) &size)[1],
+        ((uint8_t *) &size)[0],
+        0x00, // No delay
+        0x00, // No repeat
+    };
+    size_t start_tx_size = sizeof(start_tx_command);
+    int errc = radio_send_command(&start_tx_command, start_tx_size);
+    if (errc != TI_ERRC_NONE) {
+        return errc;
+    }
+
+    return TI_ERRC_NONE;
 }

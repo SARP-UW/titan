@@ -39,6 +39,9 @@ enum ti_errc_t {
   TI_ERRC_UBX_SIZE, /** @brief Wrong ubx size */
   TI_ERRC_UBX_PAYLOAD, /** @brief Wrong ubx payload */
   TI_ERRC_RADIO_CTS_TIMEOUT, /** @brief Radio CTS timeout */
+  TI_ERRC_MUTEX_LOCKED, /** @brief Failed to enable EXTI ISR because mutex is locked */
+  TI_ERRC_MUTEX_UNLOCKED, /** @brief Failed to disable EXTI ISR because mutex is unlocked */
+  TI_ERRC_MUTEX_TIMEOUT, /** @brief Failed to disable EXTI ISR because mutex timed out */
 };
 
 /**
