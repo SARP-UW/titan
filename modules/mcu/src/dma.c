@@ -21,7 +21,7 @@
  */
 #include "util/errc.h"
 #include "mcu/dma.h"
-#include "mcu/mmio.h"
+#include "internal/mmio.h"
 #include "mcu/spi.h"
 // #include "mcu/uart.h"
 #include "kernel/mutex.h"

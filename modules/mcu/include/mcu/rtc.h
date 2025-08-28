@@ -25,7 +25,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "mcu/mmio.h"
+#include "internal/mmio.h"
 
 #if defined(__cplusplus)
   extern "C" {

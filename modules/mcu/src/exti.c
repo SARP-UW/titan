@@ -19,7 +19,7 @@
  * @brief EXTI Interrupt Helpers and ISRs Implementation
  */
 #include "mcu/exti.h"
-#include "mcu/mmio.h"
+#include "internal/mmio.h"
 
 /**************************************************************************************************
  * @section Data Structures

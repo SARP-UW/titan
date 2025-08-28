@@ -20,7 +20,7 @@
  */
 #include "mcu/gpio.h"
 #include "inputs/gnss.h"
-#include "mcu/mmio.h"
+#include "internal/mmio.h"
 #include "mcu/exti.h"
 #include "app/mem_loc.h"
 #include "kernel/semaphore.h"

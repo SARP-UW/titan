@@ -19,7 +19,7 @@
  * @brief Implementation of SPI driver interface
  */
 #include "mcu/spi.h"
-#include "mcu/mmio.h"
+#include "internal/mmio.h"
 #include "mcu/gpio.h"
 #include <stdint.h>
 #include "kernel/mutex.h"
