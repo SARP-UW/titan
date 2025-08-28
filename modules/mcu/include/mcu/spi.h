@@ -57,7 +57,6 @@ typedef struct {
     uint8_t mosi_pin;
     uint8_t priority; // DMA priority
     uint64_t mutex_timeout;
-    uint32_t blocking_timeout;
 } spi_config_t;
 
 typedef void (*spi_callback_t)(bool success);
@@ -68,6 +67,29 @@ typedef struct {
     uint8_t num_complete; // Number of DMA streams complete
     spi_callback_t callback;
 } spi_context_t;
+
+struct spi_sync_transfer_t {
+    // Useful for chaining multiple transfers together
+    spi_device_t device;
+    void *source;
+    void *dest;
+    size_t size;
+    uint32_t timeout;
+    bool read_inc; // If writing: set to false. Use uint8_t
+};
+
+struct spi_async_transfer_t {
+    // Useful for chaining multiple transfers together
+    spi_device_t device;
+    void *source;
+    void *dest;
+    size_t size;
+    spi_callback_t callback;
+    bool write_fifo;
+    bool read_fifo;
+    bool write_mem_inc;
+    bool read_mem_inc;
+};
 
 /**************************************************************************************************
  * @section Function Definitions
@@ -92,39 +114,10 @@ int spi_init(uint8_t instance, spi_config_t *spi_config);
  */
 int spi_device_init(spi_device_t device);
 
- /**
-  * @brief Writes data over SPI asyncronously
-  * @param flag Error flag
-  * @param device Spi device to use
-  * @param source Pointer to source data
-  * @param size Size of source data in bytes
-  * @returns Whether the SPI write successfuly started, false if device is busy.
-  */
- int spi_write_async(spi_device_t device, void *source, size_t size, spi_callback_t callback);
+int spi_transfer_sync(struct spi_sync_transfer_t *transfer);
 
- /**
-  * @brief Writes data over SPI asyncronously
-  * @param flag Error flag
-  * @param device Spi device to use
-  * @param dest Pointer to rx data buffer
-  * @param size Size of rx data in bytes
-  */
-int spi_read_async(spi_device_t device, void *dest, size_t size, spi_callback_t callback, uint8_t dest_data_size);
+int spi_transfer_async(struct spi_async_transfer_t *transfer);
 
- /**
-  * @brief Writes data over SPI syncronously 
-  * @param flag Error flag
-  * @param device Spi device to use
-  * @param source Pointer to source data
-  * @param size Size of source data in bytes
-  */
-int spi_write_blocking(spi_device_t device, void *source, size_t size);
+void spi_block(spi_device_t device);
 
- /**
-  * @brief Writes data over SPI syncronously
-  * @param flag Error flag
-  * @param device Spi device to use
-  * @param dest Pointer to rx data buffer
-  * @param size Size of rx data in bytes
-  */
-int spi_read_blocking(spi_device_t device, void *dest, size_t size);
+void spi_unblock(spi_device_t device);

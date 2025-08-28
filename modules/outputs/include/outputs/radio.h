@@ -20,9 +20,15 @@
  */
 #pragma once
 #include <stdint.h>
+#include "mcu/spi.h"
 
 struct ti_radio_config {
-   struct ti_spi_device_t spi_dev;
+   spi_device_t spi_dev;
+   uint32_t timeout; // Number of times to poll CTS before timeout
+   uint8_t global_xo_tune; // Internal capacitor tuning
+   uint8_t gauss_oversample; // 0-3
+   uint32_t data_rate; // Bps?
+   uint8_t mod_type; // Modulation type
    int sdn_pin;
 };
 

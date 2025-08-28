@@ -68,7 +68,7 @@ typedef struct {
     void *dest;
     size_t size;
     void *context;
-    bool disable_mem_inc; // Useful for dummy spi transactions
+    bool mem_inc; // Useful for dummy spi transactions
 } dma_transfer_t;
 
 typedef struct {
