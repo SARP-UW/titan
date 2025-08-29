@@ -18,3 +18,22 @@
  * @authors Charles Faisandier
  * @brief Data telemetry module interface.
  */
+#include <stdbool.h>
+#include "device/radio.h"
+
+/**************************************************************************************************
+ * @section Data Types
+ **************************************************************************************************/
+// TODO: Potentially create this dynamically?
+struct ti_data_ready_t {
+    bool gnss_ready;
+    bool temp_sensor_ready;
+};
+
+struct data_telemetry_config_t {
+    struct ti_semaphore_t *semaphore;
+    uint32_t semaphore_timeout;
+    struct ti_data_ready_t *data_ready;
+    struct radio_config_t *radio_config;
+    uint8_t channel;
+};

@@ -18,3 +18,45 @@
  * @authors Charles Faisandier
  * @brief Data telemetry module implementation.
  */
+#include "app/data_telemetry.h"
+#include "kernel/thread.h"
+#include "kernel/semaphore.h"
+
+/**************************************************************************************************
+ * @section Private Data Structures
+ **************************************************************************************************/
+struct data_telemetry_config_t *dt_config = {0};
+struct ti_thread_t thread = {0};
+
+/**************************************************************************************************
+ * @section Private Functions
+ **************************************************************************************************/
+void send_sensor_data() {
+    
+}
+
+void data_telemetry_thread(void) {
+    while (1) {
+        ti_aquire_semaphore(*dt_config->semaphore, dt_config->semaphore_timeout);
+        send_sensor_data();
+    }
+}
+
+/**************************************************************************************************
+ * @section Public Functions
+ **************************************************************************************************/
+// Assumes the radio is already initialized.
+int data_telemetry_start(struct data_telemetry_config_t *config) {
+    // TODO: Parameter checking
+    
+    // Initialization
+    int errc = ti_radio_init(config->radio_config);
+    if (errc != TI_ERRC_NONE) {
+        return errc;
+    }
+}
+
+void data_telemetry_stop() {
+    ti_destroy_semaphore(*dt_config->semaphore);
+    ti_destroy_thread(thread);
+}
