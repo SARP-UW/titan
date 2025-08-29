@@ -22,13 +22,22 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
-#include "util/errc.h"
 
 /** @brief Error code enum. */
 enum ti_errc_t {
   TI_ERRC_NONE = 0, /** @brief No error occurred. */
   TI_ERRC_UNKNOWN,  /** @brief Unknown error occurred. */
   TI_ERRC_INVALID_ARG, /** @brief Invalid argument passed to function. */
+  TI_ERRC_SPI_MAX_DEV, /** @brief Reached max device count for spi instance*/
+  TI_ERRC_SPI_NO_CONTEXT,  /** @brief Couldn't find context for spi device*/
+  TI_ERRC_GNSS_CONFIG_FAIL, /** @brief Failed to configure GNSS peripheral*/
+  TI_ERRC_DMA_NO_AVAIL_STREAM, /** @brief Failed to find available dma stream*/
+  TI_ERRC_SPI_BLOCKING_TIMEOUT, /** @brief Blocking SPI transfer timed out */
+  TI_ERRC_UBX_CHECKSUM, /** @brief Wrong ubx checksum */
+  TI_ERRC_UBX_HEADER, /** @brief Wrong ubx header */
+  TI_ERRC_UBX_CLASS_ID, /** @brief Wrong ubx class and id */
+  TI_ERRC_UBX_SIZE, /** @brief Wrong ubx size */
+  TI_ERRC_UBX_PAYLOAD, /** @brief Wrong ubx payload */
 };
 
 /**
