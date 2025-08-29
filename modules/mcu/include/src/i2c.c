@@ -15,20 +15,20 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  * 
  * @file src/platform/i2c.c
- * @authors Charles Faisandier, Joshua Beard
+ * @authors Charles Faisandier
  * @brief I2C driver implementation
  */
 
 #pragma once
-
+#include "mcu/i2c.h"
+#include "internal/mmio.h"
+#include "mcu/dma.h"
+#include "util/errc.h"
+#include "kernel/mutex.h"
 #include <stdint.h>
 
-#include "platform/i2c.h"
-#include "platform/mmio.h"
-#include "platform/dma.h"
 
 #define I2C_INSTANCE_COUNT 4
-#define I2C_DMA_REQ_COUNT 2
 
 /**************************************************************************************************
  * @section Internal Data Structures and Data Types
@@ -36,7 +36,7 @@
 // Used to find the right request number for the I2C instance
 // Index 0 is for RX request, 1 is for TX
 // I2C4 is handled by DMAMUX2 so It's excluded for now.
-static const i2c_dmamux_req[I2C_INSTANCE_COUNT][I2C_DMA_REQ_COUNT] = {
+static const i2c_dmamux_req[I2C_INSTANCE_COUNT][2] = {
     [1] = {
         [0] = 33,
         [1] = 34,
@@ -51,60 +51,42 @@ static const i2c_dmamux_req[I2C_INSTANCE_COUNT][I2C_DMA_REQ_COUNT] = {
     },
 };
 
-// Stores DMA info for current I2C instance
-dma_periph_streaminfo_t i2c_to_dma = {0};
+i2c_config_t *i2c_configs[I2C_INSTANCE_COUNT] = {0};
 
-// Tracks whether I2C is currently in use
-bool i2c_busy = false;
+struct ti_mutex_t i2c_mutex[I2C_INSTANCE_COUNT] = {0};
 
-// Timeout for single I2C read/write operation. Set by configuration.
-uint32_t i2c_timeout = 0;
+uint8_t i2c_contexts[] = {1, 2, 3, 4};
+
+void *guest_contexts[I2C_INSTANCE_COUNT] = {0};
+
+dma_callback_t i2c_callbacks[I2C_INSTANCE_COUNT] = {0};
 
 /**************************************************************************************************
  * @section Private Helper Functions
  **************************************************************************************************/
-inline static bool check_i2c_config(tal_flag_t *flag, i2c_config_t *config) {
-    if (config == NULL) {
-        tal_raise(flag, "I2C configuration struct is NULL");
-        return false;
+void i2c_callback(bool success, void *context) {
+    // TODO: Implement callback handling
+    uint8_t instance = *((uint8_t*)context);
+    if (i2c_callbacks[instance]) {
+        i2c_callbacks[instance](success, guest_contexts[instance]);
     }
-    if (config->digital_filter < 0 || config->digital_filter > 15) {
-        tal_raise(flag, "I2C configuration digital_filter invalid value");
-        return false;
+    if (!ti_release_mutex(i2c_mutex[instance], i2c_configs[instance]->mutex_timeout)) {
+        // TODO: Log error.
     }
-    if (config->scl_pin < 0 || config->scl_pin > 139) {
-        tal_raise(flag, "I2C configuration scl_pin invalid value");
-        return false;
-    }
-    if (config->sda_pin < 0 || config->sda_pin > 139) {
-        tal_raise(flag, "I2C configuration sda_pin invalid value");
-        return false;
-    }
-    return true;
-}
-
-bool i2c_transmit_check_params(tal_flag_t *flag, uint16_t addr, uint8_t *buff, size_t size) {
-    if (flag == NULL) {
-        return false;
-    }
-    if (buff == NULL) {
-        tal_raise(flag, "Invalid buffer for I2C transmission");
-        return false;
-    }
-    return true;
+    return false;
 }
 
 /**************************************************************************************************
  * @section Public Function Implementation 
  **************************************************************************************************/
-bool i2c_init(tal_flag_t *flag, i2c_config_t *config, dma_callback_t callback, periph_dma_config_t *tx_stream, periph_dma_config_t *rx_stream) {
-    // Check parameters
-    if (!check_i2c_config(flag, config)) return false;
-    if (!check_periph_dma_config_validity(flag, tx_stream)) return false;
-    if (!check_periph_dma_config_validity(flag, rx_stream)) return false;
+int i2c_init(i2c_config_t *config){
+    // TODO: Check parameters
+
+    // Register config
+    i2c_configs[config->instance] = config;
 
     // 1. Enable the I2C clock
-    SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_I2CxEN[I2C_INSTANCE]);
+    SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_I2CxEN[config->instance]);
 
     // 2. Enable the GPIO clock and configure pins
     tal_enable_clock(config->scl_pin);
@@ -129,284 +111,268 @@ bool i2c_init(tal_flag_t *flag, i2c_config_t *config, dma_callback_t callback, p
     tal_pull_pin(config->scl_pin, 1);
 
     // 3. Disable peripheral before configuring
-    WRITE_FIELD(I2Cx_CR1[I2C_INSTANCE], I2Cx_CR1_PE, 0);
+    WRITE_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_PE, 0);
     
     // 4. Configure addressing mode (7-bit or 10-bit)
     if (config->addr_mode == I2C_ADDR_10BIT) {
-        SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_ADD10);
+        SET_FIELD(I2Cx_CR2[config->instance], I2Cx_CR2_ADD10);
     } else {
-        CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_ADD10);
+        CLR_FIELD(I2Cx_CR2[config->instance], I2Cx_CR2_ADD10);
     }
 
     // 5. Configure analog and digital filters
-    if (config->analog_filter) CLR_FIELD(I2Cx_CR1[I2C_INSTANCE], I2Cx_CR1_ANFOFF);
-    WRITE_FIELD(I2Cx_CR1[I2C_INSTANCE], I2Cx_CR1_DNF, config->digital_filter);
+    if (config->analog_filter) CLR_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_ANFOFF);
+    WRITE_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_DNF, config->digital_filter);
 
     // 6. Set timing
-    *I2Cx_TIMINGR[I2C_INSTANCE] = config->timing;
-
-    // 7. Set the timeout
-    i2c_timeout = config->timeout;
-
-    // 8. Configure TX DMA Stream
-    dma_config_t dma_tx_stream = {
-        .instance = tx_stream->instance,
-        .stream = tx_stream->stream,
-        .request_id = i2c_dmamux_req[I2C_INSTANCE][1],
-        .direction = tx_stream->direction,
-        .src_data_size = tx_stream->src_data_size,
-        .dest_data_size = tx_stream->dest_data_size,
-        .priority = tx_stream->priority,
-        .fifo_enabled = false, // FIFO disabled for tx
-        .fifo_threshold = tx_stream->fifo_threshold,
-        .callback = callback, // We need to know if it failed.
-    };
-    dma_configure_stream(flag, &dma_tx_stream);
-    i2c_to_dma.tx_instance = tx_stream->instance;
-    i2c_to_dma.tx_stream = tx_stream->stream;
-
-    // 9. Configure RX DMA Stream
-    dma_config_t dma_rx_stream = {
-        .instance = rx_stream->instance,
-        .stream = rx_stream->stream,
-        .request_id = i2c_dmamux_req[I2C_INSTANCE][0],
-        .direction = rx_stream->direction,
-        .src_data_size = rx_stream->src_data_size,
-        .dest_data_size = rx_stream->dest_data_size,
-        .priority = rx_stream->priority,
-        .fifo_enabled = false, // FIFO disabled for tx
-        .fifo_threshold = rx_stream->fifo_threshold,
-        .callback = callback, // We need to know if it failed.
-    };
-    dma_configure_stream(flag, &dma_rx_stream);
-    i2c_to_dma.rx_instance = rx_stream->instance;
-    i2c_to_dma.rx_stream = rx_stream->stream;
+    *I2Cx_TIMINGR[config->instance] = config->timing;
 
     // 10. Re-enable the I2C peripheral
-    SET_FIELD(I2Cx_CR1[I2C_INSTANCE], I2Cx_CR1_PE);
+    SET_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_PE);
 
     return true;
 }
 
-bool i2c_read_async(tal_flag_t *flag, uint16_t addr, uint8_t *rx_data, size_t size) {
-    // Check parameters
-    if (!i2c_transmit_check_params(flag, addr, rx_data, size)) {
-        return false;
-    }
+int i2c_read_async(struct i2c_transfer_async_t *transfer) {
+    // TODO: Check parameters
+
+    // De-reference for readability
+    struct i2c_device_t device = transfer->device; 
+    uint8_t *rx_data = transfer->data;
+    size_t size = transfer->size;
 
     // Check if busy
-    if (i2c_busy) {
-        tal_raise(flag, "I2C is busy");
-        return false;
+    if (!ti_acquire_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+        return TI_ERRC_MUTEX_AQU_TIMEOUT;
     }
-    i2c_busy = true;
 
-    // Configure and start DMA transfer
+    // Register callback and context
+    i2c_callbacks[device.instance] = transfer->callback;
+    guest_contexts[device.instance] = (void*)transfer->context;
+
     dma_transfer_t rx_transfer = {
-        .instance = i2c_to_dma.rx_instance,
-        .stream = i2c_to_dma.rx_stream,
-        .src = I2Cx_RXDR[I2C_INSTANCE], // Assuming instance 0, depends on implementation
+        .request_id = i2c_dmamux_req[device.instance][0],
+        .direction = PERIPH_TO_MEM,
+        .src_data_size = 1,
+        .dest_data_size = 1,
+        .priority = transfer->dma_priority,
+        .fifo_enabled = false,
+        .fifo_threshold = 0,
+        .callback = i2c_callback,
+        .src = I2Cx_RXDR[device.instance],
         .dest = rx_data,
         .size = size,
-        .context = &i2c_busy,
-        .disable_mem_inc = false,
+        .context = (void*)&i2c_contexts[device.instance],
+        .mem_inc = false,
     };
-    if (!dma_start_transfer(flag, &rx_transfer)) {
-        i2c_busy = false;
-        tal_raise(flag, "Failed to start I2C DMA transfer");
-        return false;
+
+    int errc = dma_start_transfer(&rx_transfer);
+    if (errc != TI_ERRC_NONE) {
+        return errc;
     }
 
     // Configure and enable I2C for a read
-    if (READ_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_ADD10)) {
-        WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_SADD_10BIT, addr);
+    if (READ_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_ADD10)) {
+        WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_SADD_10BIT, device.address);
     } else {
-        WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_SADD_7BIT, addr);
+        WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_SADD_7BIT, device.address);
     }
-    SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_AUTOEND);
-    WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_NBYTES, size);
-    SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_RD_WRN); // Set to 1 for a read operation
-    CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_PECBYTE);
-    CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_RELOAD);
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_AUTOEND);
+    WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_NBYTES, size);
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_RD_WRN); // Set to 1 for a read operation
+    CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_PECBYTE);
+    CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_RELOAD);
 
     // Enable the DMA requests and start the transfer
-    SET_FIELD(I2Cx_CR1[I2C_INSTANCE], I2Cx_CR1_RXDMAEN); // Enable DMA for reception
-    SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_START);  // Send the START condition
+    SET_FIELD(I2Cx_CR1[device.instance], I2Cx_CR1_RXDMAEN); // Enable DMA for reception
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_START);  // Send the START condition
 
     return true;
 }
 
-bool i2c_write_async(tal_flag_t *flag, uint16_t addr, uint8_t *tx_data, size_t size) {
+int i2c_write_async(struct i2c_transfer_async_t *transfer) {
     // 1. Check parameters
-    if (!i2c_write_check_params(flag, addr, tx_data, size)) {
-        return false;
-    }
+
+    // De-reference for readability
+    struct i2c_device_t device = transfer->device;
+    uint8_t *tx_data = transfer->data;
+    size_t size = transfer->size;
 
     // 2. Check if the I2C bus is busy using an atomic operation.
-    if (i2c_busy) {
-        tal_raise(flag, "I2C is busy");
-        return false;
-    }
-    i2c_busy = true;
+    if (!ti_acquire_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+        return TI_ERRC_MUTEX_AQU_TIMEOUT;
+    }   
 
     // 3. Configure the DMA transfer
     dma_transfer_t tx_transfer = {
-        .instance = i2c_to_dma.tx_instance,
-        .stream = i2c_to_dma.tx_stream,
+        .request_id = i2c_dmamux_req[device.instance][1],
+        .direction = MEM_TO_PERIPH,
+        .src_data_size = 1,
+        .dest_data_size = 1,
+        .priority = transfer->dma_priority,
+        .fifo_enabled = false,
+        .fifo_threshold = 0,
+        .callback = i2c_callback,
         .src = tx_data,
-        .dest = I2Cx_TXDR[I2C_INSTANCE],
+        .dest = I2Cx_TXDR[device.instance],
         .size = size,
-        .context = (void*)&i2c_busy,
-        .disable_mem_inc = false,
+        .context = (void*)&i2c_contexts[device.instance],
+        .mem_inc = false,
     };
 
     // 4. Start the DMA transfer
-    if (!dma_start_transfer(flag, &tx_transfer)) {
-        i2c_busy = false;
-        tal_raise(flag, "Failed to start I2C DMA transfer");
-        return false;
+    int errc = dma_start_transfer(&tx_transfer);
+    if (errc != TI_ERRC_NONE) {
+        if (!ti_release_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+            return TI_ERRC_MUTEX_REL_TIMEOUT;
+        }
+        return errc;
     }
 
     // 5. Configure and enable the I2C peripheral for a write
-    if (READ_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_ADD10)) {
-        WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_SADD_10BIT, addr);
+    if (READ_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_ADD10)) {
+        WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_SADD_10BIT, device.address);
     } else {
-        WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_SADD_7BIT, addr);
+        WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_SADD_7BIT, device.address);
     }
-    WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_NBYTES, size);    // Set number of bytes
-    CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_RD_WRN);            // Set to 0 for a write operation
-    SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_AUTOEND);           // Auto-generate STOP condition
-    CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_PECBYTE);           // Disable PEC
-    CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_RELOAD);            // Disable reload
+    WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_NBYTES, size);    // Set number of bytes
+    CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_RD_WRN);            // Set to 0 for a write operation
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_AUTOEND);           // Auto-generate STOP condition
+    CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_PECBYTE);           // Disable PEC
+    CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_RELOAD);            // Disable reload
 
     // 6. Enable the DMA requests and start the transfer
-    SET_FIELD(I2Cx_CR1[I2C_INSTANCE], I2Cx_CR1_TXDMAEN); // Enable DMA for transmission
-    SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_START);   // Send the START condition
+    SET_FIELD(I2Cx_CR1[device.instance], I2Cx_CR1_TXDMAEN); // Enable DMA for transmission
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_START);   // Send the START condition
 
     return true;
 }
 
-bool i2c_read_blocking(tal_flag_t *flag, uint16_t addr, uint8_t *rx_data, size_t size) {
-    // Check parameters
-    if (!i2c_transmit_check_params(flag, addr, rx_data, size)) {
-        return false;
-    }
+int i2c_read_sync(struct i2c_transfer_sync_t *transfer) {
+    // TODO: Check parameters
+    // De-reference for readability
+    struct i2c_device_t device = transfer->device; 
+    uint8_t *rx_data = transfer->data;
+    size_t size = transfer->size;
 
-    // Check if busy
-    if (i2c_busy) {
-        tal_raise(flag, "I2C is busy");
-        return false;
+    if (!ti_acquire_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+        return TI_ERRC_MUTEX_AQU_TIMEOUT;
     }
-    i2c_busy = true;
 
     // Configure and enable I2C for a read
-    if (READ_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_ADD10)) {
-        WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_SADD_10BIT, addr);
+    if (READ_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_ADD10)) {
+        WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_SADD_10BIT, device.address);
     } else {
-        WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_SADD_7BIT, addr);
+        WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_SADD_7BIT, device.address);
     }
-    SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_AUTOEND);
-    WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_NBYTES, size);
-    SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_RD_WRN); // Set to 1 for a read operation
-    CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_PECBYTE);
-    CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_RELOAD);
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_AUTOEND);
+    WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_NBYTES, size);
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_RD_WRN); // Set to 1 for a read operation
+    CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_PECBYTE);
+    CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_RELOAD);
 
     // Start the transfer
-    SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_START);  // Send the START condition
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_START);  // Send the START condition
 
     // Read the data byte by byte in a blocking loop.
     for (size_t i = 0; i < size; ++i) {
         // Wait until the receive data register is not empty (RXNE flag).
         uint32_t timeout = 0;
-        while (!READ_FIELD(I2Cx_ISR[I2C_INSTANCE], I2Cx_ISR_RXNE)) {
-            if (timeout++ > i2c_timeout) {
-                i2c_busy = false;
-                tal_raise(flag, "I2C read timeout");
-                return false;
+        while (!READ_FIELD(I2Cx_ISR[device.instance], I2Cx_ISR_RXNE)) {
+            if (timeout++ > i2c_configs[device.instance]->i2c_timeout) {
+                if (!ti_release_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+                    return TI_ERRC_MUTEX_REL_TIMEOUT;
+                }
+                return TI_ERRC_I2C_TIMEOUT;
             }
         }
         // Read the received byte from the data register.
-        rx_data[i] = (uint8_t)READ_FIELD(I2Cx_RXDR[I2C_INSTANCE], I2Cx_RXDR_RXDATA);
+        rx_data[i] = (uint8_t)READ_FIELD(I2Cx_RXDR[device.instance], I2Cx_RXDR_RXDATA);
     }
     
     // Wait for the STOP condition to be sent (STOPF flag).
     uint32_t timeout_stop = 0;
-    while (!READ_FIELD(I2Cx_ISR[I2C_INSTANCE], I2Cx_ISR_STOPF)) {
-         if (timeout_stop++ > i2c_timeout) {
-            i2c_busy = false;
-            tal_raise(flag, "I2C stop condition timeout");
-            return false;
+    while (!READ_FIELD(I2Cx_ISR[device.instance], I2Cx_ISR_STOPF)) {
+         if (timeout_stop++ > i2c_configs[device.instance]->i2c_timeout) {
+            if (!ti_release_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+                return TI_ERRC_MUTEX_REL_TIMEOUT;
+            }
+            return TI_ERRC_I2C_TIMEOUT;
         }
     }
     // Clear the STOPF flag by writing 1 to it.
-    WRITE_FIELD(I2Cx_ICR[I2C_INSTANCE], I2Cx_ICR_STOPCF, 1);
-
-
-    i2c_busy = false;
+    WRITE_FIELD(I2Cx_ICR[device.instance], I2Cx_ICR_STOPCF, 1);
+    if (!ti_release_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+        return TI_ERRC_MUTEX_REL_TIMEOUT;
+    }
     return true;
 }
 
-bool i2c_write_blocking(tal_flag_t *flag, uint16_t addr, uint8_t *tx_data, size_t size) {
-    // 1. Check parameters
-    if (!i2c_write_check_params(flag, addr, tx_data, size)) {
-        return false;
-    }
+int i2c_write_blocking(struct i2c_transfer_sync_t *transfer) {
+    // TODO: Check parameters
+
+    // De-reference for readability
+    struct i2c_device_t device = transfer->device; 
+    uint8_t *tx_data = transfer->data;
+    size_t size = transfer->size;
 
     // 2. Check if busy
-    if (i2c_busy) {
-        tal_raise(flag, "I2C is busy");
-        return false;
+    if (!ti_acquire_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+        return TI_ERRC_MUTEX_AQU_TIMEOUT;
     }
-    i2c_busy = true;
 
     // 3. Configure the I2C peripheral for a write
     // The peripheral's NBYTES register will handle the number of bytes to transfer.
-    WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_NBYTES, size);
+    WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_NBYTES, size);
     
     // Set the slave address and the read/write direction bit.
-    if (READ_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_ADD10)) {
+    if (READ_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_ADD10)) {
         // For 10-bit addressing, the address is written directly to the SADD_10BIT field.
-        WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_SADD_10BIT, addr);
+        WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_SADD_10BIT, device.address);
     } else {
         // For 7-bit addressing, the address is shifted left by one.
-        WRITE_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_SADD_7BIT, addr);
+        WRITE_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_SADD_7BIT, device.address);
     }
-    CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_RD_WRN);     // Set to 0 for a write operation
-    SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_AUTOEND);    // Auto-generate STOP condition
-    CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_PECBYTE);    // Disable PEC
-    CLR_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_RELOAD);     // Disable reload
+    CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_RD_WRN);     // Set to 0 for a write operation
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_AUTOEND);    // Auto-generate STOP condition
+    CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_PECBYTE);    // Disable PEC
+    CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_RELOAD);     // Disable reload
 
     // 4. Send the START condition to begin the transaction.
-    SET_FIELD(I2Cx_CR2[I2C_INSTANCE], I2Cx_CR2_START);
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_START);
 
     // 5. Write the data byte by byte in a blocking loop.
     for (size_t i = 0; i < size; ++i) {
         // Wait until the transmit data register is empty (TXIS flag).
         uint32_t timeout = 0;
-        while (!READ_FIELD(I2Cx_ISR[I2C_INSTANCE], I2Cx_ISR_TXIS)) {
-            if (timeout++ > i2c_timeout) {
-                i2c_busy = false;
-                tal_raise(flag, "I2C write timeout");
-                return false;
+        while (!READ_FIELD(I2Cx_ISR[device.instance], I2Cx_ISR_TXIS)) {
+            if (timeout++ > i2c_configs[device.instance]->i2c_timeout) {
+                if (!ti_release_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+                    return TI_ERRC_MUTEX_REL_TIMEOUT;
+                }
+                return TI_ERRC_I2C_TIMEOUT;
             }
         }
         // Write the next byte to the transmit data register.
-        WRITE_FIELD(I2Cx_TXDR[I2C_INSTANCE], I2Cx_TXDR_TXDATA, tx_data[i]);
+        WRITE_FIELD(I2Cx_TXDR[device.instance], I2Cx_TXDR_TXDATA, tx_data[i]);
     }
     
     // 6. Wait for the STOP condition to be sent (STOPF flag).
     uint32_t timeout_stop = 0;
-    while (!READ_FIELD(I2Cx_ISR[I2C_INSTANCE], I2Cx_ISR_STOPF)) {
-         if (timeout_stop++ > i2c_timeout) {
-            i2c_busy = false;
-            tal_raise(flag, "I2C stop condition timeout");
-            return false;
+    while (!READ_FIELD(I2Cx_ISR[device.instance], I2Cx_ISR_STOPF)) {
+         if (timeout_stop++ > i2c_configs[device.instance]->i2c_timeout) {
+            if (!ti_release_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+                return TI_ERRC_MUTEX_REL_TIMEOUT;
+            }
+            return TI_ERRC_I2C_TIMEOUT;
         }
     }
     // Clear the STOPF flag by writing 1 to it.
-    WRITE_FIELD(I2Cx_ICR[I2C_INSTANCE], I2Cx_ICR_STOPCF, 1);
+    WRITE_FIELD(I2Cx_ICR[device.instance], I2Cx_ICR_STOPCF, 1);
 
-    i2c_busy = false;
+    if (!ti_release_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+        return TI_ERRC_MUTEX_REL_TIMEOUT;
+    }
 
-    return true;
+    return TI_ERRC_NONE;
 }
