@@ -118,6 +118,17 @@ int spi_transfer_sync(struct spi_sync_transfer_t *transfer);
 
 int spi_transfer_async(struct spi_async_transfer_t *transfer);
 
-void spi_block(spi_device_t device);
+/**
+ * @brief Block the spi device and instance from talking to anyone else.
+ *        (Aquires the mutex and pulls the pin)
+ * @param device: the device to block
+ * @returns ti_errc_t error code
+ */
+int spi_block(spi_device_t device);
 
-void spi_unblock(spi_device_t device);
+/**
+ * @brief Releases the spi device (pin and instance) to be used by anyone.
+ * @param device: the device to release
+ * @returns ti_errc_t error code
+ */
+int spi_unblock(spi_device_t device);

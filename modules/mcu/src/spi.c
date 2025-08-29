@@ -101,17 +101,16 @@ void spi_dma_callback(bool success, spi_context_t *context) {
     if (success) {
         context->num_complete++;
     } else {
+        spi_unblock(context->device);
         callback(false);
-        ti_release_mutex(mutex[instance], mutex_timeouts[instance]);
     }
     if (context->num_complete == 2) {
-        tal_set_pin(context->device.gpio_pin, 1);
         // Disable DMA requests
         CLR_FIELD(SPIx_CFG1[instance], SPIx_CFG1_RXDMAEN);
         CLR_FIELD(SPIx_CFG1[instance], SPIx_CFG1_TXDMAEN);
         context->num_complete = 0;
+        spi_unblock(context->device);
         callback(true);
-        ti_release_mutex(mutex[instance], mutex_timeouts[instance]);
     }
 }
 
@@ -144,13 +143,10 @@ int spi_init(uint8_t instance, spi_config_t *spi_config) {
     if (!check_spi_config_validity(spi_config))
         return TI_ERRC_INVALID_ARG;
     
-    // Save timeouts
-    mutex_timeouts[instance] = spi_config->mutex_timeout;
-
     // Save the spi_config
     configs[instance] = *spi_config;
 
-    // Enable gpio clocks
+    // Enable gpio clocks for miso mosi and clk
     tal_enable_clock(spi_config->miso_pin);
     tal_enable_clock(spi_config->mosi_pin);
     tal_enable_clock(spi_config->clk_pin);
@@ -321,12 +317,16 @@ int spi_transfer_sync(struct spi_sync_transfer_t *transfer) {
     uint32_t timeout = transfer->timeout;
     bool read_inc = transfer->read_inc;
 
+    // If spi transaction isn't locked, exit w/ error.
+    if (!spi_is_blocked(device)) {
+        return TI_ERRC_SPI_NOT_LOCKED;
+    }
+
     // Perform blocking transfer
     for (int i = 0; i < size; i++) {
         // Wait for TX buffer empty
         while (!READ_FIELD(SPIx_SR[device.instance], SPIx_SR_TXE)) {
             if (--timeout == 0) {
-                tal_set_pin(device.gpio_pin, 1);
                 ti_release_mutex(mutex[device.instance], mutex_timeouts[device.instance]);
                 return TI_ERRC_SPI_BLOCKING_TIMEOUT;
             }
@@ -336,7 +336,6 @@ int spi_transfer_sync(struct spi_sync_transfer_t *transfer) {
         // Wait for RX buffer not empty
         while (!READ_FIELD(SPIx_SR[device.instance], SPIx_SR_RXNE)) {
             if (--timeout == 0) {
-                tal_set_pin(device.gpio_pin, 1);
                 ti_release_mutex(mutex[device.instance], mutex_timeouts[device.instance]);
                 return TI_ERRC_SPI_BLOCKING_TIMEOUT;
             }
@@ -360,6 +359,11 @@ int spi_transfer_sync(struct spi_sync_transfer_t *transfer) {
     bool read_fifo = transfer->read_fifo;
     bool write_mem_inc = transfer->write_mem_inc;
     bool read_mem_inc = transfer->read_mem_inc;
+
+    // If spi transaction isn't locked, exit w/ error.
+    if (!spi_is_blocked(device)) {
+        return TI_ERRC_SPI_NOT_LOCKED;
+    }
 
     // Get context
     spi_context_t *context = NULL;
@@ -412,15 +416,29 @@ int spi_transfer_sync(struct spi_sync_transfer_t *transfer) {
     SET_FIELD(SPIx_CFG1[device.instance], SPIx_CFG1_RXDMAEN);
     SET_FIELD(SPIx_CFG1[device.instance], SPIx_CFG1_TXDMAEN);
 
+
     return TI_ERRC_NONE;
  }
 
-void spi_block(spi_device_t device) {
-    ti_acquire_mutex(mutex[device.instance], mutex_timeouts[device.instance]);
-    tal_pull_pin(device.gpio_pin, 0);
+int spi_block(spi_device_t device) {
+    int errc = ti_acquire_mutex(mutex[device.instance], mutex_timeouts[device.instance]);
+    if (errc != TI_ERRC_NONE) {
+        return errc;
+    }
+    tal_set_pin(device.gpio_pin, 0);
+    return TI_ERRC_NONE;
 }
 
-void spi_unblock(spi_device_t device) {
+int spi_unblock(spi_device_t device) {
     tal_set_pin(device.gpio_pin, 1);
-    ti_release_mutex(mutex[device.instance], mutex_timeouts[device.instance]);
+    int errc = ti_release_mutex(mutex[device.instance], mutex_timeouts[device.instance]);
+    if (errc != TI_ERRC_NONE) {
+        return TI_ERRC_CRIT;
+    }
+    return TI_ERRC_NONE;
+}
+
+bool spi_is_blocked(spi_device_t device) {
+    // True when mutex is locked and pin is low.
+    return (ti_is_mutex_locked(mutex[device.instance]) && !read_pin(device.gpio_pin));
 }

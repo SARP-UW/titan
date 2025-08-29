@@ -76,8 +76,6 @@ int radio_get_CTS() {
 }
 
 int radio_send_command(void *command, size_t size) {
-   spi_block(config.spi_dev);
-   
    // Send command
    uint8_t rx_buff;
    struct spi_sync_transfer_t transfer = {
@@ -90,14 +88,12 @@ int radio_send_command(void *command, size_t size) {
    };
    int errc = spi_transfer_sync(&transfer);
    if (errc != TI_ERRC_NONE) {
-       spi_unblock(config.spi_dev);
        return errc;
    }
 
    // Wait for CTS
    uint8_t read_cmd_buff = 0x44;
    errc = radio_get_CTS();
-   spi_unblock(config.spi_dev);
    if (errc != TI_ERRC_NONE) {
        return errc;
    }
@@ -111,18 +107,20 @@ int cancel_transaction() {
         0x01, // Go to ready state
     };
     size_t cancel_size = sizeof(cancel_command);
+    spi_block(config.spi_dev);
     int errc =  radio_send_command(&cancel_command, cancel_size);
+    spi_unblock(config.spi_dev);
     ti_mutex_release(radio_mutex, RADIO_MUTEX_TIMEOUT);
     exti_disable(config.nirq_pin);
     return errc;
 }
 
 void spi_callback(bool success) {
-    if (!success) {
-        // TODO Log, potentially handle error
-        ti_mutex_release(radio_mutex, RADIO_MUTEX_TIMEOUT);
-        return;
-    }
+  spi_unblock(config.spi_dev);
+  if (!success) {
+    // TODO: Log, potentially handle error
+    return;
+  }
     uint8_t frr_command = 0x50;
     uint8_t rx_data;
     spi_block(config.spi_dev);
@@ -171,6 +169,9 @@ void tx_empty_callback(void) {
     uint8_t fifo_size = config.combined_fifo ? 129 : 64;
     size_t bytes_avail = fifo_size - config.tx_threshold;
     uint8_t rx_data;
+    int errc = spi_block(config.spi_dev);
+    if (errc != TI_ERRC_NONE)
+        return errc;
     int errc = spi_transfer_async(&(struct spi_async_transfer_t){
         .device = config.spi_dev,
         .source = radio_context.data,
@@ -193,7 +194,7 @@ void tx_empty_callback(void) {
  * @section Public Functions
  **************************************************************************************************/
 int ti_radio_init(struct ti_radio_config_t *config) {
-    if (ti_mutex_lock(radio_mutex, RADIO_MUTEX_TIMEOUT) != TI_ERRC_NONE) {
+    if (ti_acquire_mutex(radio_mutex, RADIO_MUTEX_TIMEOUT) != TI_ERRC_NONE) {
         return TI_ERRC_MUTEX_LOCKED;
     }
 
@@ -234,6 +235,7 @@ int ti_radio_init(struct ti_radio_config_t *config) {
    size_t global_config_size = sizeof(global_config_command);
    int errc = radio_send_command(&global_config_command, global_config_size);
    if (errc != TI_ERRC_NONE) {
+       ti_release_mutex(radio_mutex, RADIO_MUTEX_TIMEOUT);
        return errc;
    }
 
@@ -261,6 +263,7 @@ int ti_radio_init(struct ti_radio_config_t *config) {
    size_t control_config_size = sizeof(control_config_command);
    errc = radio_send_command(&control_config_command, control_config_size);
    if (errc != TI_ERRC_NONE) {
+        ti_release_mutex(radio_mutex, RADIO_MUTEX_TIMEOUT);
        return errc;
    }
 
@@ -281,6 +284,7 @@ int ti_radio_init(struct ti_radio_config_t *config) {
    size_t modem_config_size = sizeof(modem_config_command);
    errc = radio_send_command(&modem_config_command, modem_config_size);
    if (errc != TI_ERRC_NONE) {
+        ti_release_mutex(radio_mutex, RADIO_MUTEX_TIMEOUT);
        return errc;
    }
 
@@ -315,12 +319,14 @@ int ti_radio_init(struct ti_radio_config_t *config) {
     size_t packet_config_size = sizeof(packet_config_command);
     errc = radio_send_command(&packet_config_command, packet_config_size);
     if (errc != TI_ERRC_NONE) {
+        ti_release_mutex(radio_mutex, RADIO_MUTEX_TIMEOUT);
         return errc;
     }
 
    // TODO: Maybe add match functionality?
 
    // TODO: Maybe configure variable length fields?
+   
 
    return TI_ERRC_NONE;
 }
@@ -330,9 +336,6 @@ int ti_radio_transmit(void *data, size_t size, uint8_t channel) {
         return TI_ERRC_MUTEX_LOCKED;
     }
     // TODO: Parameter checking
-
-    // Enable the interrupt
-    exti_enable(config.nirq_pin);
 
     // Register context
     radio_context.data = data;
@@ -369,9 +372,13 @@ int ti_radio_transmit(void *data, size_t size, uint8_t channel) {
     };
     size_t start_tx_size = sizeof(start_tx_command);
     int errc = radio_send_command(&start_tx_command, start_tx_size);
+    spi_unblock(config.spi_dev);
     if (errc != TI_ERRC_NONE) {
         return errc;
     }
+    // Enable the interrupt
+    exti_enable(config.nirq_pin);
+
 
     return TI_ERRC_NONE;
 }
