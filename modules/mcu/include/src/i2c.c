@@ -65,8 +65,13 @@ dma_callback_t i2c_callbacks[I2C_INSTANCE_COUNT] = {0};
  * @section Private Helper Functions
  **************************************************************************************************/
 void i2c_callback(bool success, void *context) {
-    // TODO: Implement callback handling
     uint8_t instance = *((uint8_t*)context);
+    if (!success) {
+        if (!READ_FIELD(I2Cx_ISR[instance], I2Cx_ISR_NACKF)) {
+            // TODO: Log error
+            SET_FIELD(I2Cx_ICR[instance], I2Cx_ICR_NACKCF);
+        }
+    }
     if (i2c_callbacks[instance]) {
         i2c_callbacks[instance](success, guest_contexts[instance]);
     }
@@ -76,61 +81,97 @@ void i2c_callback(bool success, void *context) {
     return false;
 }
 
-/**************************************************************************************************
- * @section Public Function Implementation 
- **************************************************************************************************/
-int i2c_init(i2c_config_t *config){
-    // TODO: Check parameters
-
-    // Register config
-    i2c_configs[config->instance] = config;
-
-    // 1. Enable the I2C clock
-    SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_I2CxEN[config->instance]);
-
-    // 2. Enable the GPIO clock and configure pins
-    tal_enable_clock(config->scl_pin);
-    tal_enable_clock(config->sda_pin);
-
-    // Alternate function mode
-    tal_set_mode(config->sda_pin, 2); 
-    tal_set_mode(config->scl_pin, 2);
-    tal_alternate_mode(config->sda_pin, 4); 
-    tal_alternate_mode(config->scl_pin, 4);
-
-    // Open drain
-    tal_set_drain(config->sda_pin, 1); 
-    tal_set_drain(config->scl_pin, 1);
-
-    // High speed
-    tal_set_speed(config->sda_pin, 3);
-    tal_set_speed(config->scl_pin, 3);
-
-    // Pull up
-    tal_pull_pin(config->sda_pin, 1); 
-    tal_pull_pin(config->scl_pin, 1);
-
-    // 3. Disable peripheral before configuring
-    WRITE_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_PE, 0);
-    
-    // 4. Configure addressing mode (7-bit or 10-bit)
-    if (config->addr_mode == I2C_ADDR_10BIT) {
-        SET_FIELD(I2Cx_CR2[config->instance], I2Cx_CR2_ADD10);
-    } else {
-        CLR_FIELD(I2Cx_CR2[config->instance], I2Cx_CR2_ADD10);
+int read_byte(struct i2c_device_t device, uint8_t *rx_data, size_t size,
+              size_t i) {
+  // Wait until the receive data register is not empty (RXNE flag).
+  uint32_t timeout = 0;
+  while (!READ_FIELD(I2Cx_ISR[device.instance], I2Cx_ISR_RXNE)) {
+    if (timeout++ > i2c_configs[device.instance]->i2c_timeout) {
+      if (!ti_release_mutex(i2c_mutex[device.instance],
+                            i2c_configs[device.instance]->mutex_timeout)) {
+        return TI_ERRC_MUTEX_REL_TIMEOUT;
+      }
+      return TI_ERRC_I2C_TIMEOUT;
     }
+  }
+  // Read the received byte from the data register.
+  rx_data[i] =
+      (uint8_t)READ_FIELD(I2Cx_RXDR[device.instance], I2Cx_RXDR_RXDATA);
+}
 
-    // 5. Configure analog and digital filters
-    if (config->analog_filter) CLR_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_ANFOFF);
-    WRITE_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_DNF, config->digital_filter);
+int write_byte(struct i2c_device_t device, uint8_t *tx_data, size_t size,
+               size_t i) {
+  // Wait until the transmit data register is empty (TXIS flag).
+  uint32_t timeout = 0;
+  while (!READ_FIELD(I2Cx_ISR[device.instance], I2Cx_ISR_TXIS)) {
+    if (timeout++ > i2c_configs[device.instance]->i2c_timeout) {
+      if (!ti_release_mutex(i2c_mutex[device.instance],
+                            i2c_configs[device.instance]->mutex_timeout)) {
+        return TI_ERRC_MUTEX_REL_TIMEOUT;
+      }
+      return TI_ERRC_I2C_TIMEOUT;
+    }
+  }
+  // Write the next byte to the transmit data register.
+  WRITE_FIELD(I2Cx_TXDR[device.instance], I2Cx_TXDR_TXDATA, tx_data[i]);
+}
 
-    // 6. Set timing
-    *I2Cx_TIMINGR[config->instance] = config->timing;
+/**************************************************************************************************
+ * @section Public Function Implementation
+ **************************************************************************************************/
+int i2c_init(i2c_config_t *config) {
+  // TODO: Check parameters
 
-    // 10. Re-enable the I2C peripheral
-    SET_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_PE);
+  // Register config
+  i2c_configs[config->instance] = config;
 
-    return true;
+  // 1. Enable the I2C clock
+  SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_I2CxEN[config->instance]);
+
+  // 2. Enable the GPIO clock and configure pins
+  tal_enable_clock(config->scl_pin);
+  tal_enable_clock(config->sda_pin);
+
+  // Alternate function mode
+  tal_set_mode(config->sda_pin, 2);
+  tal_set_mode(config->scl_pin, 2);
+  tal_alternate_mode(config->sda_pin, 4);
+  tal_alternate_mode(config->scl_pin, 4);
+
+  // Open drain
+  tal_set_drain(config->sda_pin, 1);
+  tal_set_drain(config->scl_pin, 1);
+
+  // High speed
+  tal_set_speed(config->sda_pin, 3);
+  tal_set_speed(config->scl_pin, 3);
+
+  // Pull up
+  tal_pull_pin(config->sda_pin, 1);
+  tal_pull_pin(config->scl_pin, 1);
+
+  // 3. Disable peripheral before configuring
+  WRITE_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_PE, 0);
+
+  // 4. Configure addressing mode (7-bit or 10-bit)
+  if (config->addr_mode == I2C_ADDR_10BIT) {
+    SET_FIELD(I2Cx_CR2[config->instance], I2Cx_CR2_ADD10);
+  } else {
+    CLR_FIELD(I2Cx_CR2[config->instance], I2Cx_CR2_ADD10);
+  }
+
+  // 5. Configure analog and digital filters
+  if (config->analog_filter)
+    CLR_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_ANFOFF);
+  WRITE_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_DNF, config->digital_filter);
+
+  // 6. Set timing
+  *I2Cx_TIMINGR[config->instance] = config->timing;
+
+  // 10. Re-enable the I2C peripheral
+  SET_FIELD(I2Cx_CR1[config->instance], I2Cx_CR1_PE);
+
+  return true;
 }
 
 int i2c_read_async(struct i2c_transfer_async_t *transfer) {
@@ -275,21 +316,19 @@ int i2c_read_sync(struct i2c_transfer_sync_t *transfer) {
     SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_START);  // Send the START condition
 
     // Read the data byte by byte in a blocking loop.
-    for (size_t i = 0; i < size; ++i) {
-        // Wait until the receive data register is not empty (RXNE flag).
-        uint32_t timeout = 0;
-        while (!READ_FIELD(I2Cx_ISR[device.instance], I2Cx_ISR_RXNE)) {
-            if (timeout++ > i2c_configs[device.instance]->i2c_timeout) {
-                if (!ti_release_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
-                    return TI_ERRC_MUTEX_REL_TIMEOUT;
-                }
-                return TI_ERRC_I2C_TIMEOUT;
-            }
+    for (size_t i = 0; i < size - 1; ++i) {
+        int errc = read_byte(device, rx_data, size, i);
+        if (errc != TI_ERRC_NONE) {
+            return errc;
         }
-        // Read the received byte from the data register.
-        rx_data[i] = (uint8_t)READ_FIELD(I2Cx_RXDR[device.instance], I2Cx_RXDR_RXDATA);
+        CLR_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_NACK);
     }
-    
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_NACK);
+    int errc = read_byte(device, rx_data, size, size - 1);
+    if (errc != TI_ERRC_NONE) {
+        return errc;
+    }
+
     // Wait for the STOP condition to be sent (STOPF flag).
     uint32_t timeout_stop = 0;
     while (!READ_FIELD(I2Cx_ISR[device.instance], I2Cx_ISR_STOPF)) {
@@ -343,19 +382,23 @@ int i2c_write_blocking(struct i2c_transfer_sync_t *transfer) {
 
     // 5. Write the data byte by byte in a blocking loop.
     for (size_t i = 0; i < size; ++i) {
-        // Wait until the transmit data register is empty (TXIS flag).
-        uint32_t timeout = 0;
-        while (!READ_FIELD(I2Cx_ISR[device.instance], I2Cx_ISR_TXIS)) {
-            if (timeout++ > i2c_configs[device.instance]->i2c_timeout) {
-                if (!ti_release_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
-                    return TI_ERRC_MUTEX_REL_TIMEOUT;
-                }
-                return TI_ERRC_I2C_TIMEOUT;
-            }
+        int errc = write_byte(device, tx_data, size, i);
+        if (errc != TI_ERRC_NONE) {
+            return errc;
         }
-        // Write the next byte to the transmit data register.
-        WRITE_FIELD(I2Cx_TXDR[device.instance], I2Cx_TXDR_TXDATA, tx_data[i]);
+        if (READ_FIELD(I2Cx_ISR[device.instance], I2Cx_ISR_NACKF)) {
+            // NACK received, abort the transfer
+            // Clear the NACKF flag by writing 1 to it.
+            WRITE_FIELD(I2Cx_ICR[device.instance], I2Cx_ICR_NACKCF, 1);
+            if (!ti_release_mutex(i2c_mutex[device.instance], i2c_configs[device.instance]->mutex_timeout)) {
+                return TI_ERRC_MUTEX_REL_TIMEOUT;
+            }
+            return TI_ERRC_I2C_NACK;
+        }
     }
+
+    // Stop the transfer
+    SET_FIELD(I2Cx_CR2[device.instance], I2Cx_CR2_STOP);
     
     // 6. Wait for the STOP condition to be sent (STOPF flag).
     uint32_t timeout_stop = 0;

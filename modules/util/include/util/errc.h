@@ -44,6 +44,7 @@ enum ti_errc_t {
   TI_ERRC_MUTEX_AQU_TIMEOUT, /** @brief Mutex acquisition timed out */
   TI_ERRC_MUTEX_REL_TIMEOUT, /** @brief Mutex release timed out */
   TI_ERRC_I2C_TIMEOUT, /** @brief I2C operation timed out */
+  TI_ERRC_I2C_NACK,
 };
 
 /**
