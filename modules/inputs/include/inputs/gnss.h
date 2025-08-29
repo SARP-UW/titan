@@ -23,6 +23,8 @@
  * advanced functions. It only uses GPS.
  */
 #include "util/errc.h"
+#include "mcu/spi.h"
+#include "mcu/hrtim.h"
 
 /**************************************************************************************************
  * @section Type Definitions
@@ -31,8 +33,8 @@
 typedef struct {
    spi_device_t device;
    uint8_t dsel_pin;
-   uint8_t txready_pin_mcu;
-   uint8_t txready_pin_gnss;
+   uint8_t txready_pin_mcu;     // NOTE: If either of these txready pins are set to zero, a software
+   uint8_t txready_pin_gnss;    //       interrupt is used instead.
    uint32_t inter_prio;
    uint32_t thread_prio;
    uint8_t pvt_rate; // Rate of signal output in Hz
@@ -71,7 +73,7 @@ typedef struct {
  * @param device: Spi device struct
  * @returns Whether the initialization was successful
  */
-int gnss_init(gnss_config_t *gnss_config);
+int gnss_init(gnss_config_t *gnss_config, struct hrtim_config_t *hrtim_config);
 
 /**
  * @brief Stops the gnss system.

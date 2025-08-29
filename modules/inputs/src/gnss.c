@@ -26,6 +26,7 @@
 #include "kernel/semaphore.h"
 #include "kernel/thread.h"
 #include "util/errc.h"
+#include "mcu/hrtim.h"
 
 #define PVT_MESSAGE_SIZE 8 + 92   // 8 is size of headers and metadata, 92 is payload size
 #define TX_SIZE 250     // Fixed size array length for tx
@@ -118,7 +119,7 @@ bool check_gnss_config_params(gnss_config_t *gnss_config) {
     return true;
 }
 
-void gnss_irq_callback(){
+void interrupt_callback(){
     ti_semaphore_give(semaphore);
 }
 
@@ -180,7 +181,7 @@ void gnss_thread() {
 /**************************************************************************************************
  * @section Public Function Implementations
  **************************************************************************************************/
-int gnss_init(gnss_config_t *gnss_config) {
+int gnss_init(gnss_config_t *gnss_config, struct hrtim_config_t *hrtim_config) {
     // Check parameters
     if (!check_gnss_config_params(gnss_config))
         return TI_ERRC_INVALID_ARG;
@@ -199,17 +200,20 @@ int gnss_init(gnss_config_t *gnss_config) {
     tal_set_drain(dsel_pin, 0);
     tal_pull_pin(dsel_pin, -1);
 
-    // Configure txready_pin_mcu
-    tal_enable_clock(txready_pin_mcu);
-    tal_set_mode(txready_pin_mcu, 0);
-    tal_set_drain(txready_pin_mcu, 0);
-    tal_pull_pin(txready_pin_mcu, 1);
-    tal_set_speed(txready_pin_mcu, 1);
-
+    // Configure the hardware interupt
+    if (!hrtim_config) {
+        tal_enable_clock(txready_pin_mcu);
+        tal_set_mode(txready_pin_mcu, 0);
+        tal_set_drain(txready_pin_mcu, 0);
+        tal_pull_pin(txready_pin_mcu, 1);
+        tal_set_speed(txready_pin_mcu, 1);
+        exti_enable_isr(txready_pin_mcu, &interrupt_callback, inter_prio, true);
+    } else {
+        hrtim_enable_mrep(hrtim_config);
+    }
     // Create the stream and enable the isr
     semaphore = ti_create_semaphore(1, 0);
     thread = ti_create_thread(&gnss_thread, NULL, 0, 0, thread_prio); // TODO: Find stack pointer and size
-    exti_enable_isr(txready_pin_mcu, &gnss_irq_callback, inter_prio, true);
 
     // Configure SPI device
     enum ti_errc_t errc = spi_device_init(device);
