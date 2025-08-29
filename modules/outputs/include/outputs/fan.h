@@ -19,3 +19,31 @@
  * @brief Fan Driver Interface
  */
 #include <stdint.h>
+#include "mcu/i2c.h"
+
+/**************************************************************************************************
+ * @section Type Definitions
+ **************************************************************************************************/
+
+struct fan_temp_to_speed_t {
+    int32_t temp;
+    uint16_t speed;
+};
+
+struct fan_config_t {
+    struct i2c_device_t device;
+    struct fan_temp_to_speed_t *table;
+    uint8_t table_size;
+    bool polarity; // if true: 0 is 100% 0xFF is 0%
+    bool pwm_drive;// if true: PWM drive is push-pull, otherwise open drain
+    uint8_t pwm_freq_divide;
+    uint8_t min_drive;
+};
+
+/**************************************************************************************************
+ * @section Public Functions
+ **************************************************************************************************/
+
+int fan_init(struct fan_config_t *fan_config);
+
+int fan_update_speed(double temp);
