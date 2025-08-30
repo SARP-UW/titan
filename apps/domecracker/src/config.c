@@ -18,38 +18,5 @@
  * @authors Charles Faisandier
  * @brief Domecracker application entry point.
  */
-#include "config.c"
-#include "apps/data_telemetry.h"
-#include "kernel/semaphore.h"
 
-uint8_t num_sensors_ready;
-
-struct ti_data_ready_t data_ready = {0};
-
-struct ti_semaphore_t telem_semaphore;
-
-void gnss_callback(bool success) {
-    num_sensors_ready++;
-    data_ready.gnss_ready = success;
-    if (num_sensors_ready == NUM_SENSORS) {
-        ti_release_semaphore(telem_semaphore);
-    }
-}
-
-int main() {
-    // Basic system initialization
-    system_init()
-
-    // Launch sequence
-    launch_sequence();
-
-    // Start data telemetry
-    telem_semaphore = ti_create_metaphore(NULL, 0);
-    telem_config.semaphore = &telem_semaphore;
-    telem_config.data_ready = &data_ready;
-    data_telemetry_start(telem_config);
-
-    gnss_config.callback = &gnss_callback;
-
-    gnss_init(gnss_config);
-}
+ struct gnss_config_t gnss_config = {0}; // TODO: Initialize this properly.
