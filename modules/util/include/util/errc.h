@@ -26,9 +26,13 @@
 
 /** @brief Error code enum. */
 enum ti_errc_t {
-  TI_ERRC_NONE = 0, /** @brief No error occurred. */
-  TI_ERRC_UNKNOWN,  /** @brief Unknown error occurred. */
+  TI_ERRC_NONE = 0,    /** @brief No error occurred. */
+  TI_ERRC_UNKNOWN,     /** @brief Unknown error occurred. */
   TI_ERRC_INVALID_ARG, /** @brief Invalid argument passed to function. */
+  TI_ERRC_HOST,        /** @brief Host reported error during semihosting operation. */
+  TI_ERRC_NO_MEM,      /** @brief Memory allocation failed. */
+  TI_ERRC_INVALID_OP,  /** @brief The requested operation is fundamentally invalid. */
+  TI_ERRC_INVALID_STATE, /** @brief The requested operation is currently invalid due to the state of the program. */
 };
 
 /**

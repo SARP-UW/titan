@@ -22,27 +22,38 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include "util/errc.h"
 #include "kernel/thread.h"
 
 struct ti_mutex_t {
-  const int32_t id;
-  const void* const handle;
+  int32_t id;
+  const void* handle;
 };
 
-#define TI_MUTEX_MEM_SIZE 0
+enum ti_mutex_type_t {
+  TI_MUTEX_TYPE_INVALID,
+  TI_MUTEX_TYPE_NORMAL,
+  TI_MUTEX_TYPE_RECURSIVE,
+};
 
-struct ti_mutex_t ti_create_mutex(void* mem);
+#define TI_MUTEX_MEM_SIZE 20
 
-void ti_destroy_mutex(struct ti_mutex_t mutex);
+extern const struct ti_mutex_t TI_INVALID_MUTEX;
 
-bool ti_acquire_mutex(struct ti_mutex_t mutex, int64_t timeout);
+struct ti_mutex_t ti_create_mutex(void* mem, enum ti_mutex_type_t type, enum ti_errc_t* errc_out);
 
-bool ti_release_mutex(struct ti_mutex_t mutex, int64_t timeout);
+void ti_destroy_mutex(struct ti_mutex_t mutex, enum ti_errc_t* errc_out);
 
-bool ti_is_mutex_locked(struct ti_mutex_t mutex);
+bool ti_acquire_mutex(struct ti_mutex_t mutex, int64_t timeout, enum ti_errc_t* errc_out);
 
-struct ti_thread_t ti_get_mutex_owner(struct ti_mutex_t mutex);
+bool ti_release_mutex(struct ti_mutex_t mutex, int64_t timeout, enum ti_errc_t* errc_out);
+
+bool ti_is_mutex_locked(struct ti_mutex_t mutex, enum ti_errc_t* errc_out);
+
+struct ti_thread_t ti_get_mutex_owner(struct ti_mutex_t mutex, enum ti_errc_t* errc_out);
+
+enum ti_mutex_type_t ti_get_mutex_type(struct ti_mutex_t mutex, enum ti_errc_t* errc_out);
 
 bool ti_is_valid_mutex(struct ti_mutex_t mutex);
 
-bool ti_is_mutex_equal(struct ti_mutex_t mutex1, struct ti_mutex_t mutex2);
+bool ti_is_mutex_equal(struct ti_mutex_t mutex_1, struct ti_mutex_t mutex_2);

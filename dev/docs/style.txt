@@ -1,0 +1,17 @@
+# General Code Style
+- Use 2 space indents.
+- Use K&R style brackets.
+- All identifiers (types, functions, variables, etc) must be camel_case.
+- Types must be denoted with a trailing '_t'
+- All publically exposed identifiers must be prefixed with 'ti_'
+- Identifiers of global constants (including macros) must be ALL_CAPS.
+- Wrap lines that are greater than ~100 characters.
+- Do not use typedefs (ok for handles).
+- Only use macros if necessary (prefer functions always).
+- All public functions, variables and types must be documented for doxygen.
+- Do not use 'magic numbers' in anywhere in your code.
+- All private/internal global variables, functions and types must be denoted with a preceding underscore.
+
+# Error Handling
+- Return an error code (ti_errc_t) using an out argument to report all errors (last argument unless variadic, then first).
+- Use ASSERT() only to verify the correct operation of an implementation.

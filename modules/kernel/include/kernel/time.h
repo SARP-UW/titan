@@ -21,38 +21,39 @@
 
 #pragma once
 #include <stdint.h>
+#include "util/errc.h"
 
 int64_t ti_get_time(void);
 
-void ti_sleep(int64_t duration);
+void ti_sleep(int64_t duration, enum ti_errc_t* errc_out);
 
-void ti_sleep_until(int64_t time);
+void ti_sleep_until(int64_t time, enum ti_errc_t* errc_out);
 
-void ti_wait(int64_t duration);
+void ti_wait(int64_t duration, enum ti_errc_t* errc_out);
 
-void ti_wait_until(int64_t time);
+void ti_wait_until(int64_t time, enum ti_errc_t* errc_out);
 
 
-int64_t ti_micros_to_time(int64_t micros);
+int64_t ti_micros_to_time(int64_t micros, enum ti_errc_t* errc_out);
 
-int64_t ti_time_to_micros(int64_t time);
+int64_t ti_time_to_micros(int64_t time, enum ti_errc_t* errc_out);
 
-int64_t ti_millis_to_time(int64_t millis);
+int64_t ti_millis_to_time(int64_t millis, enum ti_errc_t* errc_out);
 
-int64_t ti_time_to_millis(int64_t time);
+int64_t ti_time_to_millis(int64_t time, enum ti_errc_t* errc_out);
 
-int64_t ti_seconds_to_time(int64_t seconds);
+int64_t ti_seconds_to_time(int64_t seconds, enum ti_errc_t* errc_out);
 
-int64_t ti_time_to_seconds(int64_t time);
+int64_t ti_time_to_seconds(int64_t time, enum ti_errc_t* errc_out);
 
-int64_t ti_minutes_to_time(int64_t minutes);
+int64_t ti_minutes_to_time(int64_t minutes, enum ti_errc_t* errc_out);
 
-int64_t ti_time_to_minutes(int64_t time);
+int64_t ti_time_to_minutes(int64_t time, enum ti_errc_t* errc_out);
 
-int64_t ti_hours_to_time(int64_t hours);
+int64_t ti_hours_to_time(int64_t hours, enum ti_errc_t* errc_out);
 
-int64_t ti_time_to_hours(int64_t time);
+int64_t ti_time_to_hours(int64_t time, enum ti_errc_t* errc_out);
 
-int64_t ti_days_to_time(int64_t days);
+int64_t ti_days_to_time(int64_t days, enum ti_errc_t* errc_out);
 
-int64_t ti_time_to_days(int64_t time);
+int64_t ti_time_to_days(int64_t time, enum ti_errc_t* errc_out);

@@ -14210,6 +14210,48 @@ field32_t const SCB_SHPR3_PRI_1x[6] = {
 };
 
 /**************************************************************************************************
+ * @section Debug Definitions
+ **************************************************************************************************/
+
+/** @subsection Debug Register Definitions */
+
+rw_reg32_t const DBG_DHCSR   = (rw_reg32_t)0xE000EDF0U;
+rw_reg32_t const DBG_DCRSR   = (rw_reg32_t)0xE000EDF4U;
+rw_reg32_t const DBG_DCRDR   = (rw_reg32_t)0xE000EDF8U;
+rw_reg32_t const DBG_DEMCR   = (rw_reg32_t)0xE000EDFCU;
+
+/** @subsection Debug Register Field Definitions */
+
+const field32_t DBG_DHCSR_C_DEBUGEN    = {.msk = 0x00000001U, .pos = 0};
+const field32_t DBG_DHCSR_C_HALT       = {.msk = 0x00000002U, .pos = 1};
+const field32_t DBG_DHCSR_C_STEP       = {.msk = 0x00000004U, .pos = 2};
+const field32_t DBG_DHCSR_C_MASKINTS   = {.msk = 0x00000008U, .pos = 3};
+const field32_t DBG_DHCSR_C_SNAPSTALL  = {.msk = 0x00000020U, .pos = 5};
+const field32_t DBG_DHCSR_S_REGRDY     = {.msk = 0x00010000U, .pos = 16};
+const field32_t DBG_DHCSR_S_HALT       = {.msk = 0x00020000U, .pos = 17};
+const field32_t DBG_DHCSR_S_SLEEP      = {.msk = 0x00040000U, .pos = 18};
+const field32_t DBG_DHCSR_S_LOCKUP     = {.msk = 0x00080000U, .pos = 19};
+const field32_t DBG_DHCSR_S_RETIRE_ST  = {.msk = 0x01000000U, .pos = 24};
+const field32_t DBG_DHCSR_S_RESET_ST   = {.msk = 0x02000000U, .pos = 25};
+const field32_t DBG_DHCSR_DBGKEY       = {.msk = 0xFFFF0000U, .pos = 16};
+const field32_t DBG_DCRSR_REGSEL       = {.msk = 0x0000001FU, .pos = 0};
+const field32_t DBG_DCRSR_REGWnR       = {.msk = 0x00010000U, .pos = 16};
+const field32_t DBG_DCRDR_DBGTMP       = {.msk = 0xFFFFFFFFU, .pos = 0};
+const field32_t DBG_DEMCR_VC_CORERESET = {.msk = 0x00000001U, .pos = 0};
+const field32_t DBG_DEMCR_VC_MMERR     = {.msk = 0x00000010U, .pos = 4};
+const field32_t DBG_DEMCR_VC_NOCPERR   = {.msk = 0x00000020U, .pos = 5};
+const field32_t DBG_DEMCR_VC_CHKERR    = {.msk = 0x00000040U, .pos = 6};
+const field32_t DBG_DEMCR_VC_STATERR   = {.msk = 0x00000080U, .pos = 7};
+const field32_t DBG_DEMCR_VC_BUSERR    = {.msk = 0x00000100U, .pos = 8};
+const field32_t DBG_DEMCR_VC_INTERR    = {.msk = 0x00000200U, .pos = 9};
+const field32_t DBG_DEMCR_VC_HARDERR   = {.msk = 0x00000400U, .pos = 10};
+const field32_t DBG_DEMCR_MON_EN       = {.msk = 0x00010000U, .pos = 16};
+const field32_t DBG_DEMCR_MON_PEND     = {.msk = 0x00020000U, .pos = 17};
+const field32_t DBG_DEMCR_MON_STEP     = {.msk = 0x00040000U, .pos = 18};
+const field32_t DBG_DEMCR_MON_REQ      = {.msk = 0x00080000U, .pos = 19};
+const field32_t DBG_DEMCR_TRCENA       = {.msk = 0x01000000U, .pos = 24};
+
+/**************************************************************************************************
  * @section PF Definitions
  **************************************************************************************************/
 

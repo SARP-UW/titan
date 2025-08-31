@@ -8123,6 +8123,48 @@ extern const field32_t SCB_SHPR1_PRI_x[7];  /** @brief Priority of system handle
 extern const field32_t SCB_SHPR3_PRI_1x[6]; /** @brief Priority of system handler 14. */
 
 /**************************************************************************************************
+ * @section Debug Definitions
+ **************************************************************************************************/
+
+/** @subsection Debug Register Definitions */
+
+extern rw_reg32_t const DBG_DHCSR; /** @brief Debug halting control and status register. */
+extern rw_reg32_t const DBG_DCRSR; /** @brief Debug core register selector register. */
+extern rw_reg32_t const DBG_DCRDR; /** @brief Debug core register data register. */
+extern rw_reg32_t const DBG_DEMCR; /** @brief Debug exception and monitor control register. */
+
+/** @subsection Debug Register Field Definitions */
+
+extern const field32_t DBG_DHCSR_C_DEBUGEN;    /** @brief Debug enable. */
+extern const field32_t DBG_DHCSR_C_HALT;       /** @brief Halt the core. */
+extern const field32_t DBG_DHCSR_C_STEP;       /** @brief Step the core. */
+extern const field32_t DBG_DHCSR_C_MASKINTS;   /** @brief Mask interrupts when stepping. */
+extern const field32_t DBG_DHCSR_C_SNAPSTALL;  /** @brief Allow imprecise entry to debug state. */
+extern const field32_t DBG_DHCSR_S_REGRDY;     /** @brief Register read/write operation is complete. */
+extern const field32_t DBG_DHCSR_S_HALT;       /** @brief Core is in debug state. */
+extern const field32_t DBG_DHCSR_S_SLEEP;      /** @brief Core is sleeping. */
+extern const field32_t DBG_DHCSR_S_LOCKUP;     /** @brief Core is in lockup state. */
+extern const field32_t DBG_DHCSR_S_RETIRE_ST;  /** @brief Indicates whether the processor has completed execution of an instruction since the last read. */
+extern const field32_t DBG_DHCSR_S_RESET_ST;   /** @brief Indicates the processor has been reset since the last read. */
+extern const field32_t DBG_DHCSR_DBGKEY;       /** @brief Debug key. */
+extern const field32_t DBG_DCRSR_REGSEL;       /** @brief Register selector. */
+extern const field32_t DBG_DCRSR_REGWnR;       /** @brief Register write/not-read. */
+extern const field32_t DBG_DCRDR_DBGTMP;       /** @brief Debug temporary data for register read/write. */
+extern const field32_t DBG_DEMCR_VC_CORERESET; /** @brief Reset vector catch. */
+extern const field32_t DBG_DEMCR_VC_MMERR;     /** @brief Memory management error vector catch. */
+extern const field32_t DBG_DEMCR_VC_NOCPERR;   /** @brief Coprocessor error vector catch. */
+extern const field32_t DBG_DEMCR_VC_CHKERR;    /** @brief Check error vector catch. */
+extern const field32_t DBG_DEMCR_VC_STATERR;   /** @brief State error vector catch. */
+extern const field32_t DBG_DEMCR_VC_BUSERR;    /** @brief Bus error vector catch. */
+extern const field32_t DBG_DEMCR_VC_INTERR;    /** @brief Interrupt error vector catch. */
+extern const field32_t DBG_DEMCR_VC_HARDERR;   /** @brief Hard error vector catch. */
+extern const field32_t DBG_DEMCR_MON_EN;       /** @brief Monitor enable. */
+extern const field32_t DBG_DEMCR_MON_PEND;     /** @brief Monitor pend. */
+extern const field32_t DBG_DEMCR_MON_STEP;     /** @brief Monitor step. */
+extern const field32_t DBG_DEMCR_MON_REQ;      /** @brief Monitor request. */
+extern const field32_t DBG_DEMCR_TRCENA;       /** @brief Trace enable. */
+
+/**************************************************************************************************
  * @section PF Definitions
  **************************************************************************************************/
 

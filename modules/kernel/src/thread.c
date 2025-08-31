@@ -26,20 +26,6 @@
  * @section Internal Utilities
  **************************************************************************************************/
 
-typedef struct {
-  void* sp;
-  int32_t stack_size;
-  int32_t id;
-  thread_entry_fn_t entry_fn;
-  int32_t priority;
-  thread_state_e state;
-  int32_t crit_depth;
-  int32_t sched_count;
-} tcb_t;
-
-tcb_t* tcb_table[MAX_THREAD_COUNT];
-
-
 
 /**************************************************************************************************
  * @section Public Functions

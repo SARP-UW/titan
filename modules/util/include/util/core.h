@@ -75,4 +75,3 @@
 #define TI_FOREACH_REV(index, elem, array) \
   for (int32_t index = TI_ARRAY_LEN(array) - 1; index >= 0; index--) \
       for (__auto_type elem = &(array)[index]; elem < &(array)[index + 1]; elem++)
-
