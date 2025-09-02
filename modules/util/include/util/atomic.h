@@ -25,18 +25,18 @@
 #include <stdbool.h> 
 
 /**
- * @brief Atomically loads a value from memory.
+ * @brief Atomically loads a value from memory (unsigned).
  * @param src (const volatile uint32_t*) The location to load from.
  * @returns (uint32_t) The value stored at @p [src].
  */
-uint32_t atomic_load(const volatile uint32_t* src);
+uint32_t ti_atomic_load(const volatile uint32_t* src);
 
 /**
  * @brief Atomically stores a value to memory.
  * @param dst (volatile uint32_t*) The location to store to.
  * @param value (uint32_t) The value to store.
  */
-void atomic_store(volatile uint32_t* dst, uint32_t value);
+void ti_atomic_store(volatile uint32_t* dst, uint32_t value);
 
 /**
  * @brief Atomically exchanges a value in memory.
@@ -44,7 +44,7 @@ void atomic_store(volatile uint32_t* dst, uint32_t value);
  * @param value (uint32_t) The new value to store.
  * @returns (uint32_t) The value previously stored at @p [dst].
  */
-uint32_t atomic_exchange(volatile uint32_t* dst, uint32_t value);
+uint32_t ti_atomic_exchange(volatile uint32_t* dst, uint32_t value);
 
 /**
  * @brief Atomically compares and exchanges a value in memory.
@@ -59,7 +59,7 @@ uint32_t atomic_exchange(volatile uint32_t* dst, uint32_t value);
  *         the value at @p [expected] will be updated with the value at @p [dst] and
  *         @p [dst] WILL NOT be set to @p [desired].
  */
-bool atomic_cmp_exchange(volatile uint32_t* dst, uint32_t* expected, uint32_t desired);
+bool ti_atomic_cmp_exchange(volatile uint32_t* dst, uint32_t* expected, uint32_t desired);
 
 /**
  * @brief Performs an atomic addition/assignment operation on a value in memory.
@@ -69,7 +69,7 @@ bool atomic_cmp_exchange(volatile uint32_t* dst, uint32_t* expected, uint32_t de
  * @note - This function atomically fetches the value at @p [dst], adds it to
  *         @p [value], and stores the result back to @p [dst].
  */
-uint32_t atomic_add(volatile uint32_t* dst, uint32_t value);
+uint32_t ti_atomic_add(volatile uint32_t* dst, uint32_t value);
 
 /**
  * @brief Performs an atomic subtraction/assignment operation on a value in memory.
@@ -79,4 +79,4 @@ uint32_t atomic_add(volatile uint32_t* dst, uint32_t value);
  * @note - This function atomically fetches the value at @p [dst], subtracts
  *         @p [value] from it, and stores the result back to @p [dst].
  */
-uint32_t atomic_sub(volatile uint32_t* dst, uint32_t value);
+uint32_t ti_atomic_sub(volatile uint32_t* dst, uint32_t value);

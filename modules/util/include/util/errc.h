@@ -26,13 +26,16 @@
 
 /** @brief Error code enum. */
 enum ti_errc_t {
-  TI_ERRC_NONE = 0,    /** @brief No error occurred. */
-  TI_ERRC_UNKNOWN,     /** @brief Unknown error occurred. */
-  TI_ERRC_INVALID_ARG, /** @brief Invalid argument passed to function. */
-  TI_ERRC_HOST,        /** @brief Host reported error during semihosting operation. */
-  TI_ERRC_NO_MEM,      /** @brief Memory allocation failed. */
-  TI_ERRC_INVALID_OP,  /** @brief The requested operation is fundamentally invalid. */
-  TI_ERRC_INVALID_STATE, /** @brief The requested operation is currently invalid due to the state of the program. */
+  TI_ERRC_NONE = 0,      /** @brief No error occurred. */
+  TI_ERRC_UNKNOWN,       /** @brief Unknown error occurred. */
+  TI_ERRC_INTERNAL,      /** @brief Internal error occurred. */
+  TI_ERRC_INVALID_ARG,   /** @brief Invalid argument passed to function. */
+  TI_ERRC_HOST,          /** @brief Host reported error during semihosting operation. */
+  TI_ERRC_NO_MEM,        /** @brief Memory allocation failed. */
+  TI_ERRC_INVALID_OP,    /** @brief The requested operation is invalid. */
+  TI_ERRC_INVALID_STATE, /** @brief The requested operation cannot be completed due to the state of the program. */
+  TI_ERRC_UNSUPPORTED,   /** @brief The requested operation is not implemented/supported. */
+  TI_ERRC_TIMEOUT,       /** @brief The requested operation timed out. */
 };
 
 /**
@@ -40,6 +43,7 @@ enum ti_errc_t {
  * @param errc_in (enum ti_errc_t) The target error code.
  * @param errc_out (enum ti_errc_t*) Output error code for this function.
  * @returns (const char*) String containing the name of @p [errc].
+ * @warning - TI_ERRC_INVALID_ARG is raised if @p [errc_in] is not a valid enumeration value.
  */
 const char* ti_get_errc_name(enum ti_errc_t errc_in, enum ti_errc_t* errc_out);
 
@@ -48,5 +52,6 @@ const char* ti_get_errc_name(enum ti_errc_t errc_in, enum ti_errc_t* errc_out);
  * @param errc_in (enum ti_errc_t) The target error code.
  * @param errc_out (enum ti_errc_t*) Output error code for this function.
  * @returns (const char*) String containing the description of @p [errc].
+ * @warning - TI_ERRC_INVALID_ARG is raised if @p [errc_in] is not a valid enumeration value.
  */
 const char* ti_get_errc_desc(enum ti_errc_t errc_in, enum ti_errc_t* errc_out);

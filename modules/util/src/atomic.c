@@ -21,11 +21,12 @@
 
 #include "util/atomic.h" // header
 
-uint32_t atomic_load(const volatile uint32_t* src) {
+uint32_t ti_atomic_load(const volatile uint32_t* const src) {
   uint32_t val;
+  // DMB required to ensure strict ordering of memory operations
   // Load operations are inherently atomic so no need for LDREX/STREX
-  // DMB required to prevent reordering of subsequent memory accesses
   asm volatile (
+    "dmb                  \n\t"
     "ldr %[val], [%[src]] \n\t"
     "dmb                  \n\t"
     : [val] "=r" (val)
@@ -35,10 +36,11 @@ uint32_t atomic_load(const volatile uint32_t* src) {
   return val;
 }
 
-void atomic_store(volatile uint32_t* dst, uint32_t value) {
+void ti_atomic_store(volatile uint32_t* const dst, const uint32_t value) {
+  // DMB required to ensure strict ordering of memory operations
   // Store operations are inherently atomic so no need for LDREX/STREX
-  // DMB required to prevent reordering of subsequent memory accesses
   asm volatile (
+    "dmb                    \n\t"
     "str %[value], [%[dst]] \n\t"
     "dmb                    \n\t"
     :
@@ -47,8 +49,10 @@ void atomic_store(volatile uint32_t* dst, uint32_t value) {
   );
 }
 
-uint32_t atomic_exchange(volatile uint32_t* dst, uint32_t value) {
+uint32_t ti_atomic_exchange(volatile uint32_t* const dst, const uint32_t value) {
   uint32_t old, status;
+  // DMB required to ensure strict ordering of memory operations
+  asm volatile ("dmb" ::: "memory");
   do {
     // Status != 0 if dst is modified or interrupt occurs between LDREX/STREX
     // "=&r" required for outputs because they are clobbered before inputs are read
@@ -60,13 +64,14 @@ uint32_t atomic_exchange(volatile uint32_t* dst, uint32_t value) {
       : "memory"
     );
   } while (status != 0);
-  // Prevents reordering of subsequent memory accesses
-  asm volatile("dmb" ::: "memory");
+  asm volatile ("dmb" ::: "memory");
   return old;
 }
 
-bool atomic_cmp_exchange(volatile uint32_t* dst, uint32_t* expected, uint32_t desired) {
+bool ti_atomic_cmp_exchange(volatile uint32_t* const dst, uint32_t* const expected, const uint32_t desired) {
   uint32_t old, status;
+  // DMB required to ensure strict ordering of memory operations
+  asm volatile ("dmb" ::: "memory");
   do {
     // Status != 0 if dst is modified or interrupt occurs between LDREX/STREX
     // "=&r" required for outputs because they are clobbered before inputs are read
@@ -90,13 +95,14 @@ bool atomic_cmp_exchange(volatile uint32_t* dst, uint32_t* expected, uint32_t de
       return false;
     }
   } while (status != 0);
-  // Prevents reordering of subsequent memory accesses
-  asm volatile("dmb" ::: "memory");
+  asm volatile ("dmb" ::: "memory");
   return true;
 }
 
-uint32_t atomic_add(volatile uint32_t* dst, uint32_t value) {
+uint32_t ti_atomic_add(volatile uint32_t* const dst, const uint32_t value) {
   uint32_t old, newv, status;
+  // DMB required to ensure strict ordering of memory operations
+  asm volatile ("dmb" ::: "memory");
   do {
     // Status != 0 if dst is modified or interrupt occurs between LDREX/STREX
     // "=&r" required for outputs because they are clobbered before inputs are read
@@ -110,13 +116,14 @@ uint32_t atomic_add(volatile uint32_t* dst, uint32_t value) {
       : "cc", "memory"
     );
   } while (status != 0);
-  // Prevents reordering of subsequent memory accesses
-  asm volatile("dmb" ::: "memory");
+  asm volatile ("dmb" ::: "memory");
   return old;
 }
 
-uint32_t atomic_sub(volatile uint32_t* dst, uint32_t value) {
+uint32_t ti_atomic_sub(volatile uint32_t* const dst, const uint32_t value) {
   uint32_t old, newv, status;
+  // DMB required to ensure strict ordering of memory operations
+  asm volatile ("dmb" ::: "memory");
   do {
     // Status != 0 if dst is modified or interrupt occurs between LDREX/STREX
     // "=&r" required for outputs because they are clobbered before inputs are read
@@ -130,7 +137,6 @@ uint32_t atomic_sub(volatile uint32_t* dst, uint32_t value) {
       : "cc", "memory"
     );
   } while (status != 0);
-  // Prevents reordering of subsequent memory accesses
-  asm volatile("dmb" ::: "memory");
+  asm volatile ("dmb" ::: "memory");
   return old;
 }

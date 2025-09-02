@@ -80,4 +80,6 @@ bool ti_is_valid_thread(struct ti_thread_t thread);
 
 struct ti_thread_t ti_get_this_thread(enum ti_errc_t* errc_out);
 
-bool ti_is_thread_equal(struct ti_thread_t thread_1, struct ti_thread_t thread_2, enum ti_errc_t* errc_out);
+bool ti_is_interrupt(void);
+
+bool ti_is_thread_equal(struct ti_thread_t thread_1, struct ti_thread_t thread_2);
