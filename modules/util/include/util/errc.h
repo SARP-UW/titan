@@ -35,6 +35,7 @@ enum ti_errc_t {
   TI_ERRC_INVALID_OP,    /** @brief The requested operation is invalid. */
   TI_ERRC_INVALID_STATE, /** @brief The requested operation cannot be completed due to the state of the program. */
   TI_ERRC_UNSUPPORTED,   /** @brief The requested operation is not implemented/supported. */
+  TI_ERRC_OVERFLOW,      /** @brief An overflow occurred during a mathematical operation. */
   TI_ERRC_TIMEOUT,       /** @brief The requested operation timed out. */
 };
 

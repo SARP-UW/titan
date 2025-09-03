@@ -66,7 +66,7 @@
  * @note - @p [ptr] is only expanded once.
  */
 #define TI_CONTAINER_OF(ptr, type, member) ({ \
-  typeof(ptr) _ptr = (ptr); \
+  __auto_type _ptr = (ptr); \
   _ptr ? (typeof(type)*)((char*)_ptr - offsetof(type, member)) : NULL; \
 })
 

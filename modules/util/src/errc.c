@@ -21,7 +21,7 @@
 
 #include "util/errc.h"
 
-const char* ti_get_errc_name(enum ti_errc_t errc_in, enum ti_errc_t* errc_out) {
+const char* ti_get_errc_name(const enum ti_errc_t errc_in, enum ti_errc_t* const errc_out) {
   switch (errc_in) {
     case TI_ERRC_NONE:          return "No Error";
     case TI_ERRC_UNKNOWN:       return "Unknown Error";
@@ -32,6 +32,7 @@ const char* ti_get_errc_name(enum ti_errc_t errc_in, enum ti_errc_t* errc_out) {
     case TI_ERRC_INVALID_OP:    return "Invalid Operation";
     case TI_ERRC_INVALID_STATE: return "Invalid State";
     case TI_ERRC_UNSUPPORTED:   return "Unsupported Operation";
+    case TI_ERRC_OVERFLOW:      return "Overflow Error";
     case TI_ERRC_TIMEOUT:       return "Timeout Error";
     default: {
       *errc_out = TI_ERRC_INVALID_ARG;
@@ -40,7 +41,7 @@ const char* ti_get_errc_name(enum ti_errc_t errc_in, enum ti_errc_t* errc_out) {
   }
 }
 
-const char* ti_get_errc_desc(enum ti_errc_t errc_in, enum ti_errc_t* errc_out) {
+const char* ti_get_errc_desc(const enum ti_errc_t errc_in, enum ti_errc_t* const errc_out) {
   switch (errc_in) {
     case TI_ERRC_NONE:          return "No error occurred.";
     case TI_ERRC_UNKNOWN:       return "Unknown error occurred.";
@@ -51,6 +52,7 @@ const char* ti_get_errc_desc(enum ti_errc_t errc_in, enum ti_errc_t* errc_out) {
     case TI_ERRC_INVALID_OP:    return "The requested operation is invalid.";
     case TI_ERRC_INVALID_STATE: return "The requested operation cannot be completed due to the state of the program.";
     case TI_ERRC_UNSUPPORTED:   return "The requested operation is not implemented/supported.";
+    case TI_ERRC_OVERFLOW:      return "An overflow occurred during a mathematical operation.";
     case TI_ERRC_TIMEOUT:       return "A timeout occurred.";
     default: {
       *errc_out = TI_ERRC_INVALID_ARG;
