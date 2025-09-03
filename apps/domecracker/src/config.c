@@ -20,3 +20,5 @@
  */
 
  struct gnss_config_t gnss_config = {0}; // TODO: Initialize this properly.
+
+ struct data_telemetry_config_t telem_config = {0};
