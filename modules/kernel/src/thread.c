@@ -111,6 +111,10 @@ static int32_t _next_thread_id = 123;
 static int32_t _cm7_critical_count = 0;
 static int32_t _cm4_critical_count = 0;
 
+// Exclusive section entry counter for the CM7/CM4 cores
+static int32_t _cm7_exclusive_count = 0;
+static int32_t _cm4_exclusive_count = 0;
+
 /**************************************************************************************************
  * @section Internal Functions
  **************************************************************************************************/
@@ -240,14 +244,6 @@ static void _thread_exit(void) {
 
 }
 
-static int32_t* _get_critical_count(void) {
-  if (ti_get_this_core() == TI_CORE_ID_CM7) {
-    return &_cm7_critical_count;
-  } else {
-    return &_cm4_critical_count;
-  }
-}
-
 /**************************************************************************************************
  * @section Public Functions
  **************************************************************************************************/
@@ -339,10 +335,11 @@ void ti_suspend_thread(const struct ti_thread_t thread, enum ti_errc_t* const er
     return;
   }
   int_thread->state = TI_THREAD_STATE_SUSPENDED;
+  if (ti_get_this_thread().id == thread.id) {
+    SET_FIELD(SCB_ICSR, SCB_ICSR_PENDSVSET);
+  }
   ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
   ti_exit_critical();
-  // TODO - Schedule the thread if it is running
-  // SET_FIELD(SCB_ICSR, SCB_ICSR_PENDSVSET);
 }
 
 void ti_resume_thread(struct ti_thread_t thread, enum ti_errc_t* errc_out) {
@@ -366,7 +363,9 @@ void ti_resume_thread(struct ti_thread_t thread, enum ti_errc_t* errc_out) {
 }
 
 void ti_enter_critical(void) {
-  int32_t* const critical_count = _get_critical_count();
+  int32_t* const critical_count = 
+      ti_get_this_core() == TI_CORE_ID_CM7 ? 
+      &_cm7_critical_count : &_cm4_critical_count;
   if (*critical_count == 0) {
     asm volatile ("cpsid i");
   }
@@ -374,7 +373,9 @@ void ti_enter_critical(void) {
 }
 
 void ti_exit_critical(void) {
-  int32_t* const critical_count = _get_critical_count();
+  int32_t* const critical_count = 
+      ti_get_this_core() == TI_CORE_ID_CM7 ? 
+      &_cm7_critical_count : &_cm4_critical_count;
   if (*critical_count > 0) {
     (*critical_count)--;
     if (*critical_count == 0) {
@@ -411,7 +412,7 @@ int32_t ti_get_thread_stack_size(struct ti_thread_t thread, enum ti_errc_t* errc
 
 int32_t ti_get_thread_stack_usage(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
-struct ti_thread_t ti_get_this_thread(enum ti_errc_t* errc_out);
+struct ti_thread_t ti_get_this_thread(void);
 
 enum ti_core_id_t ti_get_this_core(void);
 

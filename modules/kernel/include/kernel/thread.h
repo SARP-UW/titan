@@ -84,7 +84,7 @@ int32_t ti_get_thread_stack_size(struct ti_thread_t thread, enum ti_errc_t* errc
 
 int32_t ti_get_thread_stack_usage(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
-struct ti_thread_t ti_get_this_thread(enum ti_errc_t* errc_out);
+struct ti_thread_t ti_get_this_thread(void);
 
 enum ti_core_id_t ti_get_this_core(void);
 

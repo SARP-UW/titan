@@ -180,7 +180,7 @@ void ti_move_host_file_pos(struct ti_host_file_t file, int32_t offset, enum ti_e
  * @note - The state of the file is guaranteed to be unchanged if an error other than TI_ERRC_INTERNAL occurs.
  * @note - If TI_ERRC_INTERNAL is raised, the state of the file is undefined.
  * @warning - TI_ERRC_UNSUPPORTED is raised if TI_SEMIHOSTING_ENABLED is false.
- * @warning - TI_ERRC_INVALID_OP is raised if this function is called from an interrupt, or if the file is an interactive device (TTY).
+ * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, if this function is called from an interrupt, or if the file is an interactive device (TTY).
  * @warning - TI_ERRC_INVALID_ARG is raised if @p [file] does not exist (not open).
  * @warning - TI_ERRC_TIMEOUT is raised if this thread can't gain exclusive access to the file before the configured timeout duration.
  * @warning - TI_ERRC_HOST is raised if an error occurs on the host machine.

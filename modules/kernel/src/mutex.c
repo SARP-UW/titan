@@ -165,6 +165,10 @@ void ti_release_mutex(const struct ti_mutex_t mutex, enum ti_errc_t* const errc_
 
 bool ti_is_mutex_locked(const struct ti_mutex_t mutex, enum ti_errc_t* const errc_out) {
   *errc_out = TI_ERRC_NONE;
+  if (ti_is_interrupt()) {
+    *errc_out = TI_ERRC_INVALID_OP;
+    return false;
+  }
   if (!ti_is_valid_mutex(mutex)) {
     *errc_out = TI_ERRC_INVALID_ARG;
     return false;
@@ -180,6 +184,10 @@ bool ti_is_mutex_locked(const struct ti_mutex_t mutex, enum ti_errc_t* const err
 
 struct ti_thread_t ti_get_mutex_owner(const struct ti_mutex_t mutex, enum ti_errc_t* const errc_out) {
   *errc_out = TI_ERRC_NONE;
+  if (ti_is_interrupt()) {
+    *errc_out = TI_ERRC_INVALID_OP;
+    return TI_INVALID_THREAD;
+  }
   if (!ti_is_valid_mutex(mutex)) {
     *errc_out = TI_ERRC_INVALID_ARG;
     return TI_INVALID_THREAD;

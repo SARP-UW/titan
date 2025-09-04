@@ -484,7 +484,7 @@ void ti_move_host_file_pos(const struct ti_host_file_t file, const int32_t offse
 int32_t ti_get_host_file_len(const struct ti_host_file_t file, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     *errc_out = TI_ERRC_NONE;
-    if (!_is_host_available()) {
+    if (!_is_host_available() || ti_is_interrupt()) {
       *errc_out = TI_ERRC_INVALID_OP;
       return -1;
     }
