@@ -1,8 +1,0 @@
-# General
-- TI_DEBUG: Set to true to enable debug mode or false to disable debug mode (enables bkpts and asserts)
-
-# Util:
-
-# Kernel:
-
-# MCU:
