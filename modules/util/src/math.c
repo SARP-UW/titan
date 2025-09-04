@@ -70,7 +70,7 @@ CLAMP_FUNC_IMPL(uint32_t, u32)
 CLAMP_FUNC_IMPL(uint64_t, u64)
 
 #define FLOOR_FUNC_SIGNED_IMPL(type, suffix, limit_prefix) \
-  type ti_floor_##suffix(const type value, const type align, enum ti_errc_t* errc_out) { \
+  type ti_floor_##suffix(const type value, const type align, enum ti_errc_t* const errc_out) { \
     *errc_out = TI_ERRC_NONE; \
     if (align <= 0) { \
       *errc_out = TI_ERRC_INVALID_ARG; \
@@ -94,7 +94,7 @@ FLOOR_FUNC_SIGNED_IMPL(int32_t, i32, INT32)
 FLOOR_FUNC_SIGNED_IMPL(int64_t, i64, INT64)
 
 #define FLOOR_FUNC_UNSIGNED_IMPL(type, suffix) \
-  type ti_floor_##suffix(const type value, const type align, enum ti_errc_t* errc_out) { \
+  type ti_floor_##suffix(const type value, const type align, enum ti_errc_t* const errc_out) { \
     *errc_out = TI_ERRC_NONE; \
     if (align == 0) { \
       *errc_out = TI_ERRC_INVALID_ARG; \
@@ -109,7 +109,7 @@ FLOOR_FUNC_UNSIGNED_IMPL(uint32_t, u32)
 FLOOR_FUNC_UNSIGNED_IMPL(uint64_t, u64)
 
 #define CEIL_FUNC_SIGNED_IMPL(type, suffix, limit_prefix) \
-  type ti_ceil_##suffix(const type value, const type align, enum ti_errc_t* errc_out) { \
+  type ti_ceil_##suffix(const type value, const type align, enum ti_errc_t* const errc_out) { \
     *errc_out = TI_ERRC_NONE; \
     if (align <= 0) { \
       *errc_out = TI_ERRC_INVALID_ARG; \
@@ -133,7 +133,7 @@ CEIL_FUNC_SIGNED_IMPL(int32_t, i32, INT32)
 CEIL_FUNC_SIGNED_IMPL(int64_t, i64, INT64)
 
 #define CEIL_FUNC_UNSIGNED_IMPL(type, suffix, limit_prefix) \
-  type ti_ceil_##suffix(const type value, const type align, enum ti_errc_t* errc_out) { \
+  type ti_ceil_##suffix(const type value, const type align, enum ti_errc_t* const errc_out) { \
     *errc_out = TI_ERRC_NONE; \
     if (align == 0) { \
       *errc_out = TI_ERRC_INVALID_ARG; \
@@ -157,7 +157,7 @@ CEIL_FUNC_UNSIGNED_IMPL(uint32_t, u32, UINT32)
 CEIL_FUNC_UNSIGNED_IMPL(uint64_t, u64, UINT64)
 
 #define ROUND_FUNC_SIGNED_IMPL(type, suffix, limit_prefix) \
-  type ti_round_##suffix(const type value, const type align, enum ti_errc_t* errc_out) { \
+  type ti_round_##suffix(const type value, const type align, enum ti_errc_t* const errc_out) { \
     *errc_out = TI_ERRC_NONE; \
     if (align <= 0) { \
       *errc_out = TI_ERRC_INVALID_ARG; \
@@ -196,7 +196,7 @@ ROUND_FUNC_SIGNED_IMPL(int32_t, i32, INT32)
 ROUND_FUNC_SIGNED_IMPL(int64_t, i64, INT64)
 
 #define ROUND_FUNC_UNSIGNED_IMPL(type, suffix, limit_prefix) \
-  type ti_round_##suffix(const type value, const type align, enum ti_errc_t* errc_out) { \
+  type ti_round_##suffix(const type value, const type align, enum ti_errc_t* const errc_out) { \
     *errc_out = TI_ERRC_NONE; \
     if (align == 0) { \
       *errc_out = TI_ERRC_INVALID_ARG; \

@@ -25,6 +25,11 @@
 #include <stddef.h>
 #include "util/errc.h"
 
+struct ti_thread_t {
+  int32_t id;
+  const void* handle;
+};
+
 enum ti_thread_state_t {
   TI_THREAD_STATE_EXCLUSIVE,
   TI_THREAD_STATE_CRITICAL,
@@ -35,14 +40,19 @@ enum ti_thread_state_t {
   TI_THREAD_STATE_OVERFLOW,
 };
 
-struct ti_thread_t {
-  int32_t id;
-  const void* handle;
+enum ti_core_id_t {
+  TI_CORE_ID_CM7,
+  TI_CORE_ID_CM4,
 };
+
+#define TI_THREAD_MIN_STACK_SIZE 128
 
 #define TI_THREAD_MEM_SIZE(stack_size) 0
 
-extern const struct ti_thread_t TI_INVALID_THREAD;
+static const struct ti_thread_t TI_INVALID_THREAD = {
+  .id = -1,
+  .handle = NULL
+};
 
 struct ti_thread_t ti_create_thread(void* mem, void (*entry_fn)(void*), void* arg, int32_t stack_size, int32_t priority, enum ti_errc_t* errc_out);
 
@@ -70,16 +80,16 @@ int32_t ti_get_thread_priority(struct ti_thread_t thread, enum ti_errc_t* errc_o
 
 enum thread_state_t ti_get_thread_state(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
-void* ti_get_thread_arg(struct ti_thread_t thread, enum ti_errc_t* errc_out);
-
 int32_t ti_get_thread_stack_size(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
 int32_t ti_get_thread_stack_usage(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
-bool ti_is_valid_thread(struct ti_thread_t thread);
-
 struct ti_thread_t ti_get_this_thread(enum ti_errc_t* errc_out);
 
+enum ti_core_id_t ti_get_this_core(void);
+
 bool ti_is_interrupt(void);
+
+bool ti_is_valid_thread(struct ti_thread_t thread);
 
 bool ti_is_thread_equal(struct ti_thread_t thread_1, struct ti_thread_t thread_2);

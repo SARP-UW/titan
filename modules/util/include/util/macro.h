@@ -23,19 +23,19 @@
 
 /**
  * @brief Stringifies the given token.
- * @param x (token) The target token.
+ * @param x (list of tokens) The target tokens.
  * @returns (string literal) The stringified form of @p [x].
  */
-#define TI_STR(x) \
-  #x
+#define TI_STR(...) \
+  #__VA_ARGS__
 
 /**
  * @brief Expands and stringifies the given token.
- * @param x (token) The target token.
+ * @param x (list of tokens) The target tokens.
  * @returns (string literal) The expanded and stringified form of @p [x].
  */
-#define TI_XSTR(x) \
-  TI_STR(x)
+#define TI_XSTR(...) \
+  TI_STR(__VA_ARGS__)
 
 /**
  * @brief Concatenates two tokens.

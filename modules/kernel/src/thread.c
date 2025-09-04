@@ -20,14 +20,403 @@
  */
 
 #pragma once
-#include "kernel/thread.h"
+#include <string.h>
+#include "kernel/thread.h" // header
+#include "internal/mmio.h"
+#include "util/core.h"
+#include "util/atomic.h"
+#include "util/math.h"
+#include "util/macro.h"
 
 /**************************************************************************************************
- * @section Internal Utilities
+ * @section Configuration Defaults
  **************************************************************************************************/
 
+#ifndef TI_CFG_MAX_THREADS
+  #define TI_CFG_MAX_THREADS 16
+#endif
+
+#ifndef TI_CFG_MAX_THREAD_PRIORITY
+  #define TI_CFG_MAX_THREAD_PRIORITY 32
+#endif
+
+/**************************************************************************************************
+ * @section Internal Resources
+ **************************************************************************************************/
+
+// Internal thread information struct
+struct _int_thread_t {
+  void* sp;
+  int32_t id;
+  void* stack_base;
+  int32_t stack_size;
+  int32_t priority;
+  enum ti_thread_state_t state;
+  int32_t sched_count;
+};
+
+// Struct representing layout of hardware stack frame
+__attribute__((packed))
+struct _hw_frame_t {
+  uint32_t r0;
+  uint32_t r1;
+  uint32_t r2;
+  uint32_t r3;
+  uint32_t r12;
+  uint32_t lr;
+  uint32_t pc;
+  uint32_t xpsr;
+};
+
+// Struct representing layout of software stack frame
+__attribute__((packed))
+struct _sw_frame_t {
+    uint32_t r4;
+    uint32_t r5;
+    uint32_t r6;
+    uint32_t r7;
+    uint32_t r8;
+    uint32_t r9;
+    uint32_t r10;
+    uint32_t r11;
+    uint32_t exc_return;
+};
+
+// Required alignment for stack pointer
+static const int32_t _SYS_STACK_ALIGN = 8;
+
+// Initial value of XPSR register for new threads
+static const int32_t _INIT_XPSR_VALUE = 0x01000000;
+
+// Initial value of exc_return for new threads
+static const int32_t _INIT_EXC_RETURN_VALUE = 0xFFFFFFFD;
+
+// Size of "full" stack frame (hw + sw)
+static const int32_t _FULL_FRAME_SIZE = sizeof(struct _hw_frame_t) + sizeof(struct _sw_frame_t);
+
+// List of existing threads
+static struct _int_thread_t* _thread_list[TI_CFG_MAX_THREADS] = {NULL};
+
+// Current thread running on CM7/CM4 core
+static struct _int_thread_t* _cm7_thread = NULL;
+static struct _int_thread_t* _cm4_thread = NULL;
+
+// Edit lock for thread list and internal thread structs.
+static int32_t _thread_edit_lock = 0;
+
+// Unique thread ID counter (start at non-zero value to reduce chance of collision)
+static int32_t _next_thread_id = 123;
+
+// Critical section entry counter for the CM7/CM4 cores
+static int32_t _cm7_critical_count = 0;
+static int32_t _cm4_critical_count = 0;
+
+/**************************************************************************************************
+ * @section Internal Functions
+ **************************************************************************************************/
+
+#define _SCHEDULE_THREADS_IMPL(core_token, other_core_token) \
+  static void _schedule_threads_##core_token(void) { \
+    while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U)); \
+    if ((_##core_token##_thread != NULL) && (_##core_token##_thread->state == TI_THREAD_STATE_RUNNING)) { \
+      _##core_token##_thread->state = TI_THREAD_STATE_READY; \
+    } \
+    _##core_token##_thread = NULL; \
+    if (_##other_core_token##_thread->state != TI_THREAD_STATE_EXCLUSIVE) { \
+      struct _int_thread_t* next_thread = NULL; \
+      TI_FOREACH(cur_thread, _thread_list) { \
+        if (*cur_thread != NULL) { \
+          (*cur_thread)->sched_count += (*cur_thread)->priority; \
+        } \
+      } \
+      TI_FOREACH(cur_thread, _thread_list) { \
+        if ((*cur_thread != NULL) && ((*cur_thread)->state == TI_THREAD_STATE_READY)) { \
+          if (next_thread == NULL) { \
+            next_thread = *cur_thread; \
+          } else if ((*cur_thread)->sched_count > next_thread->sched_count) { \
+            next_thread = *cur_thread; \
+          } \
+        } \
+      } \
+      if (next_thread != NULL) { \
+        next_thread->state = TI_THREAD_STATE_RUNNING; \
+        next_thread->sched_count = 0; \
+        _##core_token##_thread = next_thread; \
+      } \
+    } \
+    ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U); \
+  }
+
+// Declare scheduler function for CM7 and CM4 cores
+_SCHEDULE_THREADS_IMPL(cm7, cm4)
+_SCHEDULE_THREADS_IMPL(cm4, cm7)
+
+// Idle function (used when no threads are running)
+__attribute__((naked, optimize("O0")))
+static void _idle_fn(void) {
+  asm volatile (
+    "loop: \n\t"
+    "wfi \n\t"
+    "b loop \n\t"
+    :::
+  );
+}
+
+// PendSV exception handler (context switcher for threads)
+#define _PENDSV_EXC_HANDLER_IMPL(core_token) \
+  __attribute__((naked, optimize("O0"))) \
+  static void cm7_pendsv_exc_handler(void) { \
+    asm volatile( \
+      \
+      /* Load in stack pointer from internal thread struct */ \
+      TI_STR(ldr r3, =_##core_token##_thread \n\t) \
+      "ldr r2, [r3] \n\t" \
+      \
+      /* If current thread is idle - skip saving context */ \
+      "movs r12, #0     \n\t" \
+      "cbz r2, schedule \n\t" \
+      "movs r12, #1     \n\t" \
+      \
+      /* Save context of current thread (push registers to stack) */ \
+      "mrs r0, psp             \n\t" \ 
+      "isb                     \n\t" \
+      "tst lr, #0x10           \n\t" \
+      "it eq                   \n\t" \
+      "vstmdbeq r0!, {s16-s31} \n\t" \
+      "stmdb r0!, {r4-r11, lr} \n\t" \
+      "str r0, [r2]            \n\t" \
+      \
+      /* Invoke thread scheduler function */ \
+      "schedule:       \n\t" \
+      "mrs r1, primask \n\t" \
+      "cpsid i         \n\t" \
+      "dsb             \n\t" \
+      "isb             \n\t" \
+      TI_STR(bl _schedule_threads_##core_token \n\t) \
+      "dsb             \n\t" \
+      "isb             \n\t" \
+      "msr primask, r1 \n\t" \
+      \
+      /* Load in stack pointer of next thread */ \
+      TI_STR(ldr r3, =_##core_thread##_thread \n\t) \
+      "ldr r1, [r3] \n\t" \
+      \
+      /* If next thread is NULL - dont restore context from stack */ \
+      "cbz r1, restore_idle \n\t" \
+      \
+      /* Restore context of next thread (pull registers from stack) */ \
+      "ldr r0, [r1]            \n\t" \
+      "ldmia r0!, {r4-r11, lr} \n\t" \
+      "tst lr, #0x10           \n\t" \
+      "it eq                   \n\t" \
+      "vldmiaeq r0!, {s16-s31} \n\t" \
+      "msr psp, r0             \n\t" \
+      "isb                     \n\t" \
+      "bx lr                   \n\t" \
+      \
+      /* Create context for idle thread (not from stack) */ \
+      "restore_idle:       \n\t" \
+      "ldr r0, =_idle_fn   \n\t" \
+      "mrs r1, msp         \n\t" \
+      "sub r1, r1, #32     \n\t" \
+      "str r0, [r1, #24]   \n\t" \
+      "ldr r0, =0x01000000 \n\t" \
+      "str r0, [r1, #28]   \n\t" \
+      "msr msp, r1         \n\t" \
+      "ldr r0, =0xFFFFFFF9 \n\t" \
+      "mov lr, r0          \n\t" \
+      "bx lr               \n\t" \
+      \
+      ::: "r0","r1","r2","r3","r12","memory" \
+    ); \
+  }
+
+// Declare pendsv handler for CM7 and CM4 cores
+_PENDSV_EXC_HANDLER_IMPL(cm7)
+_PENDSV_EXC_HANDLER_IMPL(cm4)
+
+// Exit point for threads
+static void _thread_exit(void) {
+
+}
+
+static int32_t* _get_critical_count(void) {
+  if (ti_get_this_core() == TI_CORE_ID_CM7) {
+    return &_cm7_critical_count;
+  } else {
+    return &_cm4_critical_count;
+  }
+}
 
 /**************************************************************************************************
  * @section Public Functions
  **************************************************************************************************/
 
+struct ti_thread_t ti_create_thread(void* const mem, void (*const entry_fn)(void*), void* const arg, int32_t stack_size, const int32_t priority, enum ti_errc_t* const errc_out) {
+  *errc_out = TI_ERRC_NONE;
+  if (!mem || !entry_fn || (stack_size < TI_THREAD_MIN_STACK_SIZE) || (priority < 1) || (priority > TI_CFG_MAX_THREAD_PRIORITY)) {
+    *errc_out = TI_ERRC_INVALID_ARG;
+    return TI_INVALID_THREAD;
+  }
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)(mem + stack_size);
+  int_thread->sp = (void*)ti_floor_u32((uint32_t)mem + stack_size, _SYS_STACK_ALIGN, &(enum ti_errc_t){0}) - _FULL_FRAME_SIZE;
+  int_thread->id = (int32_t)ti_atomic_add((uint32_t*)&_next_thread_id, 1U);
+  int_thread->stack_base = mem;
+  int_thread->stack_size = stack_size;
+  int_thread->priority = priority;
+  int_thread->state = TI_THREAD_STATE_READY;
+  int_thread->sched_count = 0;
+  memset(int_thread->sp, 0, _FULL_FRAME_SIZE);
+  // Initialize stack frame so that when context switcher loads it into registers it enters the new thread
+  struct _hw_frame_t* const hw_frame = (struct _hw_frame_t*)(int_thread->sp + sizeof(struct _sw_frame_t));
+  hw_frame->r0 = (uint32_t)arg;
+  hw_frame->pc = (uint32_t)entry_fn;
+  hw_frame->lr = (uint32_t)&_thread_exit;
+  hw_frame->xpsr = _INIT_XPSR_VALUE;
+  struct _sw_frame_t* const sw_frame = (struct _sw_frame_t*)int_thread->sp;
+  sw_frame->exc_return = _INIT_EXC_RETURN_VALUE;
+  ti_enter_critical();
+  while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
+  bool entry_found = false;
+  TI_FOREACH(cur_thread, _thread_list) {
+    if (*cur_thread == NULL) {
+      *cur_thread = int_thread;
+      entry_found = true;
+      break;
+    }
+  }
+  ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+  ti_exit_critical();
+  if (!entry_found) {
+    *errc_out = TI_ERRC_NO_MEM;
+    return TI_INVALID_THREAD;
+  }
+  return (struct ti_thread_t){
+    .id = int_thread->id,
+    .handle = int_thread,
+  };
+}
+
+void ti_destroy_thread(const struct ti_thread_t thread, enum ti_errc_t* const errc_out) {
+  *errc_out = TI_ERRC_NONE;
+  if (!ti_is_valid_thread(thread)) {
+    *errc_out = TI_ERRC_INVALID_ARG;
+    return;
+  }
+  ti_enter_critical();
+  while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
+  if ((int_thread->state != TI_THREAD_STATE_STOPPED) && (int_thread->state != TI_THREAD_STATE_OVERFLOW)) {
+    ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+    ti_exit_critical();
+    *errc_out = TI_ERRC_INVALID_STATE;
+    return;
+  }
+  TI_FOREACH(cur_thread, _thread_list) {
+    if (*cur_thread == int_thread) {
+      *cur_thread = NULL;
+      break;
+    }
+  }
+  int_thread->id = -1;
+  ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+  ti_exit_critical();
+}
+
+void ti_suspend_thread(const struct ti_thread_t thread, enum ti_errc_t* const errc_out) {
+  *errc_out = TI_ERRC_NONE;
+  if (!ti_is_valid_thread(thread)) {
+    *errc_out = TI_ERRC_INVALID_ARG;
+    return;
+  }
+  ti_enter_critical();
+  while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
+  if ((int_thread->state != TI_THREAD_STATE_READY) && (int_thread->state != TI_THREAD_STATE_RUNNING)) {
+    *errc_out = TI_ERRC_INVALID_STATE;
+    ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+    ti_exit_critical();
+    return;
+  }
+  int_thread->state = TI_THREAD_STATE_SUSPENDED;
+  ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+  ti_exit_critical();
+  // TODO - Schedule the thread if it is running
+  // SET_FIELD(SCB_ICSR, SCB_ICSR_PENDSVSET);
+}
+
+void ti_resume_thread(struct ti_thread_t thread, enum ti_errc_t* errc_out) {
+  *errc_out = TI_ERRC_NONE;
+  if (!ti_is_valid_thread(thread)) {
+    *errc_out = TI_ERRC_INVALID_ARG;
+    return;
+  }
+  ti_enter_critical();
+  while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
+  if (int_thread->state != TI_THREAD_STATE_SUSPENDED) {
+    ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+    ti_exit_critical();
+    *errc_out = TI_ERRC_INVALID_STATE;
+    return;
+  }
+  int_thread->state = TI_THREAD_STATE_READY;
+  ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+  ti_exit_critical();
+}
+
+void ti_enter_critical(void) {
+  int32_t* const critical_count = _get_critical_count();
+  if (*critical_count == 0) {
+    asm volatile ("cpsid i");
+  }
+  (*critical_count)++;
+}
+
+void ti_exit_critical(void) {
+  int32_t* const critical_count = _get_critical_count();
+  if (*critical_count > 0) {
+    (*critical_count)--;
+    if (*critical_count == 0) {
+      asm volatile ("cpsie i");
+    }
+  }
+}
+
+void ti_enter_exclusive(void) {
+  // TODO
+}
+
+void ti_exit_exclusive(void) {
+  // TODO
+}
+
+void ti_exit(void) {
+
+}
+
+void ti_yield(void) {
+
+}
+
+void ti_set_thread_priority(struct ti_thread_t thread, int32_t priority, enum ti_errc_t* errc_out);
+
+int32_t ti_get_thread_priority(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+
+enum thread_state_t ti_get_thread_state(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+
+void* ti_get_thread_arg(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+
+int32_t ti_get_thread_stack_size(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+
+int32_t ti_get_thread_stack_usage(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+
+struct ti_thread_t ti_get_this_thread(enum ti_errc_t* errc_out);
+
+enum ti_core_id_t ti_get_this_core(void);
+
+bool ti_is_interrupt(void);
+
+bool ti_is_valid_thread(struct ti_thread_t thread);
+
+bool ti_is_thread_equal(struct ti_thread_t thread_1, struct ti_thread_t thread_2);

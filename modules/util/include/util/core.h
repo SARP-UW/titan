@@ -46,15 +46,15 @@
 })
 
 /**
- * @brief Defers execution of a block of code until the current scope is exited.
- * @param body (code block) The code block to execute when the current scope is exited.
- * @note - Any identifiers prefixed with __defer are reserved in the scope this macro is used.
- * @note - This macro must not be expanded (used) twice on the same line.
- * @note - If multiple blocks of code are deferred, they will be executed in reverse order.
+ * @brief Gets the size of a struct/union member.
+ * @param type (type) The type of the parent struct/union.
+ * @param member (token) The name of the member to get the size of.
+ * @returns (int32_t) The size of @p [member].
+ * @note - @p [type] and @p [member] are expanded more than once.
  */
-#define TI_DEFER(body) \
-  void TI_XCAT(__defer_fn_, __LINE__) (...) { body } \
-  __attribute__((cleanup(TI_XCAT(__defer_fn_, __LINE__)))) bool TI_XCAT(__defer_val_, __LINE__);
+#define TI_MEMBER_SIZE(type, member) ({ \
+  (int32_t)sizeof(((type*)0)->member) \
+})
 
 /**
  * @brief Gets a pointer to the parent struct/union containing the given member.
@@ -67,18 +67,7 @@
  */
 #define TI_CONTAINER_OF(ptr, type, member) ({ \
   __auto_type _ptr = (ptr); \
-  _ptr ? (typeof(type)*)((char*)_ptr - offsetof(type, member)) : NULL; \
-})
-
-/**
- * @brief Gets the size of a struct/union member.
- * @param type (type) The type of the parent struct/union.
- * @param member (token) The name of the member to get the size of.
- * @returns (int32_t) The size of @p [member].
- * @note - @p [type] and @p [member] are expanded more than once.
- */
-#define TI_MEMBER_SIZE(type, member) ({ \
-  (int32_t)sizeof(((type*)0)->member) \
+  _ptr ? (type*)((uint8_t*)_ptr - offsetof(type, member)) : NULL; \
 })
 
 /**
@@ -89,34 +78,39 @@
  * @note - @p [array] is expanded more than once.
  */
 #define TI_ARRAY_LEN(array) ({ \
-  _Static_assert(__builtin_types_compatible_p(typeof(array), typeof(&(array)[0]))); \
+  _Static_assert(!__builtin_types_compatible_p(typeof(array), typeof(&(array)[0]))); \
   ((int32_t)sizeof(array) / (int32_t)sizeof((array)[0])); \
 })
 
 /**
- * @brief Iterates forwards over each element in a static array.
- * @param index (token) The name of the variable which stores the current index (int32_t).
+ * @brief Iterates over each element in an array forwards.
  * @param elem (token) The name of the variable which stores a pointer to the current element.
- * @param array (array) The target array (size must be statically declared in TU).
- * @note - This macro must be followed by a block declaration (open/close brackets).
- * @note - The symbol '__break' must not be used within the scope of the foreach loop.
- * @note - @p [array] cannot be an array argument of a function.
- * @note - @p [index], @p [elem], @p [array], are expanded more than once.
+ * @param array (array) The target array to iterate over (must be statically sized in TU).
+ * @note - This macro expands to a for loop and thus must be followed by a block declaration (brackets).
+ * @note - @p [elem] and @p [array] are expanded more than once.
+ * @note - "break" and "continue" will work as expected in this for loop.
  */
-#define TI_FOREACH(index, elem, array) \
-  for (int32_t index = 0; index < TI_ARRAY_LEN(array); index++) \
-      for (__auto_type elem = &(array)[index]; elem < &(array)[index + 1]; elem++)
+#define TI_FOREACH(elem, array) \
+  for (__auto_type elem = &((array)[0]); elem < &((array)[TI_ARRAY_LEN(array)]); elem++)
 
 /**
- * @brief Iterates backwards over each element in a static array.
- * @param index (token) The name of the variable which stores the current index (int32_t).
+ * @brief Iterates over each element in an array backwards.
  * @param elem (token) The name of the variable which stores a pointer to the current element.
- * @param array (array) The target array (size must be statically declared in TU).
- * @note - This macro must be followed by a block declaration (open/close brackets).
- * @note - The symbol '__break' must not be used within the scope of the foreach loop.
- * @note - @p [array] cannot be an array argument of a function.
- * @note - @p [index], @p [elem], @p [array], are expanded more than once.
+ * @param array (array) The target array to iterate over (must be statically sized in TU).
+ * @note - This macro expands to a for loop and thus must be followed by a block declaration (brackets).
+ * @note - @p [elem] and @p [array] are expanded more than once.
+ * @note - "break" and "continue" will work as expected in this for loop.
  */
-#define TI_FOREACH_REV(index, elem, array) \
-  for (int32_t index = TI_ARRAY_LEN(array) - 1; index >= 0; index--) \
-      for (__auto_type elem = &(array)[index]; elem < &(array)[index + 1]; elem++)
+#define TI_FOREACH_REV(elem, array) \
+  for (__auto_type elem = &((array)[TI_ARRAY_LEN(array) - 1]); elem >= &((array)[0]); elem--)
+
+/**
+ * @brief Defers execution of a block of code until the current scope is exited.
+ * @param body (code block) The code block to execute when the current scope is exited.
+ * @note - Any identifiers prefixed with __ti_defer are reserved in the scope this macro is used.
+ * @note - This macro must not be expanded (used) twice on the same line.
+ * @note - If multiple blocks of code are deferred, they will be executed in reverse order.
+ */
+#define TI_DEFER(body) \
+  void TI_XCAT(__ti_defer_fn_, __LINE__) (...) { body } \
+  __attribute__((cleanup(TI_XCAT(__ti_defer_fn_, __LINE__)))) bool TI_XCAT(__ti_defer_val_, __LINE__);
