@@ -43,9 +43,17 @@ void ti_enter_critical(void);
 
 void ti_exit_critical(void);
 
+void ti_reset_critical(void);
+
+bool ti_is_critical(void);
+
 void ti_enter_exclusive(void);
 
 void ti_exit_exclusive(void);
+
+void ti_reset_exclusive(void);
+
+bool ti_is_exclusive(void);
 
 #define TI_CRITICAL(...) do { \
   ti_enter_critical(); \
@@ -59,6 +67,6 @@ void ti_exit_exclusive(void);
   ti_exit_exclusive(); \
 } while (0)
 
-enum ti_core_id_t ti_get_this_core(void);
+enum ti_core_id_t ti_get_core(void);
 
 bool ti_is_interrupt(void);

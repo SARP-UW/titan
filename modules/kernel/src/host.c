@@ -27,6 +27,7 @@
 #include "util/core.h"
 #include "util/atomic.h"
 #include "ti_config.h"
+#include "kernel_util.h"
 
 #ifndef TI_CFG_SEMIHOSTING_ENABLED
   #define TI_CFG_SEMIHOSTING_ENABLED 0
@@ -105,8 +106,8 @@ struct _int_file_t {
 
 #endif
 
-// Initialization function for host facilities (invoked from startup.c)
-bool _ti_init_host(void) {
+// Initialization function for host facilities
+_KERNEL_INIT_FN(_init_host, 9) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     enum ti_errc_t int_errc;
     _io_critlock = ti_create_critlock(_io_critlock_mem, &int_errc);
