@@ -20,8 +20,11 @@ Each of these directories should contain a README with more information on the d
 
 ## Contributing
 ### Quickstart
-There is no quickstart guide. It's difficult to contribute to this project w/o knowing the project structure and workflow and not make a mess for others.
-All contributors should be dedicated engineers that are willing to spend time understanding the project deeply.
+Go to the issues tab and use tags to filter by master-issue. Find one that you like, find or create a sub-issue for it and address it in a new branch called `work/<main-issue-branch/<issuebranch-title>`. The main issue branch will be indicated in the description of the master issue, and the the `<issuebranch-title>` should be `bug` or `feat` depending on if this issue is a bug or a feature, and then the issue title. So for a bug issue w/ the title "hello there" the `<issuebranch-title>` should be `bug-hello-there`.
+
+Once you have addressed the issue, submit a pull request into the master issue's main branch and link it to the issue. Once it gets approved, make sure the issue is closed.
+
+Congrats! You have made your first contribution.
 
 ### Contributing Guide
 This contains a wholistic guide as to how our contribution system works.
