@@ -17,6 +17,8 @@
  * @file modules/kernel/include/kernel/host.h
  * @authors Aaron McBride
  * @brief Semi-hosting facilities.
+ *
+ * TODO: Paragraph with general usage information here.
  */
 
 #pragma once
@@ -26,7 +28,7 @@
 #include "util/errc.h"
 
 /**************************************************************************************************
- * @section File Utilities
+ * @section Host File Utilities
  **************************************************************************************************/
 
 /** @brief Identifies an open file on the host. */
@@ -47,7 +49,7 @@ enum ti_host_file_mode_t {
 };
 
 /** @brief Size of memory block required for a host file. */
-#define TI_HOST_FILE_MEM_SIZE 52
+#define TI_HOST_FILE_MEM_SIZE 36
 
 /** @brief Reference invalid host file handle (guaranteed to always be invalid).  */
 static const struct ti_host_file_t TI_INVALID_HOST_FILE = {
@@ -78,7 +80,7 @@ struct ti_host_file_t ti_open_host_file(void* mem, const char* path, enum ti_hos
  * @note - The state of the file is guaranteed to be unchanged if an error other than TI_ERRC_HOST or TI_ERRC_INTERNAL occurs.
  * @note - If TI_ERRC_HOST or TI_ERRC_INTERNAL are raised, the state of the file is undefined.
  * @warning - TI_ERRC_UNSUPPORTED is raised if TI_SEMIHOSTING_ENABLED is false.
- * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device or if this function is called from an interrupt.
+ * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device.
  * @warning - TI_ERRC_INVALID_ARG is raised if @p [file] does not exist (not open).
  * @warning - TI_ERRC_HOST is raised if an error occurs on the host machine.
  * @warning - TI_ERRC_INTERNAL may be raised by this function.
@@ -96,7 +98,7 @@ void ti_close_host_file(struct ti_host_file_t file, enum ti_errc_t* errc_out);
  * @note - The state of the file is guaranteed to be unchanged if an error other than TI_ERRC_HOST or TI_ERRC_INTERNAL occurs.
  * @note - If TI_ERRC_HOST or TI_ERRC_INTERNAL are raised, the state of the file is undefined.
  * @warning - TI_ERRC_UNSUPPORTED is raised if TI_SEMIHOSTING_ENABLED is false.
- * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, if this function is called from an interrupt or if the file was opened in a read-only mode.
+ * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device or if the file was opened in a read-only mode.
  * @warning - TI_ERRC_INVALID_ARG is raised if @p [file] does not exist (not open) or @p [str] is NULL.
  * @warning - TI_ERRC_HOST is raised if an error occurs on the host machine.
  * @warning - TI_ERRC_TIMEOUT is raised if this thread can't gain exclusive access to the file before the configured timeout duration.
@@ -117,7 +119,7 @@ void ti_write_host_file(struct ti_host_file_t file, const char* str, enum ti_err
  * @note - The state of the file is guaranteed to be unchanged if an error other than TI_ERRC_HOST or TI_ERRC_INTERNAL occurs.
  * @note - If TI_ERRC_HOST or TI_ERRC_INTERNAL are raised, the state of the file is undefined.
  * @warning - TI_ERRC_UNSUPPORTED is raised if TI_SEMIHOSTING_ENABLED is false.
- * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, if this function is called from an interrupt, or if the file was opened in a write-only mode.
+ * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, or if the file was opened in a write-only mode.
  * @warning - TI_ERRC_INVALID_ARG is raised if @p [file] does not exist (not open), if @p [buf] is NULL, or if @p [size] is negative.
  * @warning - TI_ERRC_HOST is raised if an error occurs on the host machine.
  * @warning - TI_ERRC_TIMEOUT is raised if this thread can't gain exclusive access to the file before the configured timeout duration.
@@ -133,7 +135,7 @@ int32_t ti_read_host_file(struct ti_host_file_t file, char* buf, int32_t size, e
  * @note - The state of the file is guaranteed to be unchanged if an error other than TI_ERRC_INTERNAL occurs.
  * @note - If TI_ERRC_INTERNAL is raised, the state of the file is undefined.
  * @warning - TI_ERRC_UNSUPPORTED is raised if TI_SEMIHOSTING_ENABLED is false.
- * @warning - TI_ERRC_INVALID_OP is raised if this function is called from an interrupt, or if the file is an interactive device (TTY).
+ * @warning - TI_ERRC_INVALID_OP is raised if the file is an interactive device (TTY).
  * @warning - TI_ERRC_INVALID_ARG is raised if @p [file] does not exist (not open).
  * @warning - TI_ERRC_TIMEOUT is raised if this thread can't gain exclusive access to the file before the configured timeout duration.
  * @warning - TI_ERRC_INTERNAL may be raised by this function.
@@ -148,7 +150,7 @@ int32_t ti_get_host_file_pos(struct ti_host_file_t file, enum ti_errc_t* errc_ou
  * @note - The state of the file is guaranteed to be unchanged if an error other than TI_ERRC_HOST or TI_ERRC_INTERNAL occurs.
  * @note - If TI_ERRC_HOST or TI_ERRC_INTERNAL are raised, the state of the file is undefined.
  * @warning - TI_ERRC_UNSUPPORTED is raised if TI_SEMIHOSTING_ENABLED is false.
- * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, if this function is called from an interrupt, or if the file is an interactive device (TTY).
+ * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, or if the file is an interactive device (TTY).
  * @warning - TI_ERRC_INVALID_ARG is raised if @p [file] does not exist (not open), or if @p [pos] is out of bounds of the file.
  * @warning - TI_ERRC_TIMEOUT is raised if this thread can't gain exclusive access to the file before the configured timeout duration.
  * @warning - TI_ERRC_HOST is raised if an error occurs on the host machine.
@@ -164,7 +166,7 @@ void ti_set_host_file_pos(struct ti_host_file_t file, int32_t pos, enum ti_errc_
  * @note - The state of the file is guaranteed to be unchanged if an error other than TI_ERRC_HOST or TI_ERRC_INTERNAL occurs.
  * @note - If TI_ERRC_HOST or TI_ERRC_INTERNAL are raised, the state of the file is undefined.
  * @warning - TI_ERRC_UNSUPPORTED is raised if TI_SEMIHOSTING_ENABLED is false.
- * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, if this function is called from an interrupt, or if the file is an interactive device (TTY).
+ * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, or if the file is an interactive device (TTY).
  * @warning - TI_ERRC_INVALID_ARG is raised if @p [file] does not exist (not open), or if @p [offset] results in the cursor's position being out of bounds of the file.
  * @warning - TI_ERRC_TIMEOUT is raised if this thread can't gain exclusive access to the file before the configured timeout duration.
  * @warning - TI_ERRC_HOST is raised if an error occurs on the host machine.
@@ -180,7 +182,7 @@ void ti_move_host_file_pos(struct ti_host_file_t file, int32_t offset, enum ti_e
  * @note - The state of the file is guaranteed to be unchanged if an error other than TI_ERRC_INTERNAL occurs.
  * @note - If TI_ERRC_INTERNAL is raised, the state of the file is undefined.
  * @warning - TI_ERRC_UNSUPPORTED is raised if TI_SEMIHOSTING_ENABLED is false.
- * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, if this function is called from an interrupt, or if the file is an interactive device (TTY).
+ * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, or if the file is an interactive device (TTY).
  * @warning - TI_ERRC_INVALID_ARG is raised if @p [file] does not exist (not open).
  * @warning - TI_ERRC_TIMEOUT is raised if this thread can't gain exclusive access to the file before the configured timeout duration.
  * @warning - TI_ERRC_HOST is raised if an error occurs on the host machine.
@@ -236,7 +238,7 @@ bool ti_is_valid_host_file(struct ti_host_file_t file);
 bool ti_is_host_file_equal(struct ti_host_file_t file_1, struct ti_host_file_t file_2);
 
 /**************************************************************************************************
- * @section Standard Input/Output Utilities
+ * @section Host IO Utilities
  **************************************************************************************************/
 
 /**
@@ -246,7 +248,7 @@ bool ti_is_host_file_equal(struct ti_host_file_t file_1, struct ti_host_file_t f
  * @note - The state of the host I/O is guaranteed to be unchanged if an error other than TI_ERRC_HOST or TI_ERRC_INTERNAL occurs.
  * @note - The state of the host I/O is undefined if TI_ERRC_HOST or TI_ERRC_INTERNAL is raised.
  * @warning - TI_ERRC_UNSUPPORTED is raised if TI_SEMIHOSTING_ENABLED is false.
- * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, or if this function is called from an interrupt.
+ * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device.
  * @warning - TI_ERRC_INVALID_ARG is raised if @p [str] is NULL.
  * @warning - TI_ERRC_HOST is raised if an error occurs on the host machine.
  * @warning - TI_ERRC_TIMEOUT is raised if this thread can't gain exclusive access to the host I/O before the configured timeout duration.
@@ -265,7 +267,7 @@ void ti_write_host_io(const char* str, enum ti_errc_t* errc_out);
  * @note - The state of the host I/O is guaranteed to be unchanged if an error other than TI_ERRC_HOST or TI_ERRC_INTERNAL occurs.
  * @note - The state of the host I/O is undefined if TI_ERRC_HOST or TI_ERRC_INTERNAL is raised.
  * @warning - TI_ERRC_UNSUPPORTED is raised if TI_SEMIHOSTING_ENABLED is false.
- * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device, or if this function is called from an interrupt.
+ * @warning - TI_ERRC_INVALID_OP is raised if no debugger is connected to the device.
  * @warning - TI_ERRC_INVALID_ARG is raised if @p [buf] is NULL or @p [size] is negative.
  * @warning - TI_ERRC_HOST is raised if an error occurs on the host machine.
  * @warning - TI_ERRC_TIMEOUT is raised if this thread can't gain exclusive access to the host I/O before the configured timeout duration.
@@ -274,7 +276,7 @@ void ti_write_host_io(const char* str, enum ti_errc_t* errc_out);
 int32_t ti_read_host_io(char* buf, int32_t size, enum ti_errc_t* errc_out);
 
 /**************************************************************************************************
- * @section Time Utilities
+ * @section Host Time Utilities
  **************************************************************************************************/
 
 /**

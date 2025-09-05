@@ -22,34 +22,40 @@
 #include <string.h>
 #include <stdlib.h>
 #include "kernel/host.h" // header
-#include "ti_config.h"
+#include "kernel/critlock.h"
 #include "internal/mmio.h"
 #include "util/core.h"
 #include "util/atomic.h"
-#include "kernel/mutex.h"
-
-/**************************************************************************************************
- * @section Configuration Defaults
- **************************************************************************************************/
+#include "ti_config.h"
 
 #ifndef TI_CFG_SEMIHOSTING_ENABLED
   #define TI_CFG_SEMIHOSTING_ENABLED 0
 #endif
 
-#ifndef TI_CFG_HOST_FILE_MUTEX_TIMEOUT
-  #define TI_CFG_HOST_FILE_MUTEX_TIMEOUT 1000
+#ifndef TI_CFG_HOST_FILE_TIMEOUT
+  #define TI_CFG_HOST_FILE_TIMEOUT 1000
 #endif
 
-#ifndef TI_CFG_HOST_IO_MUTEX_TIMEOUT
-  #define TI_CFG_HOST_IO_MUTEX_TIMEOUT 1000
+#ifndef TI_CFG_HOST_IO_TIMEOUT
+  #define TI_CFG_HOST_IO_TIMEOUT 1000
 #endif
 
-/**************************************************************************************************
- * @section Internal Utilities
- **************************************************************************************************/
+// Internal host file info struct
+struct _int_file_t {
+  int32_t id;                     // Unique identifier for file (matches id field in returned handle)
+  enum ti_host_file_mode_t mode;  // Mode the file is opened with
+  int32_t pos;                    // Position of cursor in the file
+  int32_t file_handle;            // Handle for file given by host on open
+  bool is_tty;                    // True if file is an interactive device (TTY)
+  struct ti_critlock_t file_lock; // Lock for host operations and internal file struct state modification
+};
 
 #if TI_CFG_SEMIHOSTING_ENABLED
 
+  // Ensure that memory size definition is correct
+  _Static_assert(TI_HOST_FILE_MEM_SIZE == (sizeof(struct _int_file_t) + TI_CRITLOCK_MEM_SIZE));
+
+  // Host operation codes
   static const int32_t _HOST_OP_OPEN   = 0x01; // Open file on host (Args: path, mode, path length) (Ret: file handle)
   static const int32_t _HOST_OP_CLOSE  = 0x02; // Close file on host (Args: file handle) (Ret: error)
   static const int32_t _HOST_OP_WRITE  = 0x05; // Write to file on host (Args: file handle, buf, len) (Ret: bytes not written)
@@ -60,6 +66,15 @@
   static const int32_t _HOST_OP_READC  = 0x07; // Read char from host IO (Args: None) (Ret: input char)
   static const int32_t _HOST_OP_TIME   = 0x11; // Get time from host (Args: None) (Ret: timestamp)
   static const int32_t _HOST_OP_ISTTY  = 0x09; // Check if host file is an interactive device (Args: file handle) (Ret: result)
+
+  // Last used file identifier (start at non-zero num to reduce chance of collision)
+  static int32_t _cur_file_id = 123;
+
+  // Memory for host IO critlock
+  static uint8_t _io_critlock_mem[TI_CRITLOCK_MEM_SIZE] = {0};
+
+  // Critlock used for ensuring exclusive access to host IO
+  static struct ti_critlock_t _io_critlock = TI_INVALID_CRITLOCK;
 
   // Executes a semihosting operation on the host machine
   // Given arguments are passed to machine, and result is returned
@@ -90,29 +105,16 @@
 
 #endif
 
-/**************************************************************************************************
- * @section File Utilities
- **************************************************************************************************/
-
-// Internal host file info struct
-struct _int_file_t {
-  int32_t id;                    // Unique identifier for file (matches id field in returned handle)
-  enum ti_host_file_mode_t mode; // Mode the file is opened with
-  int32_t pos;                   // Position of cursor in the file
-  int32_t file_handle;           // Handle for file given by host on open
-  bool is_tty;                   // True if file is an interactive device (TTY)
-  struct ti_mutex_t file_mutex;  // Mutex for file access
-};
-
-#if TI_CFG_SEMIHOSTING_ENABLED
-
-  // Ensure that memory size definition is correct
-  _Static_assert(TI_HOST_FILE_MEM_SIZE == (sizeof(struct _int_file_t) + TI_MUTEX_MEM_SIZE));
-
-  // Last used file identifier (start at non-zero num to reduce chance of collision)
-  static int32_t _cur_file_id = 123;
-
-#endif
+// Initialization function for host facilities (invoked from startup.c)
+bool _ti_init_host(void) {
+  #if TI_CFG_SEMIHOSTING_ENABLED
+    enum ti_errc_t int_errc;
+    _io_critlock = ti_create_critlock(_io_critlock_mem, &int_errc);
+    return int_errc == TI_ERRC_NONE;
+  #else
+    return true;
+  #endif
+}
 
 struct ti_host_file_t ti_open_host_file(void* const mem, const char* const path, const enum ti_host_file_mode_t mode, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
@@ -141,14 +143,14 @@ struct ti_host_file_t ti_open_host_file(void* const mem, const char* const path,
       return TI_INVALID_HOST_FILE;
     }
     int_file->is_tty = is_tty_result;
-    void* const mutex_mem = (void*)((char*)mem + sizeof(struct _int_file_t));
     enum ti_errc_t int_errc;
-    int_file->file_mutex = ti_create_mutex(mutex_mem, TI_MUTEX_TYPE_NORMAL, &int_errc);
+    void* const critlock_mem = mem + sizeof(struct _int_file_t);
+    int_file->file_lock = ti_create_critlock(critlock_mem, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return TI_INVALID_HOST_FILE;
     }
-    return (struct ti_host_file_t){
+    return (struct ti_host_file_t) {
       .id = int_file->id,
       .handle = (void*)int_file,
     };
@@ -161,7 +163,7 @@ struct ti_host_file_t ti_open_host_file(void* const mem, const char* const path,
 void ti_close_host_file(const struct ti_host_file_t file, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     *errc_out = TI_ERRC_NONE;
-    if (!_is_host_available() || ti_is_interrupt()) {
+    if (!_is_host_available()) {
       *errc_out = TI_ERRC_INVALID_OP;
       return;
     }
@@ -169,9 +171,9 @@ void ti_close_host_file(const struct ti_host_file_t file, enum ti_errc_t* const 
       *errc_out = TI_ERRC_INVALID_ARG;
       return;
     }
-    enum ti_errc_t int_errc;
     struct _int_file_t* int_file = (struct _int_file_t*)file.handle;
-    const bool acq_result = ti_acquire_mutex(int_file->file_mutex, TI_CFG_HOST_FILE_MUTEX_TIMEOUT, &int_errc);
+    enum ti_errc_t int_errc;
+    const bool acq_result = ti_acquire_critlock(int_file->file_lock, TI_CFG_HOST_FILE_TIMEOUT, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return;
@@ -182,7 +184,7 @@ void ti_close_host_file(const struct ti_host_file_t file, enum ti_errc_t* const 
     }
     int32_t host_result = _exec_host_op(_HOST_OP_CLOSE, int_file->file_handle, 0, 0);
     if (host_result < 0) {
-      ti_release_mutex(int_file->file_mutex, &int_errc);
+      ti_release_critlock(int_file->file_lock, &int_errc);
       if (int_errc != TI_ERRC_NONE) {
         *errc_out = TI_ERRC_INTERNAL;
         return;
@@ -191,12 +193,12 @@ void ti_close_host_file(const struct ti_host_file_t file, enum ti_errc_t* const 
       return;
     }
     int_file->id = -1;
-    ti_release_mutex(int_file->file_mutex, &int_errc);
+    ti_release_critlock(int_file->file_lock, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return;
     }
-    ti_destroy_mutex(int_file->file_mutex, &int_errc);
+    ti_destroy_critlock(int_file->file_lock, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
     }
@@ -208,7 +210,7 @@ void ti_close_host_file(const struct ti_host_file_t file, enum ti_errc_t* const 
 void ti_write_host_file(const struct ti_host_file_t file, const char* const str, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     *errc_out = TI_ERRC_NONE;
-    if (!_is_host_available() || ti_is_interrupt()) {
+    if (!_is_host_available()) {
       *errc_out = TI_ERRC_INVALID_OP;
       return;
     }
@@ -218,7 +220,7 @@ void ti_write_host_file(const struct ti_host_file_t file, const char* const str,
     }
     enum ti_errc_t int_errc;
     struct _int_file_t* int_file = (struct _int_file_t*)file.handle;
-    const bool acq_result = ti_acquire_mutex(int_file->file_mutex, TI_CFG_HOST_FILE_MUTEX_TIMEOUT, &int_errc);
+    const bool acq_result = ti_acquire_critlock(int_file->file_lock, TI_CFG_HOST_FILE_TIMEOUT, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return;
@@ -235,7 +237,7 @@ void ti_write_host_file(const struct ti_host_file_t file, const char* const str,
         const int32_t file_len = _exec_host_op(_HOST_OP_FLEN, int_file->file_handle, 0, 0);
         if (file_len < 0) {
           int_file->pos += str_len - host_result;
-          ti_release_mutex(int_file->file_mutex, &int_errc);
+          ti_release_critlock(int_file->file_lock, &int_errc);
           if (int_errc != TI_ERRC_NONE) {
             *errc_out = TI_ERRC_INTERNAL;
             return;
@@ -249,7 +251,7 @@ void ti_write_host_file(const struct ti_host_file_t file, const char* const str,
       }
     }
     if (host_result != 0) {
-      ti_release_mutex(int_file->file_mutex, &int_errc);
+      ti_release_critlock(int_file->file_lock, &int_errc);
       if (int_errc != TI_ERRC_NONE) {
         *errc_out = TI_ERRC_INTERNAL;
         return;
@@ -257,7 +259,7 @@ void ti_write_host_file(const struct ti_host_file_t file, const char* const str,
       *errc_out = TI_ERRC_HOST;
       return;
     }
-    ti_release_mutex(int_file->file_mutex, &int_errc);
+    ti_release_critlock(int_file->file_lock, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
     }
@@ -269,7 +271,7 @@ void ti_write_host_file(const struct ti_host_file_t file, const char* const str,
 int32_t ti_read_host_file(const struct ti_host_file_t file, char* const buf, const int32_t size, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     *errc_out = TI_ERRC_NONE;
-    if (!_is_host_available() || ti_is_interrupt()) {
+    if (!_is_host_available()) {
       *errc_out = TI_ERRC_INVALID_OP;
       return -1;
     }
@@ -283,7 +285,7 @@ int32_t ti_read_host_file(const struct ti_host_file_t file, char* const buf, con
       return -1;
     }
     enum ti_errc_t int_errc;
-    bool acq_result = ti_acquire_mutex(int_file->file_mutex, TI_CFG_HOST_FILE_MUTEX_TIMEOUT, &int_errc);
+    bool acq_result = ti_acquire_critlock(int_file->file_lock, TI_CFG_HOST_FILE_TIMEOUT, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return -1;
@@ -298,7 +300,7 @@ int32_t ti_read_host_file(const struct ti_host_file_t file, char* const buf, con
     if (!int_file->is_tty) {
       int_file->pos += read_char_count;
     }
-    ti_release_mutex(int_file->file_mutex, &int_errc);
+    ti_release_critlock(int_file->file_lock, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return -1;
@@ -313,10 +315,6 @@ int32_t ti_read_host_file(const struct ti_host_file_t file, char* const buf, con
 int32_t ti_get_host_file_pos(const struct ti_host_file_t file, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     *errc_out = TI_ERRC_NONE;
-    if (ti_is_interrupt()) {
-      *errc_out = TI_ERRC_INVALID_OP;
-      return -1;
-    }
     if (!ti_is_valid_host_file(file)) {
       *errc_out = TI_ERRC_INVALID_ARG;
       return -1;
@@ -327,7 +325,7 @@ int32_t ti_get_host_file_pos(const struct ti_host_file_t file, enum ti_errc_t* c
       return -1;
     }
     enum ti_errc_t int_errc;
-    bool acq_result = ti_acquire_mutex(int_file->file_mutex, TI_CFG_HOST_FILE_MUTEX_TIMEOUT, &int_errc);
+    bool acq_result = ti_acquire_critlock(int_file->file_lock, TI_CFG_HOST_FILE_TIMEOUT, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return -1;
@@ -337,7 +335,7 @@ int32_t ti_get_host_file_pos(const struct ti_host_file_t file, enum ti_errc_t* c
       return -1;
     }
     const int32_t file_pos = int_file->pos;
-    ti_release_mutex(int_file->file_mutex, &int_errc);
+    ti_release_critlock(int_file->file_lock, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return -1;
@@ -352,7 +350,7 @@ int32_t ti_get_host_file_pos(const struct ti_host_file_t file, enum ti_errc_t* c
 void ti_set_host_file_pos(const struct ti_host_file_t file, const int32_t pos, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     *errc_out = TI_ERRC_NONE;
-    if (!_is_host_available() || ti_is_interrupt()) {
+    if (!_is_host_available()) {
       *errc_out = TI_ERRC_INVALID_OP;
       return;
     }
@@ -366,7 +364,7 @@ void ti_set_host_file_pos(const struct ti_host_file_t file, const int32_t pos, e
       return;
     }
     enum ti_errc_t int_errc;
-    bool acq_result = ti_acquire_mutex(int_file->file_mutex, TI_CFG_HOST_FILE_MUTEX_TIMEOUT, &int_errc);
+    bool acq_result = ti_acquire_critlock(int_file->file_lock, TI_CFG_HOST_FILE_TIMEOUT, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return;
@@ -377,7 +375,7 @@ void ti_set_host_file_pos(const struct ti_host_file_t file, const int32_t pos, e
     }
     const int32_t file_len = _exec_host_op(_HOST_OP_FLEN, int_file->file_handle, 0, 0);
     if (file_len < 0) {
-      ti_release_mutex(int_file->file_mutex, &int_errc);
+      ti_release_critlock(int_file->file_lock, &int_errc);
       if (int_errc != TI_ERRC_NONE) {
         *errc_out = TI_ERRC_INTERNAL;
         return;
@@ -386,7 +384,7 @@ void ti_set_host_file_pos(const struct ti_host_file_t file, const int32_t pos, e
       return;
     }
     if (abs(pos) > file_len) {
-      ti_release_mutex(int_file->file_mutex, &int_errc);
+      ti_release_critlock(int_file->file_lock, &int_errc);
       if (int_errc != TI_ERRC_NONE) {
         *errc_out = TI_ERRC_INTERNAL;
         return;
@@ -397,7 +395,7 @@ void ti_set_host_file_pos(const struct ti_host_file_t file, const int32_t pos, e
     const int32_t abs_pos = (pos >= 0) ? pos : (file_len + pos);
     const int32_t host_result = _exec_host_op(_HOST_OP_SEEK, int_file->file_handle, abs_pos, 0);
     if (host_result != 0) {
-      ti_release_mutex(int_file->file_mutex, &int_errc);
+      ti_release_critlock(int_file->file_lock, &int_errc);
       if (int_errc != TI_ERRC_NONE) {
         *errc_out = TI_ERRC_INTERNAL;
         return;
@@ -406,7 +404,7 @@ void ti_set_host_file_pos(const struct ti_host_file_t file, const int32_t pos, e
       return;
     }
     int_file->pos = abs_pos;
-    ti_release_mutex(int_file->file_mutex, &int_errc);
+    ti_release_critlock(int_file->file_lock, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
     }
@@ -418,7 +416,7 @@ void ti_set_host_file_pos(const struct ti_host_file_t file, const int32_t pos, e
 void ti_move_host_file_pos(const struct ti_host_file_t file, const int32_t offset, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     *errc_out = TI_ERRC_NONE;
-    if (!_is_host_available() || ti_is_interrupt()) {
+    if (!_is_host_available()) {
       *errc_out = TI_ERRC_INVALID_OP;
       return;
     }
@@ -432,7 +430,7 @@ void ti_move_host_file_pos(const struct ti_host_file_t file, const int32_t offse
       return;
     }
     enum ti_errc_t int_errc;
-    const bool acq_result = ti_acquire_mutex(int_file->file_mutex, TI_CFG_HOST_FILE_MUTEX_TIMEOUT, &int_errc);
+    const bool acq_result = ti_acquire_critlock(int_file->file_lock, TI_CFG_HOST_FILE_TIMEOUT, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return;
@@ -443,7 +441,7 @@ void ti_move_host_file_pos(const struct ti_host_file_t file, const int32_t offse
     }
     const int32_t file_len = _exec_host_op(_HOST_OP_FLEN, int_file->file_handle, 0, 0);
     if (file_len < 0) {
-      ti_release_mutex(int_file->file_mutex, &int_errc);
+      ti_release_critlock(int_file->file_lock, &int_errc);
       if (int_errc != TI_ERRC_NONE) {
         *errc_out = TI_ERRC_INTERNAL;
         return;
@@ -453,7 +451,7 @@ void ti_move_host_file_pos(const struct ti_host_file_t file, const int32_t offse
     }
     const int32_t new_pos = int_file->pos + offset;
     if (new_pos < 0 || new_pos > file_len) {
-      ti_release_mutex(int_file->file_mutex, &int_errc);
+      ti_release_critlock(int_file->file_lock, &int_errc);
       if (int_errc != TI_ERRC_NONE) {
         *errc_out = TI_ERRC_INTERNAL;
         return;
@@ -463,7 +461,7 @@ void ti_move_host_file_pos(const struct ti_host_file_t file, const int32_t offse
     }
     const int32_t host_result = _exec_host_op(_HOST_OP_SEEK, int_file->file_handle, new_pos, 0);
     if (host_result != 0) {
-      ti_release_mutex(int_file->file_mutex, &int_errc);
+      ti_release_critlock(int_file->file_lock, &int_errc);
       if (int_errc != TI_ERRC_NONE) {
         *errc_out = TI_ERRC_INTERNAL;
         return;
@@ -472,7 +470,7 @@ void ti_move_host_file_pos(const struct ti_host_file_t file, const int32_t offse
       return;
     }
     int_file->pos = new_pos;
-    ti_release_mutex(int_file->file_mutex, &int_errc);
+    ti_release_critlock(int_file->file_lock, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
     }
@@ -484,7 +482,7 @@ void ti_move_host_file_pos(const struct ti_host_file_t file, const int32_t offse
 int32_t ti_get_host_file_len(const struct ti_host_file_t file, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     *errc_out = TI_ERRC_NONE;
-    if (!_is_host_available() || ti_is_interrupt()) {
+    if (!_is_host_available()) {
       *errc_out = TI_ERRC_INVALID_OP;
       return -1;
     }
@@ -498,7 +496,7 @@ int32_t ti_get_host_file_len(const struct ti_host_file_t file, enum ti_errc_t* c
       return -1;
     }
     enum ti_errc_t int_errc;
-    const bool acq_result = ti_acquire_mutex(int_file->file_mutex, TI_CFG_HOST_FILE_MUTEX_TIMEOUT, &int_errc);
+    const bool acq_result = ti_acquire_critlock(int_file->file_lock, TI_CFG_HOST_FILE_TIMEOUT, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return -1;
@@ -509,7 +507,7 @@ int32_t ti_get_host_file_len(const struct ti_host_file_t file, enum ti_errc_t* c
     }
     const int32_t file_len = _exec_host_op(_HOST_OP_FLEN, int_file->file_handle, 0, 0);
     if (file_len < 0) {
-      ti_release_mutex(int_file->file_mutex, &int_errc);
+      ti_release_critlock(int_file->file_lock, &int_errc);
       if (int_errc != TI_ERRC_NONE) {
         *errc_out = TI_ERRC_INTERNAL;
         return -1;
@@ -517,7 +515,7 @@ int32_t ti_get_host_file_len(const struct ti_host_file_t file, enum ti_errc_t* c
       *errc_out = TI_ERRC_HOST;
       return -1;
     }
-    ti_release_mutex(int_file->file_mutex, &int_errc);
+    ti_release_critlock(int_file->file_lock, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return -1;
@@ -536,6 +534,7 @@ bool ti_is_host_file_tty(const struct ti_host_file_t file, enum ti_errc_t* const
       *errc_out = TI_ERRC_INVALID_ARG;
       return false;
     }
+    // No need to acquire lock, is_tty is immutable after open
     struct _int_file_t* int_file = (struct _int_file_t*)file.handle;
     return int_file->is_tty;
   #else
@@ -580,6 +579,7 @@ enum ti_host_file_mode_t ti_get_host_file_mode(const struct ti_host_file_t file,
       *errc_out = TI_ERRC_INVALID_ARG;
       return TI_HOST_FILE_MODE_INVALID;
     }
+    // No need to acquire lock, file mode is immutable after open
     struct _int_file_t* int_file = (struct _int_file_t*)file.handle;
     return int_file->mode;
   #else
@@ -592,32 +592,19 @@ bool ti_is_valid_host_file(const struct ti_host_file_t file) {
   if (!file.handle || file.id < 0) {
     return false;
   }
+  // Can't acquire lock because host file may be invalid -> atomic load is best option
   struct _int_file_t* int_file = (struct _int_file_t*)file.handle;
-  return file.id == int_file->id;
+  return (int32_t)ti_atomic_load((uint32_t*)&int_file->id) == file.id;
 }
 
 bool ti_is_host_file_equal(const struct ti_host_file_t file_1, const struct ti_host_file_t file_2) {
-  return file_1.id == file_2.id;
+  return (file_1.id == file_2.id) && (file_1.handle == file_2.handle);
 }
-
-/**************************************************************************************************
- * @section Standard Input/Output Utilities
- **************************************************************************************************/
-
-#if TI_CFG_SEMIHOSTING_ENABLED
-
-  // Memory for host IO mutex
-  static uint8_t _io_mutex_mem[TI_MUTEX_MEM_SIZE];
-
-  // Mutex used for ensuring exclusive access to host IO
-  static struct ti_mutex_t _io_mutex = TI_INVALID_MUTEX;
-
-#endif
 
 void ti_write_host_io(const char* const str, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     *errc_out = TI_ERRC_NONE;
-    if (!_is_host_available() || ti_is_interrupt()) {
+    if (!_is_host_available()) {
       *errc_out = TI_ERRC_INVALID_OP;
       return;
     }
@@ -626,14 +613,7 @@ void ti_write_host_io(const char* const str, enum ti_errc_t* const errc_out) {
       return;
     }
     enum ti_errc_t int_errc;
-    if (!ti_is_valid_mutex(_io_mutex)) {
-      _io_mutex = ti_create_mutex((void*)_io_mutex_mem, TI_MUTEX_TYPE_NORMAL, &int_errc);
-      if (int_errc != TI_ERRC_NONE) {
-        *errc_out = TI_ERRC_INTERNAL;
-        return;
-      }
-    }
-    const bool acq_result = ti_acquire_mutex(_io_mutex, TI_CFG_HOST_IO_MUTEX_TIMEOUT, &int_errc);
+    const bool acq_result = ti_acquire_critlock(_io_critlock, TI_CFG_HOST_IO_MUTEX_TIMEOUT, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return;
@@ -643,7 +623,7 @@ void ti_write_host_io(const char* const str, enum ti_errc_t* const errc_out) {
       return;
     }
     _exec_host_op(_HOST_OP_WRITE0, (int32_t)str, 0, 0);
-    ti_release_mutex(_io_mutex, &int_errc);
+    ti_release_critlock(_io_critlock, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
     }
@@ -655,7 +635,7 @@ void ti_write_host_io(const char* const str, enum ti_errc_t* const errc_out) {
 int32_t ti_read_host_io(char* const buf, const int32_t size, enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     *errc_out = TI_ERRC_NONE;
-    if (!_is_host_available() || ti_is_interrupt()) {
+    if (!_is_host_available()) {
       *errc_out = TI_ERRC_INVALID_OP;
       return -1;
     }
@@ -664,14 +644,7 @@ int32_t ti_read_host_io(char* const buf, const int32_t size, enum ti_errc_t* con
       return -1;
     }
     enum ti_errc_t int_errc;
-    if (!ti_is_valid_mutex(_io_mutex)) {
-      _io_mutex = ti_create_mutex((void*)_io_mutex_mem, TI_MUTEX_TYPE_NORMAL, &int_errc);
-      if (int_errc != TI_ERRC_NONE) {
-        *errc_out = TI_ERRC_INTERNAL;
-        return -1;
-      }
-    }
-    const bool acq_result = ti_acquire_mutex(_io_mutex, TI_CFG_HOST_IO_MUTEX_TIMEOUT, &int_errc);
+    const bool acq_result = ti_acquire_critlock(_io_critlock, TI_CFG_HOST_IO_MUTEX_TIMEOUT, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
       return -1;
@@ -688,7 +661,7 @@ int32_t ti_read_host_io(char* const buf, const int32_t size, enum ti_errc_t* con
       }
       buf[char_count++] = cur_char;
     }
-    ti_release_mutex(_io_mutex, &int_errc);
+    ti_release_critlock(_io_critlock, &int_errc);
     if (int_errc != TI_ERRC_NONE) {
       *errc_out = TI_ERRC_INTERNAL;
     }
@@ -698,10 +671,6 @@ int32_t ti_read_host_io(char* const buf, const int32_t size, enum ti_errc_t* con
     return -1;
   #endif
 }
-
-/**************************************************************************************************
- * @section Time Utilities
- **************************************************************************************************/
 
 int64_t ti_get_host_time(enum ti_errc_t* const errc_out) {
   #if TI_CFG_SEMIHOSTING_ENABLED

@@ -28,6 +28,37 @@ enum ti_sys_sleep_mode_t {
   TI_SYS_SLEEP_MODE_DEEP,
 };
 
-__attribute__((noreturn)) void ti_sys_restart(void);
+enum ti_core_id_t {
+  TI_CORE_ID_CM7,
+  TI_CORE_ID_CM4,
+};
 
-__attribute__((noreturn)) void ti_sys_sleep(enum ti_sys_sleep_mode_t mode);
+__attribute__((noreturn)) 
+void ti_sys_restart(void);
+
+__attribute__((noreturn)) 
+void ti_sys_sleep(enum ti_sys_sleep_mode_t mode);
+
+void ti_enter_critical(void);
+
+void ti_exit_critical(void);
+
+void ti_enter_exclusive(void);
+
+void ti_exit_exclusive(void);
+
+#define TI_CRITICAL(...) do { \
+  ti_enter_critical(); \
+  __VA_ARGS__ \
+  ti_exit_critical(); \
+} while (0)
+
+#define TI_EXCLUSIVE(...) do { \
+  ti_enter_exclusive(); \
+  __VA_ARGS__ \
+  ti_exit_exclusive(); \
+} while (0)
+
+enum ti_core_id_t ti_get_this_core(void);
+
+bool ti_is_interrupt(void);

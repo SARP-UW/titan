@@ -22,15 +22,13 @@
 #pragma once
 #include <string.h>
 #include "kernel/thread.h" // header
+#include "kernel/sys.h"
 #include "internal/mmio.h"
 #include "util/core.h"
 #include "util/atomic.h"
 #include "util/math.h"
 #include "util/macro.h"
-
-/**************************************************************************************************
- * @section Configuration Defaults
- **************************************************************************************************/
+#include "kernel/critlock.h"
 
 #ifndef TI_CFG_MAX_THREADS
   #define TI_CFG_MAX_THREADS 16
@@ -39,10 +37,6 @@
 #ifndef TI_CFG_MAX_THREAD_PRIORITY
   #define TI_CFG_MAX_THREAD_PRIORITY 32
 #endif
-
-/**************************************************************************************************
- * @section Internal Resources
- **************************************************************************************************/
 
 // Internal thread information struct
 struct _int_thread_t {
@@ -101,23 +95,14 @@ static struct _int_thread_t* _thread_list[TI_CFG_MAX_THREADS] = {NULL};
 static struct _int_thread_t* _cm7_thread = NULL;
 static struct _int_thread_t* _cm4_thread = NULL;
 
-// Edit lock for thread list and internal thread structs.
-static int32_t _thread_edit_lock = 0;
+// Memory for thread edit critlock
+static uint8_t _thread_critlock_mem[TI_CRITLOCK_MEM_SIZE] = {0};
+
+// Critlock for editing internal thread structures and thread list
+static struct ti_critlock_t _thread_critlock = TI_INVALID_CRITLOCK;
 
 // Unique thread ID counter (start at non-zero value to reduce chance of collision)
 static int32_t _next_thread_id = 123;
-
-// Critical section entry counter for the CM7/CM4 cores
-static int32_t _cm7_critical_count = 0;
-static int32_t _cm4_critical_count = 0;
-
-// Exclusive section entry counter for the CM7/CM4 cores
-static int32_t _cm7_exclusive_count = 0;
-static int32_t _cm4_exclusive_count = 0;
-
-/**************************************************************************************************
- * @section Internal Functions
- **************************************************************************************************/
 
 #define _SCHEDULE_THREADS_IMPL(core_token, other_core_token) \
   static void _schedule_threads_##core_token(void) { \
@@ -126,27 +111,25 @@ static int32_t _cm4_exclusive_count = 0;
       _##core_token##_thread->state = TI_THREAD_STATE_READY; \
     } \
     _##core_token##_thread = NULL; \
-    if (_##other_core_token##_thread->state != TI_THREAD_STATE_EXCLUSIVE) { \
-      struct _int_thread_t* next_thread = NULL; \
-      TI_FOREACH(cur_thread, _thread_list) { \
-        if (*cur_thread != NULL) { \
-          (*cur_thread)->sched_count += (*cur_thread)->priority; \
+    struct _int_thread_t* next_thread = NULL; \
+    TI_FOREACH(cur_thread, _thread_list) { \
+      if (*cur_thread != NULL) { \
+        (*cur_thread)->sched_count += (*cur_thread)->priority; \
+      } \
+    } \
+    TI_FOREACH(cur_thread, _thread_list) { \
+      if ((*cur_thread != NULL) && ((*cur_thread)->state == TI_THREAD_STATE_READY)) { \
+        if (next_thread == NULL) { \
+          next_thread = *cur_thread; \
+        } else if ((*cur_thread)->sched_count > next_thread->sched_count) { \
+          next_thread = *cur_thread; \
         } \
       } \
-      TI_FOREACH(cur_thread, _thread_list) { \
-        if ((*cur_thread != NULL) && ((*cur_thread)->state == TI_THREAD_STATE_READY)) { \
-          if (next_thread == NULL) { \
-            next_thread = *cur_thread; \
-          } else if ((*cur_thread)->sched_count > next_thread->sched_count) { \
-            next_thread = *cur_thread; \
-          } \
-        } \
-      } \
-      if (next_thread != NULL) { \
-        next_thread->state = TI_THREAD_STATE_RUNNING; \
-        next_thread->sched_count = 0; \
-        _##core_token##_thread = next_thread; \
-      } \
+    } \
+    if (next_thread != NULL) { \
+      next_thread->state = TI_THREAD_STATE_RUNNING; \
+      next_thread->sched_count = 0; \
+      _##core_token##_thread = next_thread; \
     } \
     ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U); \
   }
@@ -241,12 +224,15 @@ _PENDSV_EXC_HANDLER_IMPL(cm4)
 
 // Exit point for threads
 static void _thread_exit(void) {
-
+  // TODO
 }
 
-/**************************************************************************************************
- * @section Public Functions
- **************************************************************************************************/
+// Initialization function for threading system (invoked from startup.c)
+bool _ti_init_thread(void) {
+  enum ti_errc_t int_errc;
+  _thread_critlock = ti_create_critlock(_thread_critlock_mem, &int_errc);
+  return int_errc == TI_ERRC_NONE;
+}
 
 struct ti_thread_t ti_create_thread(void* const mem, void (*const entry_fn)(void*), void* const arg, int32_t stack_size, const int32_t priority, enum ti_errc_t* const errc_out) {
   *errc_out = TI_ERRC_NONE;
@@ -287,7 +273,7 @@ struct ti_thread_t ti_create_thread(void* const mem, void (*const entry_fn)(void
     *errc_out = TI_ERRC_NO_MEM;
     return TI_INVALID_THREAD;
   }
-  return (struct ti_thread_t){
+  return (struct ti_thread_t) {
     .id = int_thread->id,
     .handle = int_thread,
   };
@@ -302,7 +288,7 @@ void ti_destroy_thread(const struct ti_thread_t thread, enum ti_errc_t* const er
   ti_enter_critical();
   while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
   struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
-  if ((int_thread->state != TI_THREAD_STATE_STOPPED) && (int_thread->state != TI_THREAD_STATE_OVERFLOW)) {
+  if (int_thread->state != TI_THREAD_STATE_STOPPED) {
     ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
     ti_exit_critical();
     *errc_out = TI_ERRC_INVALID_STATE;
@@ -342,7 +328,7 @@ void ti_suspend_thread(const struct ti_thread_t thread, enum ti_errc_t* const er
   ti_exit_critical();
 }
 
-void ti_resume_thread(struct ti_thread_t thread, enum ti_errc_t* errc_out) {
+void ti_resume_thread(const struct ti_thread_t thread, enum ti_errc_t* const errc_out) {
   *errc_out = TI_ERRC_NONE;
   if (!ti_is_valid_thread(thread)) {
     *errc_out = TI_ERRC_INVALID_ARG;
@@ -362,62 +348,139 @@ void ti_resume_thread(struct ti_thread_t thread, enum ti_errc_t* errc_out) {
   ti_exit_critical();
 }
 
-void ti_enter_critical(void) {
-  int32_t* const critical_count = 
-      ti_get_this_core() == TI_CORE_ID_CM7 ? 
-      &_cm7_critical_count : &_cm4_critical_count;
-  if (*critical_count == 0) {
-    asm volatile ("cpsid i");
-  }
-  (*critical_count)++;
-}
-
-void ti_exit_critical(void) {
-  int32_t* const critical_count = 
-      ti_get_this_core() == TI_CORE_ID_CM7 ? 
-      &_cm7_critical_count : &_cm4_critical_count;
-  if (*critical_count > 0) {
-    (*critical_count)--;
-    if (*critical_count == 0) {
-      asm volatile ("cpsie i");
-    }
-  }
-}
-
-void ti_enter_exclusive(void) {
-  // TODO
-}
-
-void ti_exit_exclusive(void) {
-  // TODO
-}
-
 void ti_exit(void) {
-
+  if (ti_is_interrupt()) {
+    asm volatile (
+      "mov lr, #0xFFFFFFF9 \n\t"
+      "bx lr               \n\t"
+      ::: "lr"
+    );
+  } else {
+    ti_enter_critical();
+    while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
+    struct _int_thread_t* cur_thread = (ti_get_this_core() == TI_CORE_ID_CM7) ? _cm7_thread : _cm4_thread;
+    cur_thread->state = TI_THREAD_STATE_STOPPED;
+    SET_FIELD(SCB_ICSR, SCB_ICSR_PENDSVSET);
+    ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+    ti_exit_critical();
+  }
 }
 
 void ti_yield(void) {
-
+  if (!ti_is_interrupt()) {
+    SET_FIELD(SCB_ICSR, SCB_ICSR_PENDSVSET);
+  }
 }
 
-void ti_set_thread_priority(struct ti_thread_t thread, int32_t priority, enum ti_errc_t* errc_out);
+void ti_set_thread_priority(const struct ti_thread_t thread, const int32_t priority, enum ti_errc_t* const errc_out) {
+  *errc_out = TI_ERRC_NONE;
+  if (!ti_is_valid_thread(thread) || (priority < 1) || (priority > TI_CFG_MAX_THREAD_PRIORITY)) {
+    *errc_out = TI_ERRC_INVALID_ARG;
+    return;
+  }
+  ti_enter_critical();
+  while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
+  int_thread->priority = priority;
+  ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+  ti_exit_critical();
+}
 
-int32_t ti_get_thread_priority(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+int32_t ti_get_thread_priority(const struct ti_thread_t thread, enum ti_errc_t* const errc_out) {
+  *errc_out = TI_ERRC_NONE;
+  if (!ti_is_valid_thread(thread)) {
+    *errc_out = TI_ERRC_INVALID_ARG;
+    return -1;
+  }
+  ti_enter_critical();
+  while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
+  const int32_t priority = int_thread->priority;
+  ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+  ti_exit_critical();
+  return priority;
+}
 
-enum thread_state_t ti_get_thread_state(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+enum ti_thread_state_t ti_get_thread_state(const struct ti_thread_t thread, enum ti_errc_t* const errc_out) {
+  *errc_out = TI_ERRC_NONE;
+  if (!ti_is_valid_thread(thread)) {
+    *errc_out = TI_ERRC_INVALID_ARG;
+    return -1;
+  }
+  ti_enter_critical();
+  while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
+  const enum ti_thread_state_t state = int_thread->state;
+  ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+  ti_exit_critical();
+  return state;
+}
 
-void* ti_get_thread_arg(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+int32_t ti_get_thread_stack_size(const struct ti_thread_t thread, enum ti_errc_t* const errc_out) {
+  *errc_out = TI_ERRC_NONE;
+  if (!ti_is_valid_thread(thread)) {
+    *errc_out = TI_ERRC_INVALID_ARG;
+    return -1;
+  }
+  // No need to acquire lock - stack size is immutable
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
+  return int_thread->stack_size;
+}
 
-int32_t ti_get_thread_stack_size(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+int32_t ti_get_thread_stack_usage(const struct ti_thread_t thread, enum ti_errc_t* const errc_out) {
+  *errc_out = TI_ERRC_NONE;
+  if (!ti_is_valid_thread(thread)) {
+    *errc_out = TI_ERRC_INVALID_ARG;
+    return -1;
+  }
+  ti_enter_critical();
+  while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
+  const int32_t sp_offset = (int32_t)((uint32_t)int_thread->sp - (uint32_t)int_thread->stack_base);
+  const int32_t stack_usage = int_thread->stack_size - sp_offset;
+  ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+  ti_exit_critical();
+  return stack_usage;
+}
 
-int32_t ti_get_thread_stack_usage(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+bool ti_is_thread_overflow(const struct ti_thread_t thread, enum ti_errc_t* const errc_out) {
+  *errc_out = TI_ERRC_NONE;
+  if (!ti_is_valid_thread(thread)) {
+    *errc_out = TI_ERRC_INVALID_ARG;
+    return false;
+  }
+  ti_enter_critical();
+  while (!ti_atomic_cmp_exchange((uint32_t*)&_thread_edit_lock, &(uint32_t){0U}, 1U));
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
+  const bool is_overflow = (uint32_t)int_thread->sp < (uint32_t)int_thread->stack_base;
+  ti_atomic_store((uint32_t*)&_thread_edit_lock, 0U);
+  ti_exit_critical();
+  return is_overflow;
+}
 
-struct ti_thread_t ti_get_this_thread(void);
+struct ti_thread_t ti_get_this_thread(void) {
+  if (ti_is_interrupt()) {
+    return TI_INVALID_THREAD;
+  }
+  // No need to acquire lock, function will only execute if _cm7/cm4_thread is set 
+  struct _int_thread_t* const this_thread = (ti_get_this_core() == TI_CORE_ID_CM7) ? _cm7_thread : _cm4_thread;
+  if (this_thread == NULL) {
+    return TI_INVALID_THREAD;
+  }
+  return (struct ti_thread_t) {
+    .id = this_thread->id,
+    .handle = this_thread,
+  };
+}
 
-enum ti_core_id_t ti_get_this_core(void);
+bool ti_is_valid_thread(struct ti_thread_t thread) {
+  if (thread.id < 0 || thread.handle == NULL) {
+    return false;
+  }
+  struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
+  return thread.id == int_thread->id;
+}
 
-bool ti_is_interrupt(void);
-
-bool ti_is_valid_thread(struct ti_thread_t thread);
-
-bool ti_is_thread_equal(struct ti_thread_t thread_1, struct ti_thread_t thread_2);
+bool ti_is_thread_equal(struct ti_thread_t thread_1, struct ti_thread_t thread_2) {
+  return (thread_1.id == thread_2.id) && (thread_1.handle == thread_2.handle);
+}

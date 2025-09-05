@@ -2,8 +2,8 @@
 - Use 2 space indents.
 - Use K&R style brackets.
 - All identifiers (types, functions, variables, etc) must be camel_case.
-- Types must be denoted with a trailing '_t'
-- All publically exposed identifiers must be prefixed with 'ti_'
+- Types must be denoted with a trailing '_t'.
+- All externally accessible symbols must be prefixed with 'ti_'.
 - Identifiers of global constants (including macros) must be ALL_CAPS.
 - Wrap lines that are greater than ~100 characters.
 - Do not use typedefs (ok for handles).

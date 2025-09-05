@@ -31,18 +31,10 @@ struct ti_thread_t {
 };
 
 enum ti_thread_state_t {
-  TI_THREAD_STATE_EXCLUSIVE,
-  TI_THREAD_STATE_CRITICAL,
   TI_THREAD_STATE_RUNNING,
   TI_THREAD_STATE_READY,
   TI_THREAD_STATE_SUSPENDED,
   TI_THREAD_STATE_STOPPED,
-  TI_THREAD_STATE_OVERFLOW,
-};
-
-enum ti_core_id_t {
-  TI_CORE_ID_CM7,
-  TI_CORE_ID_CM4,
 };
 
 #define TI_THREAD_MIN_STACK_SIZE 128
@@ -62,14 +54,7 @@ void ti_suspend_thread(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
 void ti_resume_thread(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
-void ti_enter_critical(void);
-
-void ti_exit_critical(void);
-
-void ti_enter_exclusive(void);
-
-void ti_exit_exclusive(void);
-
+__attribute__((noreturn)) 
 void ti_exit(void);
 
 void ti_yield(void);
@@ -78,17 +63,15 @@ void ti_set_thread_priority(struct ti_thread_t thread, int32_t priority, enum ti
 
 int32_t ti_get_thread_priority(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
-enum thread_state_t ti_get_thread_state(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+enum ti_thread_state_t ti_get_thread_state(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
 int32_t ti_get_thread_stack_size(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
 int32_t ti_get_thread_stack_usage(struct ti_thread_t thread, enum ti_errc_t* errc_out);
 
+bool ti_is_thread_overflow(struct ti_thread_t thread, enum ti_errc_t* errc_out);
+
 struct ti_thread_t ti_get_this_thread(void);
-
-enum ti_core_id_t ti_get_this_core(void);
-
-bool ti_is_interrupt(void);
 
 bool ti_is_valid_thread(struct ti_thread_t thread);
 

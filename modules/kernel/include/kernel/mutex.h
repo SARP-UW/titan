@@ -17,6 +17,8 @@
  * @file modules/kernel/include/kernel/mutex.h
  * @authors Aaron McBride
  * @brief Mutex synchronization primitives.
+ *
+ * TODO: Paragraph with general usage information here.
  */
 
 #pragma once
@@ -63,7 +65,7 @@ struct ti_mutex_t ti_create_mutex(void* mem, enum ti_mutex_type_t type, enum ti_
  * @param mutex (struct ti_mutex_t) Handle to the mutex to destroy.
  * @param errc_out (enum ti_errc_t*) Out argument for error code.
  * @note - Interacting with a mutex in any way while it is being destroyed results in undefined behavior.
- * @note - If any error occurs, the state/existence of the mutex is guaranteed to be unchanged by this function.
+ * @note - The state/existance of this mutex is guaranteed to be unchanged if an error occurs.
  * @warning - TI_ERRC_INVALID_ARG is raised if the mutex identified by @p [mutex] does not exist.
  * @warning - TI_ERRC_INVALID_OP is raised if this function is called from an interrupt.
  * @warning - TI_ERRC_INVALID_STATE is raised if the mutex is currently locked by any thread.
@@ -76,12 +78,11 @@ void ti_destroy_mutex(struct ti_mutex_t mutex, enum ti_errc_t* errc_out);
  * @param timeout (int64_t) Timeout duration in microseconds.
  * @param errc_out (enum ti_errc_t*) Out argument for error code.
  * @return (bool) True if the mutex was acquired successfully, or false otherwise (timeout or error).
- * @note - If any error occurs, the state of the mutex is guaranteed to be unchanged by this function.
  * @note - This function will always attempt to acquire the mutex at least once regardless of the value of @p [timeout].
+ * @note - The state of this mutex is guaranteed to be unchanged if an error occurs.
  * @warning - TI_ERRC_INVALID_OP is raised if this function is called from an interrupt.
  * @warning - TI_ERRC_INVALID_ARG is raised if the mutex identified by @p [mutex] does not exist.
  * @warning - TI_ERRC_INVALID_STATE is raised if the mutex is already owned by the calling thread and it's type is not TI_MUTEX_TYPE_RECURSIVE.
- * @warning - TI_ERRC_INTERNAL can be raised by this function.
  */
 bool ti_acquire_mutex(struct ti_mutex_t mutex, int64_t timeout, enum ti_errc_t* errc_out);
 
@@ -89,7 +90,7 @@ bool ti_acquire_mutex(struct ti_mutex_t mutex, int64_t timeout, enum ti_errc_t* 
  * @brief Releases ownership over a mutex from the calling thread.
  * @param mutex (struct ti_mutex_t) Handle to the mutex to release.
  * @param errc_out (enum ti_errc_t*) Out argument for error code.
- * @note - If any error occurs, the state of the mutex is guaranteed to be unchanged by this function.
+ * @note - The state of this mutex is guaranteed to be unchanged if an error occurs.
  * @warning - TI_ERRC_INVALID_OP is raised if this function is called from an interrupt.
  * @warning - TI_ERRC_INVALID_ARG is raised if the mutex identified by @p [mutex] does not exist.
  * @warning - TI_ERRC_INTERNAL can be raised by this function.
@@ -102,6 +103,7 @@ void ti_release_mutex(struct ti_mutex_t mutex, enum ti_errc_t* errc_out);
  * @param mutex (struct ti_mutex_t) Handle to the mutex to inspect.
  * @param errc_out (enum ti_errc_t*) Out argument for error code.
  * @return (bool) True if the mutex is currently owned by a thread, false otherwise.
+ * @note - The state of this mutex is guaranteed to be unchanged if an error occurs.
  * @warning - TI_ERRC_INVALID_ARG is raised if the mutex identified by @p [mutex] does not exist.
  * @warning - TI_ERRC_INVALID_OP is raised if this function is called from an interrupt.
  */
@@ -112,6 +114,7 @@ bool ti_is_mutex_locked(struct ti_mutex_t mutex, enum ti_errc_t* errc_out);
  * @param mutex (struct ti_mutex_t) Handle to the mutex to inspect.
  * @param errc_out (enum ti_errc_t*) Out argument for error code.
  * @return (struct ti_thread_t) Handle to the thread that currently owns the mutex, or TI_INVALID_THREAD if the mutex is not owned or an error occurred.
+ * @note - The state of this mutex is guaranteed to be unchanged if an error occurs.
  * @warning - TI_ERRC_INVALID_ARG is raised if the mutex identified by @p [mutex] does not exist.
  * @warning - TI_ERRC_INVALID_OP is raised if this function is called from an interrupt.
  */
@@ -122,6 +125,7 @@ struct ti_thread_t ti_get_mutex_owner(struct ti_mutex_t mutex, enum ti_errc_t* e
  * @param mutex (struct ti_mutex_t) Handle to the mutex to inspect.
  * @param errc_out (enum ti_errc_t*) Out argument for error code.
  * @return (enum ti_mutex_type_t) The type of the mutex, or TI_MUTEX_TYPE_INVALID if an error occurred.
+ * @note - The state of this mutex is guaranteed to be unchanged if an error occurs.
  * @warning - TI_ERRC_INVALID_ARG is raised if the mutex identified by @p [mutex] does not exist.
  */
 enum ti_mutex_type_t ti_get_mutex_type(struct ti_mutex_t mutex, enum ti_errc_t* errc_out);

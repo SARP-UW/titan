@@ -106,11 +106,11 @@
 
 /**
  * @brief Defers execution of a block of code until the current scope is exited.
- * @param body (code block) The code block to execute when the current scope is exited.
+ * @param va_args (code block) The code block to execute when the current scope is exited.
  * @note - Any identifiers prefixed with __ti_defer are reserved in the scope this macro is used.
  * @note - This macro must not be expanded (used) twice on the same line.
  * @note - If multiple blocks of code are deferred, they will be executed in reverse order.
  */
-#define TI_DEFER(body) \
-  void TI_XCAT(__ti_defer_fn_, __LINE__) (...) { body } \
+#define TI_DEFER(...) \
+  void TI_XCAT(__ti_defer_fn_, __LINE__) (...) { __VA_ARGS__ } \
   __attribute__((cleanup(TI_XCAT(__ti_defer_fn_, __LINE__)))) bool TI_XCAT(__ti_defer_val_, __LINE__);
