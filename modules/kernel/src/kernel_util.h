@@ -25,17 +25,59 @@
 #include "util/macro.h"
 
 /**
- * @brief Declares a function which will be executed durring the kernel initialization sequence.
+ * @brief Declares a function which will be executed durring the kernel initialization sequence by the CM7 core.
  * @param fn_name (token) Name of the function to be declared.
  * @param prio (integral value) Priority of the function (lower values execute first, can only be 0-9).
  * @note - The declared function is static (not externally accessible).
  * @note - The function takes no arguments and returns a bool indicating if the initialization was successful.
  * @note - This function declares a function, thus it must be followed by a block declaration (brackets with function body inside).
- * @note - Symbols prefixed with "__kernel_init_fn_" are reserved in all scopes this macro is used in.
+ * @note - Symbols prefixed with "__kernel_cm7_init_fn_" are reserved in all scopes this macro is used in.
  */
-#define _KERNEL_INIT_FN(fn_name, prio) \
+#define _KERNEL_CM7_INIT_FN(fn_name, prio) \
   __attribute__((section(TI_XSTR(.ti_kernel_init.prio)), used)) \
-  static bool (*const __kernel_init_fn_##fn_name)(void) = &fn_name; \
+  static bool (*const __kernel_cm7_init_fn_##fn_name)(void) = &fn_name; \
   static bool fn_name(void)
+
+/**
+ * @brief Declares a function which will be executed durring the kernel initialization sequence by the CM4 core.
+ * @param fn_name (token) Name of the function to be declared.
+ * @param prio (integral value) Priority of the function (lower values execute first, can only be 0-9).
+ * @note - The declared function is static (not externally accessible).
+ * @note - The function takes no arguments and returns a bool indicating if the initialization was successful.
+ * @note - This function declares a function, thus it must be followed by a block declaration (brackets with function body inside).
+ * @note - Symbols prefixed with "__kernel_cm4_init_fn_" are reserved in all scopes this macro is used in.
+ */
+#define _KERNEL_CM4_INIT_FN(fn_name, prio) \
+  __attribute__((section(TI_XSTR(.ti_kernel_init.prio)), used)) \
+  static bool (*const __kernel_cm4_init_fn_##fn_name)(void) = &fn_name; \
+  static bool fn_name(void)
+
+/**
+ * @brief Declares a function which will be executed durring the kernel exit sequence by the CM7 core.
+ * @param fn_name (token) Name of the function to be declared.
+ * @param prio (integral value) Priority of the function (lower values execute first, can only be 0-9).
+ * @note - The declared function is static (not externally accessible).
+ * @note - The function takes no arguments and returns nothing.
+ * @note - This function declares a function, thus it must be followed by a block declaration (brackets with function body inside).
+ * @note - Symbols prefixed with "__kernel_cm7_exit_fn_" are reserved in all scopes this macro is used in.
+ */
+#define _KERNEL_CM7_EXIT_FN(fn_name, prio) \
+  __attribute__((section(TI_XSTR(.ti_kernel_exit.prio)), used)) \
+  static void (*const __kernel_cm7_exit_fn_##fn_name)(void) = &fn_name; \
+  static void fn_name(void)
+
+/**
+ * @brief Declares a function which will be executed durring the kernel exit sequence by the CM4 core.
+ * @param fn_name (token) Name of the function to be declared.
+ * @param prio (integral value) Priority of the function (lower values execute first, can only be 0-9).
+ * @note - The declared function is static (not externally accessible).
+ * @note - The function takes no arguments and returns nothing.
+ * @note - This function declares a function, thus it must be followed by a block declaration (brackets with function body inside).
+ * @note - Symbols prefixed with "__kernel_cm4_exit_fn_" are reserved in all scopes this macro is used in.
+ */
+#define _KERNEL_CM4_EXIT_FN(fn_name, prio) \
+  __attribute__((section(TI_XSTR(.ti_kernel_exit.prio)), used)) \
+  static void (*const __kernel_cm4_exit_fn_##fn_name)(void) = &fn_name; \
+  static void fn_name(void)
 
 /** @endinternal */

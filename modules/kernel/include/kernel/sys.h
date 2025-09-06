@@ -16,28 +16,24 @@
  * 
  * @file modules/kernel/include/kernel/sys.h
  * @authors Aaron McBride
- * @brief System control utilities.
+ * @brief General system utilities.
  */
 
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
-
-enum ti_sys_sleep_mode_t {
-  TI_SYS_SLEEP_MODE_NORMAL,
-  TI_SYS_SLEEP_MODE_DEEP,
-};
+#include "util/errc.h"
 
 enum ti_core_id_t {
   TI_CORE_ID_CM7,
   TI_CORE_ID_CM4,
 };
 
-__attribute__((noreturn)) 
 void ti_sys_restart(void);
 
-__attribute__((noreturn)) 
-void ti_sys_sleep(enum ti_sys_sleep_mode_t mode);
+void ti_sys_shutdown(void);
+
+void ti_sys_sleep(void);
 
 void ti_enter_critical(void);
 
@@ -47,13 +43,9 @@ void ti_reset_critical(void);
 
 bool ti_is_critical(void);
 
-void ti_enter_exclusive(void);
+enum ti_core_id_t ti_get_core(void);
 
-void ti_exit_exclusive(void);
-
-void ti_reset_exclusive(void);
-
-bool ti_is_exclusive(void);
+bool ti_is_interrupt(void);
 
 #define TI_CRITICAL(...) do { \
   ti_enter_critical(); \
@@ -66,7 +58,3 @@ bool ti_is_exclusive(void);
   __VA_ARGS__ \
   ti_exit_exclusive(); \
 } while (0)
-
-enum ti_core_id_t ti_get_core(void);
-
-bool ti_is_interrupt(void);

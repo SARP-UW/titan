@@ -19,7 +19,6 @@
  * @brief Implementation of thread management and control utilities.
  */
 
-#pragma once
 #include <string.h>
 #include "kernel/thread.h" // header
 #include "kernel/sys.h"
@@ -70,15 +69,15 @@ struct _hw_frame_t {
 // Struct representing layout of software stack frame
 __attribute__((packed))
 struct _sw_frame_t {
-    uint32_t r4;
-    uint32_t r5;
-    uint32_t r6;
-    uint32_t r7;
-    uint32_t r8;
-    uint32_t r9;
-    uint32_t r10;
-    uint32_t r11;
-    uint32_t exc_return;
+  uint32_t r4;
+  uint32_t r5;
+  uint32_t r6;
+  uint32_t r7;
+  uint32_t r8;
+  uint32_t r9;
+  uint32_t r10;
+  uint32_t r11;
+  uint32_t exc_return;
 };
 
 // Required alignment for stack pointer
@@ -92,6 +91,12 @@ static const int32_t _INIT_EXC_RETURN_VALUE = 0xFFFFFFFD;
 
 // Size of "full" stack frame (hw + sw)
 static const int32_t _FULL_FRAME_SIZE = sizeof(struct _hw_frame_t) + sizeof(struct _sw_frame_t);
+
+// Pattern used at stack base to check for overflow
+static const uint32_t _STACK_PROT_PATTERN = 0xDEADBEEF;
+
+// Ensure memory size definition is correct
+_Static_assert(TI_THREAD_MEM_SIZE(5) == (sizeof(struct _int_thread_t) + 5 + sizeof(_STACK_PROT_PATTERN)));
 
 // List of existing threads
 static struct _int_thread_t* _thread_list[TI_CFG_MAX_THREADS] = {NULL};
@@ -123,6 +128,9 @@ static int32_t _next_thread_id = 123;
     TI_FOREACH(cur_thread, _thread_list) { \
       if (*cur_thread != NULL) { \
         (*cur_thread)->sched_count += (*cur_thread)->priority; \
+        if (*((uint32_t*)((*cur_thread)->stack_base)) != _STACK_PROT_PATTERN) { \
+          (*cur_thread)->state = TI_THREAD_STATE_STOPPED; \
+        } \
       } \
     } \
     TI_FOREACH(cur_thread, _thread_list) { \
@@ -146,60 +154,43 @@ static int32_t _next_thread_id = 123;
 _SCHEDULE_THREADS_IMPL(cm7, cm4)
 _SCHEDULE_THREADS_IMPL(cm4, cm7)
 
-// Idle function (used when no threads are running)
-__attribute__((naked, optimize("O0")))
-static void _idle_fn(void) {
-  asm volatile (
-    "loop: \n\t"
-    "wfi \n\t"
-    "b loop \n\t"
-    :::
-  );
-}
-
-// PendSV exception handler (context switcher for threads)
+// PendSV exception handler (context switcher for threads) with dynamic SLEEPONEXIT
 #define _PENDSV_EXC_HANDLER_IMPL(core_token) \
   __attribute__((naked, optimize("O0"))) \
-  static void cm7_pendsv_exc_handler(void) { \
+  static void _##core_token##_pendsv_exc_handler(void) { \
     asm volatile( \
-      \
-      /* Load in stack pointer from internal thread struct */ \
+      /* Load current thread's stack pointer */ \
       TI_STR(ldr r3, =_##core_token##_thread \n\t) \
       "ldr r2, [r3] \n\t" \
       \
-      /* If current thread is idle - skip saving context */ \
-      "movs r12, #0     \n\t" \
+      /* If no current thread, skip saving context */ \
       "cbz r2, schedule \n\t" \
-      "movs r12, #1     \n\t" \
       \
-      /* Save context of current thread (push registers to stack) */ \
-      "mrs r0, psp             \n\t" \ 
-      "isb                     \n\t" \
+      /* Save callee-saved + lazy FP regs to this thread's stack */ \
+      "mrs r0, psp             \n\t" \
       "tst lr, #0x10           \n\t" \
       "it eq                   \n\t" \
       "vstmdbeq r0!, {s16-s31} \n\t" \
       "stmdb r0!, {r4-r11, lr} \n\t" \
       "str r0, [r2]            \n\t" \
       \
-      /* Invoke thread scheduler function */ \
+      /* Run scheduler to find next thread */ \
       "schedule:       \n\t" \
       "mrs r1, primask \n\t" \
       "cpsid i         \n\t" \
-      "dsb             \n\t" \
       "isb             \n\t" \
       TI_STR(bl _schedule_threads_##core_token \n\t) \
-      "dsb             \n\t" \
-      "isb             \n\t" \
       "msr primask, r1 \n\t" \
+      "isb             \n\t" \
       \
-      /* Load in stack pointer of next thread */ \
-      TI_STR(ldr r3, =_##core_thread##_thread \n\t) \
+      /* Load next thread's stack pointer */ \
+      TI_STR(ldr r3, =_##core_token##_thread \n\t) \
       "ldr r1, [r3] \n\t" \
       \
-      /* If next thread is NULL - dont restore context from stack */ \
-      "cbz r1, restore_idle \n\t" \
+      /* If no next thread dont restore context */ \
+      "cbz r1, enter_idle \n\t" \
       \
-      /* Restore context of next thread (pull registers from stack) */ \
+      /* Restore next thread's context from stack */ \
       "ldr r0, [r1]            \n\t" \
       "ldmia r0!, {r4-r11, lr} \n\t" \
       "tst lr, #0x10           \n\t" \
@@ -207,22 +198,27 @@ static void _idle_fn(void) {
       "vldmiaeq r0!, {s16-s31} \n\t" \
       "msr psp, r0             \n\t" \
       "isb                     \n\t" \
-      "bx lr                   \n\t" \
       \
-      /* Create context for idle thread (not from stack) */ \
-      "restore_idle:       \n\t" \
-      "ldr r0, =_idle_fn   \n\t" \
-      "mrs r1, msp         \n\t" \
-      "sub r1, r1, #32     \n\t" \
-      "str r0, [r1, #24]   \n\t" \
-      "ldr r0, =0x01000000 \n\t" \
-      "str r0, [r1, #28]   \n\t" \
-      "msr msp, r1         \n\t" \
-      "ldr r0, =0xFFFFFFF9 \n\t" \
-      "mov lr, r0          \n\t" \
+      /* Clear SLEEPONEXIT so we resume thread mode on exit */ \
+      "ldr r0, =0xE000ED10 \n\t" \
+      "ldr r2, [r0]        \n\t" \
+      "bic r2, r2, #0x2    \n\t" \
+      "str r2, [r0]        \n\t" \
+      "isb                 \n\t" \
       "bx lr               \n\t" \
       \
-      ::: "r0","r1","r2","r3","r12","memory" \
+      /* No next thread -> enable SLEEPONEXIT */ \
+      "enter_idle:         \n\t" \
+      "ldr r0, =0xE000ED10 \n\t" \
+      "ldr r2, [r0]        \n\t" \
+      "orr r2, r2, #0x2    \n\t" \
+      "str r2, [r0]        \n\t" \
+      "dsb                 \n\t" \
+      "isb                 \n\t" \
+      "bx lr               \n\t" \
+      \
+      /* Registers used in above assembly must be marked as clobbered. */ \
+      ::: "r0", "r1", "r2", "r3", "cc", "memory" \
     ); \
   }
 
@@ -248,16 +244,16 @@ static void _thread_exit(void) {
   }
 }
 
-// Gets a pointer to the internal thread struct that is being currently executed
-static struct _int_thread_t* _get_this_int_thread(void) {
-  return (ti_get_core() == TI_CORE_ID_CM7) ? _cm7_thread : _cm4_thread;
-}
-
 // Initialization function for threading system
-_KERNEL_INIT_FN(_init_thread, 9) {
+_KERNEL_CM7_INIT_FN(_init_thread, 9) {
   enum ti_errc_t int_errc;
   _thread_critlock = ti_create_critlock(_thread_critlock_mem, &int_errc);
   return int_errc == TI_ERRC_NONE;
+}
+
+// Gets a pointer to the internal thread struct that is being currently executed
+static struct _int_thread_t* _get_this_int_thread(void) {
+  return (ti_get_core() == TI_CORE_ID_CM7) ? _cm7_thread : _cm4_thread;
 }
 
 struct ti_thread_t ti_create_thread(void* const mem, void (*const entry_fn)(void*), void* const arg, int32_t stack_size, const int32_t priority, enum ti_errc_t* const errc_out) {
@@ -266,10 +262,12 @@ struct ti_thread_t ti_create_thread(void* const mem, void (*const entry_fn)(void
     *errc_out = TI_ERRC_INVALID_ARG;
     return TI_INVALID_THREAD;
   }
+  stack_size += sizeof(_STACK_PROT_PATTERN);
   struct _int_thread_t* const int_thread = (struct _int_thread_t*)(mem + stack_size);
   int_thread->sp = (void*)ti_floor_u32((uint32_t)mem + stack_size, _SYS_STACK_ALIGN, &(enum ti_errc_t){0}) - _FULL_FRAME_SIZE;
   int_thread->id = (int32_t)ti_atomic_add((uint32_t*)&_next_thread_id, 1U);
-  int_thread->stack_base = mem;
+  int_thread->stack_base = mem + sizeof(_STACK_PROT_PATTERN);
+  *((uint32_t*)int_thread->stack_base) = _STACK_PROT_PATTERN;
   int_thread->stack_size = stack_size;
   int_thread->priority = priority;
   int_thread->state = TI_THREAD_STATE_READY;
@@ -432,6 +430,7 @@ void ti_resume_thread(const struct ti_thread_t thread, enum ti_errc_t* const err
   }
 }
 
+__attribute__((noreturn))
 void ti_exit(void) {
   ti_reset_critical();
   ti_reset_exclusive();
@@ -595,7 +594,7 @@ bool ti_is_thread_overflow(const struct ti_thread_t thread, enum ti_errc_t* cons
     return false;
   }
   struct _int_thread_t* const int_thread = (struct _int_thread_t*)thread.handle;
-  const bool is_overflow = (uint32_t)int_thread->sp < (uint32_t)int_thread->stack_base;
+  const bool is_overflow = *((uint32_t*)int_thread->stack_base) != _STACK_PROT_PATTERN;
   ti_release_critlock(_thread_critlock, &int_errc);
   if (int_errc != TI_ERRC_NONE) {
     *errc_out = TI_ERRC_INTERNAL;

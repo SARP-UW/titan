@@ -107,7 +107,7 @@ struct _int_file_t {
 #endif
 
 // Initialization function for host facilities
-_KERNEL_INIT_FN(_init_host, 9) {
+_KERNEL_CM7_INIT_FN(_init_host, 9) {
   #if TI_CFG_SEMIHOSTING_ENABLED
     enum ti_errc_t int_errc;
     _io_critlock = ti_create_critlock(_io_critlock_mem, &int_errc);

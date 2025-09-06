@@ -198,6 +198,12 @@ typedef struct { uint8_t  msk; int32_t pos; } field8_t;  /** @brief 8 bit regist
   (*_src & _field.msk) == 0U; \
 })
 
+#define TO_FIELD(value, field) ({ \
+  const __auto_type _value = (value); \
+  const __auto_type _field = (field); \
+  (_value << _field.pos) & _field.msk; \
+})
+
 /**************************************************************************************************
  * @section COMP1 Definitions
  **************************************************************************************************/
