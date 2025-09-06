@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "name": "titan",
+      "includePath": [
+        "${workspaceFolder}/modules/internal/include",
+        "${workspaceFolder}/modules/internal/src",
+        "${workspaceFolder}/modules/kernel/include",
+        "${workspaceFolder}/modules/kernel/src",
+        "${workspaceFolder}/modules/mcu/include",
+        "${workspaceFolder}/modules/mcu/src",
+        "${workspaceFolder}/modules/util/include",
+        "${workspaceFolder}/modules/util/src",
+        "${workspaceFolder}/dev/dev_config"
+      ],
+      "compilerPath": "arm-none-eabi-gcc",
+      "cStandard": "gnu17",
+      "intelliSenseMode": "gcc-arm"
+    }
+  ],
+  "version": 4
+}
