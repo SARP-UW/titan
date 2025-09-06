@@ -43,6 +43,14 @@ void ti_reset_critical(void);
 
 bool ti_is_critical(void);
 
+void ti_enter_exclusive(enum ti_errc_t* errc_out);
+
+void ti_exit_exclusive(enum ti_errc_t* errc_out);
+
+void ti_reset_exclusive(enum ti_errc_t* errc_out);
+
+bool ti_is_exclusive(void);
+
 enum ti_core_id_t ti_get_core(void);
 
 bool ti_is_interrupt(void);

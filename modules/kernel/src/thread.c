@@ -230,7 +230,7 @@ _PENDSV_EXC_HANDLER_IMPL(cm4)
 __attribute__((noreturn))
 static void _thread_exit(void) {
   ti_reset_critical();
-  ti_reset_exclusive();
+  ti_reset_exclusive(&(enum ti_errc_t){0});
   // This function cannot fail/return so just continue trying in case of error
   while (true) {
     if (ti_acquire_critlock(_thread_critlock, TI_CFG_THREAD_TIMEOUT, &(enum ti_errc_t){0})) {
@@ -433,7 +433,7 @@ void ti_resume_thread(const struct ti_thread_t thread, enum ti_errc_t* const err
 __attribute__((noreturn))
 void ti_exit(void) {
   ti_reset_critical();
-  ti_reset_exclusive();
+  ti_reset_exclusive(&(enum ti_errc_t){0});
   if (ti_is_interrupt()) {
     // This assembly exits out of interrupt without saving context
     asm volatile (

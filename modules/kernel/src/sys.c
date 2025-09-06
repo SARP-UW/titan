@@ -19,9 +19,6 @@
  * @brief Implementation of general system utilities.
  */
 
-// TODO:
-// - Check exclusive section system logic, the implementation is very messy/complex but I just can't think of a better way to do it.
-
 #include "kernel/sys.h"
 #include "internal/mmio.h"
 #include "util/atomic.h"
@@ -86,29 +83,28 @@ static bool _acq_exclusive_lock(void) {
   return true;
 }
 
-// System update handler for CM7 core (called periodically by systick interrupt)
-void _ti_cm7_sys_update(void) {
+// System update handler for CM7 core (triggered by SEV instruction from CM4 core)
+void cpu1_sev_irq_handler(void) {
   if ((int32_t)ti_atomic_load(&_sys_shutdown_flag) != 0) {
     typedef void (*kernel_exit_fn_t)(void);
     extern kernel_exit_fn_t* __ti_kernel_cm7_exit_array_start;
     extern kernel_exit_fn_t* __ti_kernel_cm7_exit_array_end;
-    kernel_exit_fn_t* cur_fn = __ti_kernel_cm7_exit_array_start;
+    kernel_exit_fn_t* cur_kernel_fn = __ti_kernel_cm7_exit_array_start;
     ti_enter_critical();
-    while (cur_fn < __ti_kernel_cm7_exit_array_end) {
-      (*cur_fn)();
-      cur_fn++;
+    while (cur_kernel_fn < __ti_kernel_cm7_exit_array_end) {
+      (*cur_kernel_fn)();
+      cur_kernel_fn++;
     }
-    typedef void (*mcu_exit_fn)(void);
-    extern mcu_exit_fn* __mcu_exit_array_start;
-    extern mcu_exit_fn* __mcu_exit_array_end;
-    cur_fn = __mcu_exit_array_start;
-    while (cur_fn < __mcu_exit_array_end) {
-      (*cur_fn)();
-      cur_fn++;
+    typedef void (*mcu_exit_fn_t)(void);
+    extern mcu_exit_fn_t* __mcu_exit_array_start;
+    extern mcu_exit_fn_t* __mcu_exit_array_end;
+    mcu_exit_fn_t* cur_mcu_fn = __mcu_exit_array_start;
+    while (cur_mcu_fn < __mcu_exit_array_end) {
+      (*cur_mcu_fn)();
+      cur_mcu_fn++;
     }
+    // This causes the core to enter deep sleep mode on "wfe" instruction
     SET_FIELD(SCB_SCR, SCB_SCR_SLEEPDEEP);
-    asm volatile ("dmb");
-    asm volatile ("isb");
     while (true) {
       asm volatile ("wfe");
     }
@@ -119,30 +115,30 @@ void _ti_cm7_sys_update(void) {
       _cm7_exclusive_count = -1;
       const int64_t start_time = ti_get_time();
       while (_cm4_exclusive_count > 0) {
-        _cm7_exclusive_count = -1;
         if ((ti_get_time() - start_time) > TI_CFG_EXCLUSIVE_SECTION_TIMEOUT) {
           _cm7_exclusive_count = 0;
           _cm4_exclusive_count = 0;
           ti_atomic_store((uint32_t*)&_exclusive_lock, 0U);
           ti_exit_critical();
-          goto fn_exit;
+          goto exclusive_handler_exit;
         }
         ti_atomic_store((uint32_t*)&_exclusive_lock, 0U);
         if (!_acq_exclusive_lock()) {
           _cm7_exclusive_count = 0;
           ti_exit_critical();
-          goto fn_exit;
+          goto exclusive_handler_exit;
         }
       }
       _cm7_exclusive_count = 0;
     }
+    ti_atomic_store((uint32_t*)&_exclusive_lock, 0U);
   }
   ti_exit_critical();
-  fn_exit:
+  exclusive_handler_exit:
 }
 
-// System update handler for CM4 core (called periodically by systick interrupt)
-void _ti_cm4_sys_update(void) {
+// System update handler for CM4 core (triggered by SEV instruction on CM7 core)
+void cpu2_sev_irq_handler(void) {
   if ((int32_t)ti_atomic_load(&_sys_shutdown_flag) != 0) {
     typedef void (*kernel_exit_fn_t)(void);
     extern kernel_exit_fn_t* __ti_kernel_cm4_exit_array_start;
@@ -166,26 +162,26 @@ void _ti_cm4_sys_update(void) {
       _cm4_exclusive_count = -1;
       const int64_t start_time = ti_get_time();
       while (_cm7_exclusive_count > 0) {
-        _cm4_exclusive_count = -1;
         if ((ti_get_time() - start_time) > TI_CFG_EXCLUSIVE_SECTION_TIMEOUT) {
           _cm4_exclusive_count = 0;
           _cm7_exclusive_count = 0;
           ti_atomic_store((uint32_t*)&_exclusive_lock, 0U);
           ti_exit_critical();
-          goto fn_exit;
+          goto exclusive_handler_exit;
         }
         ti_atomic_store((uint32_t*)&_exclusive_lock, 0U);
         if (!_acq_exclusive_lock()) {
           _cm4_exclusive_count = 0;
           ti_exit_critical();
-          goto fn_exit;
+          goto exclusive_handler_exit;
         }
       }
       _cm4_exclusive_count = 0;
     }
+    ti_atomic_store((uint32_t*)&_exclusive_lock, 0U);
   }
   ti_exit_critical();
-  fn_exit:
+  exclusive_handler_exit:
 }
 
 __attribute__((noreturn))
@@ -194,6 +190,9 @@ void ti_sys_restart(void) {
   WRITE_FIELD(&reg_value, SCB_AIRCR_VECTKEYSTAT, _RESET_VECTKEY_VALUE);
   SET_FIELD(&reg_value, SCB_AIRCR_SYSRESETREQ);
   *SCB_AIRCR = reg_value;
+  while (true) {
+    asm volatile ("wfe");
+  }
 }
 
 __attribute__((noreturn))
@@ -246,9 +245,12 @@ void ti_enter_exclusive(enum ti_errc_t* errc_out) {
   int32_t* const alt_exclusive_count = _get_alt_exclusive_count();
   ti_enter_critical();
   if (!_acq_exclusive_lock()) {
+    ti_exit_critical();
     *errc_out = TI_ERRC_INTERNAL;
     return;
   }
+  // We need to be able to ack from this function in case both cores try to enter exclusive 
+  // sections at the same time. Otherwise because we are in critical section -> deadlock
   if (*alt_exclusive_count > 0) {
     *this_exclusive_count = -1;
     const int64_t start_time = ti_get_time();
@@ -303,13 +305,14 @@ void ti_exit_exclusive(enum ti_errc_t* errc_out) {
   int32_t* const this_exclusive_count = _get_this_exclusive_count();
   ti_enter_critical();
   if (!_acq_exclusive_lock()) {
+    ti_exit_critical();
     *errc_out = TI_ERRC_INTERNAL;
     return;
   }
   if (*this_exclusive_count <= 0) {
-    *errc_out = TI_ERRC_INTERNAL;
     ti_atomic_store((uint32_t*)&_exclusive_lock, 0U);
     ti_exit_critical();
+    *errc_out = TI_ERRC_INTERNAL;
     return;
   }
   (*this_exclusive_count)--;
@@ -323,6 +326,7 @@ void ti_reset_exclusive(enum ti_errc_t* errc_out) {
   int32_t* const alt_exclusive_count = _get_alt_exclusive_count();
   ti_enter_critical();
   if (!_acq_exclusive_lock()) {
+    ti_exit_critical();
     *errc_out = TI_ERRC_INTERNAL;
     return;
   }
