@@ -173,13 +173,10 @@ enum ti_errc_t actuator_init(actuator_t *dev, const actuator_spi_t *spi_config, 
     dev->config = *config;
 
     // Initialize the SPI peripheral with our slave-select pin.
-    // spi_init needs an array of SS pins (supports multiple slaves) — we only have one.
     uint8_t ss_list[1] = { dev->spi_config.ss_pin };
     if (spi_init(dev->spi_config.spi_inst, ss_list, 1) != 1) return TI_ERRC_INVALID_ARG;
 
     // Configure the hardware ENABLE pin as a GPIO output.
-    // This is the physical kill switch — pulling it low cuts power to all H-bridges
-    // on the MAX22216, regardless of what the software registers say.
     // Default to OFF (0) for safety — valves should not actuate until explicitly commanded.
     if (dev->config.enable_pin) {
         tal_enable_clock(dev->config.enable_pin);  // Enable GPIO port clock (STM32 requirement)
@@ -313,8 +310,7 @@ enum ti_errc_t actuator_read_fault(actuator_t *dev, uint16_t *fault0, uint16_t *
     // Two separate fault registers capture different failure modes:
     //   FAULT0 (0x65) — overcurrent, thermal shutdown, supply undervoltage
     //   FAULT1 (0x66) — open-load detection, watchdog timeout
-    // Both are read-to-clear: reading them acknowledges and resets the fault flags.
-    // If the fault condition persists, the bits will set again on the next read.
+    // Reading them acknowledges and resets the fault flags.
     enum ti_errc_t err = actuator_read_reg(dev, ACTUATOR_REG_FAULT0, fault0, status_out);
     if (err != TI_ERRC_NONE) return err;
     return actuator_read_reg(dev, ACTUATOR_REG_FAULT1, fault1, status_out);

@@ -136,7 +136,7 @@ static enum ti_errc_t radio_wait_cts(radio_t *dev) {
     // Why 1,000,000 iterations? This is a worst-case spin-wait. At ~168MHz (STM32H7),
     // each iteration is a few SPI transactions (~microseconds), so this is roughly
     // a multi-second timeout. If we hit it, the radio is dead or unpowered.
-    for (uint32_t i = 0; i < RADIO_DEFAULT_CTS_TIMEOUT; i++) {
+    for (uint32_t i = 0; i < RADIO_DEFAULT_CTS_TIMEOUT; i++) { // 1,000,000
         uint8_t tx[2] = { SI446X_CMD_READ_CMD_BUFF, 0x00 };
         uint8_t rx[2] = { 0x00, 0x00 };
         // Send the CTS check over SPI
