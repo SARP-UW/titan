@@ -4,7 +4,7 @@
 
 #pragma once
 
-bool standby_state_build();
+bool standby_state_init();
 
 int standby_state_run();
 

@@ -5,7 +5,7 @@
 #pragma once
 
 
-bool init_state_build();
+bool init_state_init();
 
 int init_state_run();
 
