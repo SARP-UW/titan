@@ -41,7 +41,7 @@ This file serves to provide links for code files for those attending the CDR to 
   - [barometer.h](https://github.com/SARP-UW/titan/blob/main/src/devices/barometer.h)  
   - [barometer.c](https://github.com/SARP-UW/titan/blob/main/src/devices/barometer.c)  
 - Magnetometer  
-  - Todo  
+  - [magnetometer.h](https://github.com/SARP-UW/titan/blob/main/src/devices/magnetometer.h) 
 - IMU  
   - [imu.h](https://github.com/SARP-UW/titan/blob/main/src/devices/imu.h)
 - Actuator  
