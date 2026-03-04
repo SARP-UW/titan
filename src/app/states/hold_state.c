@@ -3,7 +3,7 @@
 //     - ( ) HOLD: Maintain launch ready state
 //     ~~~ ( ) Monitor leaks or pressure drops
 //     ~~~ ( ) Keep GSE Connected for power/data
-//     ~~~ ( ) Monitoro nitros phase changes
+//     ~~~ ( ) Vent ethonol tank to equalize with nitrous tank
 
 bool hold_state_init(){
 

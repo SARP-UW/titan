@@ -4,7 +4,7 @@
 //     -- ( ) FIRING: Deliver propelants to manifold
 //     ~~~ ( ) Open main propelant valves
 //     ~~~ ( ) Execute control loop for engine burn
-//     ~~~ ( ) REcord telemetry to Sd card
+//     ~~~ ( ) Send and record telemetry
 
 bool fire_state_init(){
 

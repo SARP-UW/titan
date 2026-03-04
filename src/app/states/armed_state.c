@@ -2,7 +2,7 @@
 
 //     -- ( ) ARMED: Final Countdown Sequence and umbilical disconnect
 //     ~~~ ( ) switch power from umbilical to battery
-//     ~~~ ( ) disconnect umbillical
+//     ~~~ ( ) arm igniter 
 
 bool armed_state_init(){
 
