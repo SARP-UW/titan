@@ -248,9 +248,9 @@ alloctest_output.txt
 dist/
 build/
 !stm_usb/stm_usb_win.exe
+build_logs/
 
 # Doxygen output
 html/
 docs/
-
 # End of https://www.toptal.com/developers/gitignore/api/cmake,c,c++,clion,macos
