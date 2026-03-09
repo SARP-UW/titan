@@ -20,6 +20,7 @@
  */
 
 #include "peripheral/spi.h"
+#include "peripheral/log.h"
 #include "internal/mmio.h"
 #include "peripheral/gpio.h"
 #include <stdint.h>
@@ -89,6 +90,7 @@ static inline void ss_high(uint8_t* ss_list, uint8_t slave_count) {
 
 enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
     if (inst > 6 || inst < 1) {
+        TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "SPI instance must be in range [1, 6]");
         return TI_ERRC_INVALID_ARG;
     }
 
@@ -296,7 +298,10 @@ enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
 }
 
 enum ti_errc_t spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size) {
-    if (size == 0 || ss_pin > 255) return -1;
+    if (size == 0) {
+        TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "Transfer size cannot be zero");
+        return TI_ERRC_INVALID_ARG;
+    }
 
     CLR_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
     WRITE_FIELD(SPIx_CR2[inst], SPIx_CR2_TSIZE, size);

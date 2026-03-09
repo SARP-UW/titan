@@ -22,6 +22,7 @@
 #include "uart.h"
 #include "../internal/mmio.h"
 #include "gpio.h"
+#include "log.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -565,6 +566,7 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
       rx_pin = 138;
       break;
     default:
+      TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "Invalid UART channel number");
       return TI_ERRC_INVALID_ARG;
   }
   switch (channel) {
@@ -577,7 +579,7 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     UART_FIELD_GENERATOR(UART7, 30, RCC_APB1LENR)
     UART_FIELD_GENERATOR(UART8, 31, RCC_APB1LENR)
     default:
-      // Handle error or invalid USART number
+      TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "Invalid UART channel for clock enable");
       return TI_ERRC_INVALID_ARG;
   }
 
@@ -595,7 +597,8 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
 
   bool test_set_alt = set_alternate_function(channel, tx_pin, rx_pin, ck_pin);
   if (!test_set_alt) {
-    return TI_ERRC_GNSS_CONFIG_FAIL;
+    TI_SET_ERRC(NULL, TI_ERRC_INTERNAL, "Failed to configure UART GPIO alternate function");
+    return TI_ERRC_INTERNAL;
   }
 
 
@@ -844,9 +847,8 @@ enum ti_errc_t uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
   // Transmit the data byte by byte
   for (uint32_t i = 0; i < size; i++) {
     if (!uart_write_byte(channel, tx_buff[i])) {
-      // tal_raise(flag, "USART write timeout");
-      // uart_busy[channel] = false;
-      return TI_ERRC_UNKNOWN;
+      TI_SET_ERRC(NULL, TI_ERRC_TIMEOUT, "UART write byte timed out");
+      return TI_ERRC_TIMEOUT;
     }
   }
 
@@ -880,9 +882,8 @@ enum ti_errc_t uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
   // Receive the data byte by byte
   for (uint32_t i = 0; i < size; i++) {
     if (!uart_read_byte(channel, rx_buff+i)) {
-      // tal_raise(flag, "USART read timeout");
-      // uart_busy[channel] = false;
-      return TI_ERRC_UNKNOWN;
+      TI_SET_ERRC(NULL, TI_ERRC_TIMEOUT, "UART read byte timed out");
+      return TI_ERRC_TIMEOUT;
     }
   }
 

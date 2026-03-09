@@ -9,6 +9,7 @@
 
 #include "devices/gnss.h"
 #include "peripheral/errc.h"
+#include "peripheral/log.h"
 #include <stddef.h>
 
 /* UBX Protocol Synchronization and Class IDs */
@@ -205,21 +206,28 @@ static enum ti_errc_t ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_i
                 break;
             case 7: // Acknowledged Message ID
                 if (rx == msg_id) {
-                    return (ack_id == UBX_ACK_ACK) ? TI_ERRC_NONE : TI_ERRC_UNKNOWN;
+                    if (ack_id == UBX_ACK_ACK) return TI_ERRC_NONE;
+                    TI_SET_ERRC(NULL, TI_ERRC_DEVICE, "GNSS module returned NAK for configuration command");
+                    return TI_ERRC_DEVICE;
                 }
                 state = 0;
                 break;
         }
     }
-    return TI_ERRC_MUTEX_TIMEOUT;
+    TI_SET_ERRC(NULL, TI_ERRC_TIMEOUT, "Timed out waiting for UBX ACK/NAK response");
+    return TI_ERRC_TIMEOUT;
 }
+
 
 /**************************************************************************************************
  * @section Public API Implementation
  **************************************************************************************************/
 
 enum ti_errc_t gnss_init(gnss_t *dev) {
-    if (!dev) return TI_ERRC_INVALID_ARG;
+    if (!dev) {
+        TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "dev pointer is NULL");
+        return TI_ERRC_INVALID_ARG;
+    }
     enum ti_errc_t err;
 
     /* 1. Configure Navigation/Measurement Rate (UBX-CFG-RATE) */
@@ -374,6 +382,7 @@ enum ti_errc_t gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt) {
                 break;
         }
     }
-    
-    return TI_ERRC_MUTEX_TIMEOUT;
+
+    TI_SET_ERRC(NULL, TI_ERRC_TIMEOUT, "Timed out waiting for UBX-NAV-PVT response");
+    return TI_ERRC_TIMEOUT;
 }

@@ -2,6 +2,7 @@
 // Created by Joshua Beard on 9/27/25.
 //
 #include "alloc.h"
+#include "../peripheral/log.h"
 // #include "peripheral/gpio.h" // FOR TESTING < REMOVE
 
 void* HEAP_START = (void*)0x0;
@@ -61,7 +62,8 @@ enum ti_errc_t get_index(void* block, uint32_t* ret_index){
      // updated condition to >= because:
      // HEAP_START + TOTAL_HEAP_SIZE will be 1 out of range, so if block equals that, that's 1 OOB
     if((uint8_t*)block < (uint8_t*)HEAP_START || (uint8_t*)block >= ((uint8_t*)HEAP_START) + TOTAL_HEAP_SIZE){ // out of range
-        return -1;
+        TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "Block pointer is outside the heap address range");
+        return TI_ERRC_INVALID_ARG;
     }
 
     uint8_t* blk = (uint8_t*) block;
@@ -133,7 +135,8 @@ enum ti_errc_t init_heap() {
     }
 
     if (s != TOTAL_HEAP_SIZE) {
-        return TI_ERRC_UNKNOWN; // sum(pool_sizes * pool_counts) != tota_pool_size, configuration error
+        TI_SET_ERRC(NULL, TI_ERRC_INTERNAL, "Heap configuration error: sum of pool sizes does not equal TOTAL_HEAP_SIZE");
+        return TI_ERRC_INTERNAL;
     }
 
     void* start = HEAP_START;

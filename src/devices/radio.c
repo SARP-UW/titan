@@ -21,6 +21,7 @@
 
 #include "radio.h"
 #include "peripheral/errc.h"
+#include "peripheral/log.h"
 #include "peripheral/spi.h"
 #include "peripheral/gpio.h"
 #include <string.h>
@@ -125,10 +126,13 @@ static enum ti_errc_t radio_get_packet_info(radio_t *dev, uint8_t *resp, size_t 
  * @brief Polls the Si446x until CTS (Clear-To-Send) is asserted.
  *
  * @param dev  Pointer to the radio device handle.
- * @return TI_ERRC_NONE on success, TI_ERRC_RADIO_CTS_TIMEOUT on timeout.
+ * @return TI_ERRC_NONE on success, TI_ERRC_TIMEOUT on timeout.
  */
 static enum ti_errc_t radio_wait_cts(radio_t *dev) {
-    if (!dev) return TI_ERRC_INVALID_ARG;
+    if (!dev) {
+        TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "dev pointer is NULL");
+        return TI_ERRC_INVALID_ARG;
+    }
     // The Si446x has an internal command processor. After sending any command,
     // you MUST wait for CTS (Clear-To-Send) before sending another.
     // We poll by sending READ_CMD_BUFF (0x44) and checking if byte[1] == 0xFF.
@@ -147,7 +151,8 @@ static enum ti_errc_t radio_wait_cts(radio_t *dev) {
         }
     }
     // If we get here, the radio never became ready — likely a hardware fault
-    return TI_ERRC_RADIO_CTS_TIMEOUT;
+    TI_SET_ERRC(NULL, TI_ERRC_TIMEOUT, "Si446x CTS polling timed out; radio may be unpowered or dead");
+    return TI_ERRC_TIMEOUT;
 }
 
 /**
@@ -169,8 +174,9 @@ static enum ti_errc_t radio_send_cmd(radio_t *dev, const uint8_t *cmd, size_t le
     
     // Send the command bytes over SPI. The Si446x clocks in command bytes
     // on the MOSI line. We don't care about the MISO response here.
-    if (spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, len) != 1) {
-        return TI_ERRC_UNKNOWN;
+    if (spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, len) != TI_ERRC_NONE) {
+        TI_SET_ERRC(NULL, TI_ERRC_BUS, "SPI transfer failed while sending radio command");
+        return TI_ERRC_BUS;
     }
     // After every command, we MUST wait for CTS before doing anything else.
     // The Si446x will ignore/corrupt further SPI traffic until it's ready.
@@ -208,8 +214,9 @@ static enum ti_errc_t radio_send_cmd_get_resp(radio_t *dev, const uint8_t *cmd, 
     tx[0] = SI446X_CMD_READ_CMD_BUFF;
     
     // Transfer resp_len + 2 bytes: 1 for the command byte, 1 for CTS, then the response data
-    if (spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, resp_len + 2) != 1) {
-        return TI_ERRC_UNKNOWN;
+    if (spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, resp_len + 2) != TI_ERRC_NONE) {
+        TI_SET_ERRC(NULL, TI_ERRC_BUS, "SPI transfer failed while reading radio command response");
+        return TI_ERRC_BUS;
     }
 
     // Verify CTS is present in the response, then copy out the data portion
@@ -217,7 +224,8 @@ static enum ti_errc_t radio_send_cmd_get_resp(radio_t *dev, const uint8_t *cmd, 
         memcpy(resp, &rx[2], resp_len);  // Skip [0]=echo, [1]=CTS, copy starting at [2]
     } else {
         // CTS not ready in response — radio is in a bad state
-        return TI_ERRC_RADIO_CTS_TIMEOUT;
+        TI_SET_ERRC(NULL, TI_ERRC_DEVICE, "Si446x CTS not ready in command response; radio in bad state");
+        return TI_ERRC_DEVICE;
     }
     return TI_ERRC_NONE;
 }
@@ -237,7 +245,10 @@ enum ti_errc_t radio_init(radio_t *dev, const radio_spi_dev *spi_config, const r
 
     // Initialize SPI peripheral with our slave-select pin
     uint8_t ss_list[1] = { dev->spi_config.ss_pin };
-    if (spi_init(dev->spi_config.spi_inst, ss_list, 1) != 1) return TI_ERRC_INVALID_ARG;
+    if (spi_init(dev->spi_config.spi_inst, ss_list, 1) != TI_ERRC_NONE) {
+        TI_SET_ERRC(NULL, TI_ERRC_BUS, "Failed to initialize SPI peripheral for radio");
+        return TI_ERRC_BUS;
+    }
 
     // Configure reset pin as GPIO output (drives the Si4468 SDN/shutdown pin)
     if (dev->config.reset_pin) {

@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include "peripheral/spi.h"
 #include "peripheral/errc.h"
+#include "peripheral/log.h"
 #include "peripheral/systick.h"
 
 #define D1_BASE_CMD 0x40
@@ -139,7 +140,10 @@ enum ti_errc_t get_barometer_data(barometer_t *dev) {
     barometer_delay(dev->osr);
     uint32_t D2 = barometer_transfer(dev, ADC_READ, 3);
 
-    if ((D1 || D2) <= 0) return TI_ERRC_UNKNOWN;
+    if ((D1 || D2) <= 0) {
+        TI_SET_ERRC(NULL, TI_ERRC_DEVICE, "Barometer returned zero raw ADC data (D1/D2)");
+        return TI_ERRC_DEVICE;
+    }
 
     // Calculate temperature difference
     int32_t dT = D2 - ((int32_t)dev->calibration_data.t_ref << 8);
@@ -180,7 +184,10 @@ enum ti_errc_t get_barometer_data(barometer_t *dev) {
     dev->result.pressure    = (float)P / 100.0f;    // Units of mbar/hPa
     dev->result.temperature = (float)temp / 100.0f; // Units of Celcius
 
-    if ((result.pressure <= 0 || result.temperature) <= 0) return TI_ERRC_UNKNOWN;
+    if ((result.pressure <= 0 || result.temperature) <= 0) {
+        TI_SET_ERRC(NULL, TI_ERRC_DEVICE, "Barometer computed invalid pressure or temperature value");
+        return TI_ERRC_DEVICE;
+    }
 
     return TI_ERRC_NONE;
 }

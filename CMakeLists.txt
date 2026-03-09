@@ -60,7 +60,7 @@ set(COMMON_SOURCES
   ${CMAKE_SOURCE_DIR}/src/devices/barometer.c
   ${CMAKE_SOURCE_DIR}/src/devices/temperature.c
   ${CMAKE_SOURCE_DIR}/src/devices/gnss.c
-
+  ${CMAKE_SOURCE_DIR}/src/peripheral/log.c
 )
 
 function(add_firmware_target target_name entry_file)
@@ -115,11 +115,13 @@ add_custom_command(
   COMMAND gcc -std=c18 -Wall -Wextra
     ${CMAKE_SOURCE_DIR}/src/internal/alloc.c
     ${CMAKE_SOURCE_DIR}/test/test_alloc.c
+    ${CMAKE_SOURCE_DIR}/test/log_stub.c
     -o ${CMAKE_BINARY_DIR}/test_alloc
   DEPENDS
     ${CMAKE_SOURCE_DIR}/src/internal/alloc.c
     ${CMAKE_SOURCE_DIR}/test/test_alloc.c
     ${CMAKE_SOURCE_DIR}/src/internal/alloc.h
+    ${CMAKE_SOURCE_DIR}/test/log_stub.c
   COMMENT "Building native host test: test_alloc"
 )
 add_custom_target(test_alloc_target ALL DEPENDS ${CMAKE_BINARY_DIR}/test_alloc)

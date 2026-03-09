@@ -10,6 +10,7 @@
 #include "peripheral/gpio.h"
 #include "peripheral/qspi.h"
 #include "peripheral/errc.h"
+#include "peripheral/log.h"
 
 
 //     ~~~ ( ) Look in flash mem to see if we are recovering from a crash
@@ -19,6 +20,7 @@
 bool init_state_init() {
 
     qspi_init(); // probably should return a ti_errc_t
+    ti_log_init(); /* Scan flash log region; safe to ignore return — logger degrades gracefully */
 
     return 1;
 }

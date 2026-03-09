@@ -21,6 +21,7 @@
 #include "actuator.h"
 #include "peripheral/gpio.h"
 #include "peripheral/spi.h"
+#include "peripheral/log.h"
 
 /**************************************************************************************************
  * @section Private Helper Functions
@@ -81,8 +82,10 @@ static enum ti_errc_t actuator_spi_transfer(actuator_t *dev, uint8_t addr, bool 
     tx[2] = data_in & 0xFF;
 
     // Perform the SPI transaction — uses the SPI instance and SS pin from our spi_config
-    int result = spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, 3);
-    if (result != 1) return TI_ERRC_UNKNOWN;
+    if (spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, 3) != TI_ERRC_NONE) {
+        TI_SET_ERRC(NULL, TI_ERRC_BUS, "SPI transfer failed during actuator register access");
+        return TI_ERRC_BUS;
+    }
 
     // rx[0] always contains the MAX22216 status byte (sent back on first clock byte)
     if (status_out) *status_out = rx[0];
@@ -174,7 +177,10 @@ enum ti_errc_t actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config
 
     // Initialize the SPI peripheral with our slave-select pin.
     uint8_t ss_list[1] = { dev->spi_config.ss_pin };
-    if (spi_init(dev->spi_config.spi_inst, ss_list, 1) != 1) return TI_ERRC_INVALID_ARG;
+    if (spi_init(dev->spi_config.spi_inst, ss_list, 1) != TI_ERRC_NONE) {
+        TI_SET_ERRC(NULL, TI_ERRC_BUS, "Failed to initialize SPI peripheral for actuator");
+        return TI_ERRC_BUS;
+    }
 
     // Configure the hardware ENABLE pin as a GPIO output.
     // Default to OFF (0) for safety — valves should not actuate until explicitly commanded.

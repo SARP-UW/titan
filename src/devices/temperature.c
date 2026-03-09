@@ -9,6 +9,7 @@
 
 #include "devices/temperature.h"
 #include "peripheral/errc.h"
+#include "peripheral/log.h"
 #include <stddef.h>
 
 // temperature Register Addresses
@@ -87,7 +88,8 @@ enum ti_errc_t temperature_init(temperature_t *dev) {
     if (err != TI_ERRC_NONE) return err;
 
     if (id != temperature_EXPECTED_ID) {
-        return TI_ERRC_UNKNOWN;
+        TI_SET_ERRC(NULL, TI_ERRC_DEVICE, "Temperature sensor ID mismatch; device not found or not responding");
+        return TI_ERRC_DEVICE;
     }
 
     // 3. Configure the device (Set Resolution & Operation Mode)
