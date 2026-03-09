@@ -35,7 +35,7 @@ We have four main categories of software in this repository: devices, peripheral
 
 
 ## Required Software
-Note: May consider Docker/Dev Container workflow for future. Currently there are no instructions for Linux/x64 MacOS, but I would imagine the Linux one may be similar to the MacOS one.
+Note: Currently there are no instructions for Linux/x64 MacOS, but I would imagine the Linux one may be similar to the MacOS one.
 
 ### MacOS (Darwin)
 First I'd recommend installing 3 things:
@@ -88,7 +88,7 @@ The easiest way to compile will be using the provided ```./build.sh``` file. Fir
 * Internally, what this does is temporarily do ```cd build```, then ```cmake ..```, and then ```make```ing each target. It also compiles the test_alloc executable separately. 
 
 If you build a specific target, it will also try to flash to devboard. You may have to unplug/replug the STM32 devboard due to having to wipe flash memory.
-* This is a reason I am considering Docker, as STM32 devboard has a CLI that allows for automating that, but it is not available on MacOS.
+* Right now the shell file might be a bit buggy.
 
 You can also do ```./build.sh clean``` to remove all ```build``` files, if needed.
 
