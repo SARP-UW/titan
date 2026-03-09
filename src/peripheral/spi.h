@@ -19,9 +19,10 @@
  * @brief Implementation of SPI driver interface
  */
 
-#pragma once
 
+#pragma once
 #include <stdint.h>
+#include "peripheral/errc.h"
 
 /**************************************************************************************************
  * @section Function Definitions
@@ -38,9 +39,9 @@
  * @param slave_count  The number of slave devices attached to the instance. This number must match the
  *                     number of elements in the ss_list array. 
  * 
- * @return 1 if initialization finishes and the imput parameters are valid and -1 otherwise. 
+ * @return ti_errc_t error code.
  */
-int spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count);
+enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count);
 
 /**
  * @brief Perform an SPI data transfer with blocking. 
@@ -67,6 +68,6 @@ int spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count);
  * @param size  Number of bytes to transfer.
  * @param ss_pin  The SS pin of the slave SPI will communicate with. 
  *
- * @return 1 if the transfer finishes and the imput parameters are valid and -1 otherwise. 
+ * @return ti_errc_t error code.
  */
-int spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size);
+enum ti_errc_t spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size);

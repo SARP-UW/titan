@@ -32,12 +32,23 @@
  * @brief Oversampling ratios
  */
 typedef enum {
-    OSR_256  = 0x00, // 256 samples per measurement
-    OSR_512  = 0x02, // 512 samples per measurement
-    OSR_1024 = 0x04, // 1024 samples per measurement
-    OSR_2048 = 0x06, // 2048 samples per measurement
-    OSR_4096 = 0x08  // 4096 samples per measurement
-}barometer_osr_t;
+    OSR_256  = 0x00, /**< 256 samples per measurement */
+    OSR_512  = 0x02, /**< 512 samples per measurement */
+    OSR_1024 = 0x04, /**< 1024 samples per measurement */
+    OSR_2048 = 0x06, /**< 2048 samples per measurement */
+    OSR_4096 = 0x08  /**< 4096 samples per measurement */
+} barometer_osr_t;
+
+/**
+ * @brief Barometer device struct
+ */
+struct barometer_t {
+    uint8_t spi_inst;      /**< SPI hardware instance */
+    uint8_t ss_pin;        /**< Slave select pin */
+    uint32_t pressure;     /**< Last measured pressure */
+    uint32_t temperature;  /**< Last measured temperature */
+    enum ti_errc_t errc;        /**< Error code from last operation */
+};
 
 /**
  * @brief SPI specifications

@@ -47,12 +47,12 @@ static enum ti_errc_t check_pwm_config_validity(struct ti_pwm_config_t pwm_confi
         return TI_ERRC_INVALID_ARG;
     }
 
-    int32_t freq_prescaler = pwm_config.clock_freq / pwm_config.freq;
+    uint32_t freq_prescaler = pwm_config.clock_freq / pwm_config.freq;
     if (freq_prescaler == 0 || freq_prescaler > UINT16_MAX) {
         return TI_ERRC_INVALID_ARG;
     }
 
-    if (pwm_config.duty < 0 || pwm_config.duty > MAX_DUTY_CYCLE) {
+    if (pwm_config.duty > MAX_DUTY_CYCLE) {
         return TI_ERRC_INVALID_ARG;
     }
 
@@ -162,20 +162,17 @@ void pwm_set_pin_vals(int* pin, int* alt_mode, int32_t instance, int32_t channel
 * @section Public Function Implementations
 **************************************************************************************************/
 
-void ti_set_pwm(struct ti_pwm_config_t pwm_config, enum ti_errc_t* errc) {
-    // Check for errors
-    *errc = TI_ERRC_NONE;
+enum ti_errc_t ti_set_pwm(struct ti_pwm_config_t pwm_config) {
+
 
     if (pwm_config.instance > INSTANCE_COUNT) {
-        *errc = TI_ERRC_INVALID_ARG;
-        return;
+        return TI_ERRC_INVALID_ARG;
     }
 
     enum ti_errc_t validation = check_pwm_config_validity(pwm_config);
 
     if (validation != TI_ERRC_NONE) {
-        *errc = validation;
-        return;
+        return validation;
     }
 
     // Enable PWM clock
@@ -221,8 +218,7 @@ void ti_set_pwm(struct ti_pwm_config_t pwm_config, enum ti_errc_t* errc) {
             WRITE_FIELD(G_TIMx_CCR4[pwm_config.instance], ccr_field_4, ccr_value);
             break;
         default:
-            *errc = TI_ERRC_INVALID_ARG;
-            return;
+            return TI_ERRC_INVALID_ARG;
     }
 
     // Set to output compare
@@ -240,4 +236,5 @@ void ti_set_pwm(struct ti_pwm_config_t pwm_config, enum ti_errc_t* errc) {
     SET_FIELD(G_TIMx_CR1[pwm_config.instance], G_TIMx_CR1_CEN);
     // Enable PWM output
     SET_FIELD(G_TIMx_CR1[pwm_config.instance], G_TIMx_CR1_ARPE);
+    return TI_ERRC_NONE;
 }

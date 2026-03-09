@@ -30,8 +30,7 @@ typedef enum {
  * @brief Temperature reading result
  */
 typedef struct {
-    float temperature;   // Temperature in °C (0.25 °C resolution)
-    ti_errc_t errc;      // Error code from the most recent read
+    uint16_t temperature;   /**< Temperature in °C (0.25 °C resolution) */
 } tmp125_result_t;
 
 /**
@@ -45,11 +44,11 @@ typedef struct {
 typedef struct {
     uint8_t  spi_inst;      // SPI instance (e.g., 1 for SPI1)
     uint8_t  ss_pin;        // SPI Slave Select pin number
-} tmp125_spi_t;
+} tmp125_spi_dev;
 
 /** @brief TMP125 device handle */
 typedef struct {
-    tmp125_spi_t  spi_config; // SPI config for TMP125
+    tmp125_spi_dev  spi_config; // SPI config for TMP125
     tmp125_config_t config;  // Sensor configuration
 } tmp125_t;
 
@@ -66,7 +65,7 @@ typedef struct {
  * @param dev Pointer to the tmp125_t device structure.
  * @return ti_errc_t TI_ERRC_NONE on success.
  */
-ti_errc_t tmp125_init(tmp125_t *dev);
+enum ti_errc_t tmp125_init(tmp125_t *dev);
 
 /**
  * @brief Reads the current temperature from the TMP125.
@@ -78,4 +77,4 @@ ti_errc_t tmp125_init(tmp125_t *dev);
  * @param dev Pointer to the tmp125_t device structure.
  * @return tmp125_result_t Struct containing the temperature and error code.
  */
-tmp125_result_t tmp125_read_temp(tmp125_t *dev);
+enum ti_errc_t tmp125_read_temp(tmp125_t *dev, tmp125_result_t* res);

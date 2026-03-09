@@ -513,7 +513,7 @@ static inline bool verify_transfer_parameters(uart_channel_t channel, uint8_t *b
 /**************************************************************************************************
  * @section Public Function Implementations
  **************************************************************************************************/
-bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
+enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
                periph_dma_config_t *tx_stream, periph_dma_config_t *rx_stream) {
   // De-reference struct members for readability
   uart_channel_t channel = usart_config->channel;
@@ -565,7 +565,7 @@ bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
       rx_pin = 138;
       break;
     default:
-      return false;
+      return TI_ERRC_INVALID_ARG;
   }
   switch (channel) {
     UART_FIELD_GENERATOR(UART1, 4, RCC_APB2ENR)
@@ -578,7 +578,7 @@ bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     UART_FIELD_GENERATOR(UART8, 31, RCC_APB1LENR)
     default:
       // Handle error or invalid USART number
-      return false;
+      return TI_ERRC_INVALID_ARG;
   }
 
   tal_enable_clock(tx_pin);
@@ -595,7 +595,7 @@ bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
 
   bool test_set_alt = set_alternate_function(channel, tx_pin, rx_pin, ck_pin);
   if (!test_set_alt) {
-    return false;
+    return TI_ERRC_GNSS_CONFIG_FAIL;
   }
 
 
@@ -631,7 +631,7 @@ bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     case UART_DATALENGTH_7:
       if (!parity) {
         // tal_raise(flag, "Invalid parity datasize combo");
-        return false;
+        return TI_ERRC_INVALID_ARG;
       }
       SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
       CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
@@ -643,7 +643,7 @@ bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     case UART_DATALENGTH_9:
       if (parity) {
         // tal_raise(flag, "Invalid parity datasize combo");
-        return false;
+        return TI_ERRC_INVALID_ARG;
       }
       SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
       SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
@@ -677,7 +677,7 @@ bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     case UART_DATALENGTH_7:
       if (!parity) {
         // tal_raise(flag, "Invalid parity datasize combo");
-        return false;
+        return TI_ERRC_INVALID_ARG;
       }
       SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
       CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
@@ -689,7 +689,7 @@ bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     case UART_DATALENGTH_9:
       if (parity) {
         // tal_raise(flag, "Invalid parity datasize combo");
-        return false;
+        return TI_ERRC_INVALID_ARG;
       }
       SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
       SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
@@ -749,20 +749,20 @@ bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     SET_FIELD(UARTx_CR1[channel], UARTx_CR1_UE);
   }
 
-  return true;
+  return TI_ERRC_NONE;
 }
 
-bool uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size) {
+enum ti_errc_t uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size) {
   // Verify parameters
   bool test_params = verify_transfer_parameters(channel, tx_buff, size);
   if (!test_params) {
-    return false;
+    return TI_ERRC_INVALID_ARG;
   }
 
   // Check if usart channel is busy
   if (uart_busy[channel]) {
     // tal_raise(flag, "USART channel is busy");
-    return false;
+    return TI_ERRC_BUSY;
   }
   uart_busy[channel] = true;
 
@@ -786,20 +786,20 @@ bool uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size) {
   // Enable the dma requests
   SET_FIELD(UARTx_CR3[channel], UARTx_CR3_DMAT);
 
-  return true;
+  return TI_ERRC_NONE;
 }
 
-bool uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size) {
+enum ti_errc_t uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size) {
   // Verify parameters
   bool test_params = verify_transfer_parameters(channel, rx_buff, size);
   if (!test_params) {
-    return false;
+    return TI_ERRC_INVALID_ARG;
   }
 
   // Check if usart channel is busy
   if (uart_busy[channel]) {
     // tal_raise(flag, "USART channel is busy");
-    return false;
+    return TI_ERRC_BUSY;
   }
   uart_busy[channel] = true;
 
@@ -822,16 +822,16 @@ bool uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size) {
 
   // Enable the dma requests
   SET_FIELD(UARTx_CR3[channel], UARTx_CR3_DMAT);
-  return true;
+  return TI_ERRC_NONE;
 }
 
-bool uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
+enum ti_errc_t uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
                          uint32_t size) {
   // Verify parameters
   bool test_params = verify_transfer_parameters(channel, tx_buff, size);
 
   if (!test_params) {
-    return false;
+    return TI_ERRC_INVALID_ARG;
   }
 
   // Check if usart channel is busy
@@ -846,20 +846,20 @@ bool uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
     if (!uart_write_byte(channel, tx_buff[i])) {
       // tal_raise(flag, "USART write timeout");
       // uart_busy[channel] = false;
-      return false;
+      return TI_ERRC_UNKNOWN;
     }
   }
 
   // uart_busy[channel] = false;
-  return true;
+  return TI_ERRC_NONE;
 }
 
-bool uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
+enum ti_errc_t uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
                         uint32_t size) {
   // Verify parameters
   bool test_params = verify_transfer_parameters(channel, rx_buff, size);
   if (!test_params) {
-    return false;
+    return TI_ERRC_INVALID_ARG;
   }
 
   // Check if usart channel is bus
@@ -882,10 +882,10 @@ bool uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
     if (!uart_read_byte(channel, rx_buff+i)) {
       // tal_raise(flag, "USART read timeout");
       // uart_busy[channel] = false;
-      return false;
+      return TI_ERRC_UNKNOWN;
     }
   }
 
   // uart_busy[channel] = false;
-  return true;
+  return TI_ERRC_NONE;
 }

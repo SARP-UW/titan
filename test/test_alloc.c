@@ -206,38 +206,41 @@ static void test_init_heap_basic(void) {
 // alloc/free/realloc
 static void test_alloc_free_realloc(void) {
     reset_heap();
-    void* a = alloc(16);
-    assert_check(a != NULL, "alloc 16");
+    void* a = NULL;
+    enum ti_errc_t err = alloc(16, &a);
+    assert_check(err == TI_ERRC_NONE && a != NULL, "alloc 16");
     assert_check(!isFree(a), "allocated marked free");
     uintptr_t a_addr = (uintptr_t)a;
-    free(a);
-    assert_check(isFree((void*)a_addr), "freed block ok");
-    void* b = alloc(16);
-    assert_check(b != NULL, "realloc block");
+    err = ti_free(a);
+    assert_check(err == TI_ERRC_NONE && isFree((void*)a_addr), "freed block ok");
+    void* b = NULL;
+    err = alloc(16, &b);
+    assert_check(err == TI_ERRC_NONE && b != NULL, "realloc block");
     assert_check((uintptr_t)b == a_addr, "same block reused");
-    free(b);
+    err = ti_free(b);
 }
 
 // double free
 static void test_double_free(void) {
     reset_heap();
-    void* a = alloc(32);
-    assert_check(a != NULL, "alloc 32");
+    void* a = NULL;
+    enum ti_errc_t err = alloc(32, &a);
+    assert_check(err == TI_ERRC_NONE && a != NULL, "alloc 32");
     uintptr_t a_addr = (uintptr_t)a;
-    free(a);
-    assert_check(isFree((void*)a_addr), "freed block ok");
-    free((void*)a_addr); // second freed on same place
-    assert_check(isFree((void*)a_addr), "double free safe");
+    err = ti_free(a);
+    assert_check(err == TI_ERRC_NONE && isFree((void*)a_addr), "freed block ok");
+    err = ti_free((void*)a_addr); // second freed on same place
+    assert_check(err == TI_ERRC_NONE && isFree((void*)a_addr), "double free safe");
 }
 
 // free NULL / out-of-range
 static void test_free_null_and_oob(void) {
     reset_heap();
-    free(NULL); // no-op
+    enum ti_errc_t err = ti_free(NULL); // no-op
     uintptr_t heap_base = (uintptr_t)HEAP_START;
     uintptr_t oob_addr = heap_base + TOTAL_HEAP_SIZE + 16u;
-    free((void*)oob_addr); // should not crash
-    assert_check(!isFree((void*)oob_addr), "oob still not free");
+    err = ti_free((void*)oob_addr); // should not crash
+    assert_check(err != TI_ERRC_NONE && !isFree((void*)oob_addr), "oob still not free");
 }
 
 // exhaust smallest pool
@@ -247,38 +250,43 @@ static void test_exhaust_small_pool(void) {
     void* arr[2560];
     int i = 0;
     for (; i < (int)(sizeof(arr)/sizeof(arr[0])); ++i) {
-        arr[i] = alloc(try_size); // fill pool
-        if (!arr[i]) break; // stop when exhausted
+        enum ti_errc_t err = alloc(try_size, &arr[i]); // fill pool
+        if (err != TI_ERRC_NONE || !arr[i]) break; // stop when exhausted
     }
     assert_check(i > 0, "some allocs succeeded");
     assert_check(i < (int)(sizeof(arr)/sizeof(arr[0])), "pool eventually full");
-    for (int j = 0; j < i; ++j) free(arr[j]); // cleanup
+    for (int j = 0; j < i; ++j) ti_free(arr[j]); // cleanup
 }
 
 // alloc 0 / too large
 static void test_invalid_and_large_allocs(void) {
     reset_heap();
-    void* z = alloc(0); // zero alloc
-    assert_check(z == NULL || isFree(z), "alloc 0 ok");
-    void* too = alloc(TOTAL_HEAP_SIZE + 1024); // too big
-    assert_check(too == NULL, "alloc too large");
+    void* z = NULL;
+    enum ti_errc_t err = alloc(0, &z); // zero alloc
+    assert_check(err != TI_ERRC_NONE || z == NULL || isFree(z), "alloc 0 ok");
+    void* too = NULL;
+    err = alloc(TOTAL_HEAP_SIZE + 1024, &too); // too big
+    assert_check(err != TI_ERRC_NONE && too == NULL, "alloc too large");
 }
 
 // isFree across pools
 static void test_isFree_across_pools(void) {
     reset_heap();
-    void* a = alloc(16);
-    void* b = alloc(32);
-    void* c = alloc(64);
-    assert_check(a && b && c, "multi alloc");
+    void* a = NULL;
+    void* b = NULL;
+    void* c = NULL;
+    enum ti_errc_t err_a = alloc(16, &a);
+    enum ti_errc_t err_b = alloc(32, &b);
+    enum ti_errc_t err_c = alloc(64, &c);
+    assert_check(err_a == TI_ERRC_NONE && err_b == TI_ERRC_NONE && err_c == TI_ERRC_NONE && a && b && c, "multi alloc");
     assert_check(!isFree(a) && !isFree(b) && !isFree(c), "blocks in use");
     uintptr_t b_addr = (uintptr_t)b;
-    free(b);
-    assert_check(isFree((void*)b_addr), "freed ok");
+    enum ti_errc_t err = ti_free(b);
+    assert_check(err == TI_ERRC_NONE && isFree((void*)b_addr), "freed ok");
     assert_check(!isFree(a) && !isFree(c), "others unaffected");
     uintptr_t a_addr = (uintptr_t)a;
     uintptr_t c_addr = (uintptr_t)c;
-    free(a); free(c);
+    err = ti_free(a); err = ti_free(c);
     assert_check(isFree((void*)a_addr) && isFree((void*)c_addr), "all freed");
 }
 
@@ -289,12 +297,13 @@ static void test_stress_pattern(void) {
     void* last = NULL;
     int alloc_count = 0;
     for (int i = 0; i < N; ++i) {
-        void* p = alloc(16 + (i % 4) * 8); // varying sizes
-        if (!p) break;
+        void* p = NULL;
+        enum ti_errc_t err = alloc(16 + (i % 4) * 8, &p); // varying sizes
+        if (err != TI_ERRC_NONE || !p) break;
         alloc_count++;
-        if (last) { free(last); last = NULL; } else { last = p; } // alternating free
+        if (last) { ti_free(last); last = NULL; } else { last = p; } // alternating free
     }
-    if (last) free(last);
+    if (last) ti_free(last);
     assert_check(alloc_count > 0, "stress did some allocs");
 }
 
@@ -309,31 +318,31 @@ static void test_pool_generic(uint32_t idx) {
     void* arr[cnt];
     char msg[128];
     for (uint32_t i = 0; i < cnt; ++i) {
-        arr[i] = alloc(sz);
+        enum ti_errc_t err = alloc(sz, &arr[i]);
         snprintf(msg, sizeof(msg), "alloc(%u) in pool %u (i=%u) should succeed", sz, idx, i);
-        assert_check(arr[i] != NULL, msg);
+        assert_check(err == TI_ERRC_NONE && arr[i] != NULL, msg);
         if (arr[i]) {
             snprintf(msg, sizeof(msg), "allocated block for pool %u not marked free", idx);
             assert_check(!isFree(arr[i]), msg);
         }
     }
 
-
     // free one block and ensure a subsequent alloc succeeds
     if (cnt > 0 && arr[0]) {
-        free(arr[0]);
+        enum ti_errc_t err = ti_free(arr[0]);
         snprintf(msg, sizeof(msg), "freed block in pool %u should be marked free", idx);
-        assert_check(isFree(arr[0]), msg);
+        assert_check(err == TI_ERRC_NONE && isFree(arr[0]), msg);
 
-        void* r = alloc(sz);
+        void* r = NULL;
+        err = alloc(sz, &r);
         snprintf(msg, sizeof(msg), "alloc(%u) after free in pool %u should succeed", sz, idx);
-        assert_check(r != NULL, msg);
-        if (r) free(r);
+        assert_check(err == TI_ERRC_NONE && r != NULL, msg);
+        if (r) ti_free(r);
     }
 
     // cleanup remaining allocations
     for (uint32_t i = 0; i < cnt; ++i) {
-        if (arr[i]) free(arr[i]);
+        if (arr[i]) ti_free(arr[i]);
     }
 }
 

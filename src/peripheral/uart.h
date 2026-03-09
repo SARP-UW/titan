@@ -83,8 +83,8 @@ typedef struct {
  * @param dma_rx: RX DMA stream config
  * @return true if initialization is successful, false otherwise.
  */
-bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
-               periph_dma_config_t *tx_stream, periph_dma_config_t *rx_stream);
+enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
+                   periph_dma_config_t *tx_stream, periph_dma_config_t *rx_stream);
 
 /**
  * @brief Sends data over the specified UART channel. Asyncronous function.
@@ -95,7 +95,7 @@ bool uart_init(uart_config_t *usart_config, dma_callback_t *callback,
  *
  * @return true if data transmission is successful, false otherwise.
  */
-bool uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size);
+enum ti_errc_t uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size);
 
 /**
  * @brief Receives data from the specified UART channel. Asyncronous function
@@ -104,7 +104,7 @@ bool uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size);
  * @param rx_buff Pointer to the buffer where received data will be stored.
  * @param size Number of bytes to read.
  */
-bool uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size);
+enum ti_errc_t uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size);
 
 /**
  * @brief Sends data over the specified UART channel. Blocking (syncronous)
@@ -116,8 +116,8 @@ bool uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size);
  *
  * @return true if data transmission is successful, false otherwise.
  */
-bool uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
-                         uint32_t size);
+enum ti_errc_t uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
+                             uint32_t size);
 
 /**
  * @brief Receives data from the specified UART channel. Blocking (syncronous)
@@ -127,8 +127,8 @@ bool uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
  * @param rx_buff Pointer to the buffer where received data will be stored.
  * @param size Number of bytes to read.
  */
-bool uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
-                        uint32_t size);
+enum ti_errc_t uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
+                            uint32_t size);
 
 static inline bool verify_transfer_parameters(uart_channel_t channel, uint8_t *buff,
                                        size_t size);

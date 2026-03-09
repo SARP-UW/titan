@@ -146,7 +146,7 @@ typedef enum {
 typedef struct {
   uint8_t spi_inst;                    // SPI peripheral instance (1=SPI1, 2=SPI2, etc.)
   uint8_t ss_pin;                      // Slave Select GPIO pin — directly from schematic.
-} actuator_spi_t;
+} actuator_spi_dev;
 
 /** @brief Actuator configuration — everything except SPI bus identity. */
 typedef struct {
@@ -162,7 +162,7 @@ typedef struct {
 
 /** @brief Actuator device handle. Allocate one and pass to all actuator_* functions. */
 typedef struct {
-  actuator_spi_t spi_config;           // SPI bus + chip select pin for this device.
+  actuator_spi_dev spi_config;           // SPI bus + chip select pin for this device.
   actuator_config_t config;            // Active device configuration.
 } actuator_t;
 
@@ -200,7 +200,7 @@ typedef struct {
  * @param config     Pointer to the actuator configuration (GPIO pins, PWM, CRC).
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
  */
-enum ti_errc_t actuator_init(actuator_t *dev, const actuator_spi_t *spi_config, const actuator_config_t *config);
+enum ti_errc_t actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config, const actuator_config_t *config);
 
 /**
  * @brief Asserts or de-asserts the hardware enable pin.

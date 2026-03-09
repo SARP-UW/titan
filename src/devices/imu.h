@@ -19,8 +19,10 @@
  * @brief ICM-42688-P IMU driver implementation
  */
 
+
 #include "internal/mmio.h"
 #include "peripheral/spi.h"
+#include "peripheral/errc.h"
 #include <stdint.h>
 
 #pragma once
@@ -40,13 +42,33 @@ struct result {
     int16_t gyro_z;
     int16_t temp; // Internal temperature
 };
+/**
+ * @brief IMU SPI device struct
+ */
+struct imu_spi_dev {
+    uint8_t inst;      /**< SPI hardware instance */
+    uint8_t ss_pin;    /**< Slave select pin */
+};
+
+/**
+ * @brief IMU sensor result struct
+ */
+struct result {
+    int16_t accel_x;   /**< X-axis acceleration */
+    int16_t accel_y;   /**< Y-axis acceleration */
+    int16_t accel_z;   /**< Z-axis acceleration */
+    int16_t gyro_x;    /**< X-axis gyroscope */
+    int16_t gyro_y;    /**< Y-axis gyroscope */
+    int16_t gyro_z;    /**< Z-axis gyroscope */
+    int16_t temp;      /**< Internal temperature */
+};
 
 /**
  * @brief Initializes the ICM-42688-P IMU. 
  * 
  * @param dev  pointer to the imu_spi_dev structure. 
  */
-void imu_init(struct imu_spi_dev* dev);
+enum ti_errc_t imu_init(struct imu_spi_dev* dev);
 
 /**
  * @brief Performs a burst read of the sensor registers and returns them 
@@ -55,6 +77,6 @@ void imu_init(struct imu_spi_dev* dev);
  * 
  * @param dev  pointer to the imu_spi_dev structure. 
  * @param result  pointer to the result structure. 
- * @return 1 if the parameters are valid and -1 if not. 
+ * @return ti_errc_t error code.
  */
-int imu_transfer(struct imu_spi_dev* dev, struct result* result);
+enum ti_errc_t imu_transfer(struct imu_spi_dev* dev, struct result* result);

@@ -19,24 +19,30 @@
  * @brief IMMC5983MA magnetometer implementation
  */
 
+
 #include "internal/mmio.h"
 #include "peripheral/spi.h"
+#include "peripheral/errc.h"
 #include <stdint.h>
 
 #pragma once
 
-// Magnetometer device struct
-struct magnetometer_spi_dev {
-    uint8_t inst;   // SPI Instance
-    uint8_t ss_pin; // Slave Select Pin
-};
+/**
+ * @brief Global SPI configuration for magnetometer (shared instance)
+ */
+extern struct magnetometer_spi_dev {
+    uint8_t inst;      /**< SPI hardware instance (0-based) */
+    uint8_t ss_pin;    /**< Slave select pin */
+} magnetometer_spi_global;
 
-struct result { 
-    int32_t mag_x; 
-    int32_t mag_y;
-    int32_t mag_z;
-    float temperature; // Internal temperature
-
+/**
+ * @brief Magnetometer reading result
+ */
+struct magnetometer_result_t {
+    int32_t mag_x;        /**< X-axis magnetic field */
+    int32_t mag_y;        /**< Y-axis magnetic field */
+    int32_t mag_z;        /**< Z-axis magnetic field */
+    float temperature;    /**< Internal temperature */
 };
 
 /**
@@ -44,7 +50,7 @@ struct result {
  * 
  * @param dev  pointer to the magnetometer_spi_dev structure. 
  */
-void magnetometer_init(struct magnetometer_spi_dev* dev);
+enum ti_errc_t magnetometer_init(struct magnetometer_spi_dev* dev);
 
 /**
  * @brief Performs a burst read of the sensor registers and returns them 
@@ -53,6 +59,6 @@ void magnetometer_init(struct magnetometer_spi_dev* dev);
  * 
  * @param dev  pointer to the magnetometer_spi_dev structure. 
  * @param result  pointer to the result structure. 
- * @return 1 if the parameters are valid and -1 if not. 
+ * @return ti_errc_t error code.
  */
-int magnetometer_read(struct magnetometer_spi_dev* dev, struct result* result);
+enum ti_errc_t magnetometer_read(struct magnetometer_spi_dev* dev, struct magnetometer_result_t* result);

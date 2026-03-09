@@ -48,7 +48,7 @@ struct block_t* build_pool(void* curr, uint32_t pool_size, uint32_t pool_count, 
  *
  * Gets the number of blocks before the given block (its index in is_free)
  */
-uint32_t get_index(void* block){
+enum ti_errc_t get_index(void* block, uint32_t* ret_index){
     /**
      * This function really annoyed me.  Basically we need the amount of total blocks before this pointer
      * (which is its index ofc), but I can not think of a way to do this in constant time.  Maybe some sort
@@ -81,7 +81,8 @@ uint32_t get_index(void* block){
         index++;
     }
 
-    return index;
+    *ret_index = index;
+    return TI_ERRC_NONE;
 }
 
 /**
@@ -92,10 +93,10 @@ uint32_t get_index(void* block){
  * 0; since the block at HEAP_START is always in the first pool
  *
  */
-uint32_t get_pool(void* block){
-
+enum ti_errc_t get_pool(void* block, uint32_t* res){
+    *res = -1U;
     if((uint8_t*)block < (uint8_t*)HEAP_START || (uint8_t*)block > ((uint8_t*)HEAP_START) + TOTAL_HEAP_SIZE){ // out of range
-        return -1;
+        return TI_ERRC_INVALID_ARG;
     }
 
     uint8_t* blk = (uint8_t*) block;
@@ -111,7 +112,8 @@ uint32_t get_pool(void* block){
         pool_left -= 1;
     }
 
-    return i;
+    *res = i;
+    return TI_ERRC_NONE;
 }
 
 
@@ -123,7 +125,7 @@ uint32_t get_pool(void* block){
  * @return 1 for success, -1 for failure
  */
 
-uint32_t init_heap() {
+enum ti_errc_t init_heap() {
 
     uint32_t s = 0;
     for(int i = 0; i < NUMBER_OF_POOLS; i++){
@@ -131,7 +133,7 @@ uint32_t init_heap() {
     }
 
     if (s != TOTAL_HEAP_SIZE) {
-        return -1; // sum(pool_sizes * pool_counts) != tota_pool_size, configuration error
+        return TI_ERRC_UNKNOWN; // sum(pool_sizes * pool_counts) != tota_pool_size, configuration error
     }
 
     void* start = HEAP_START;
@@ -151,7 +153,7 @@ uint32_t init_heap() {
         is_free[i] = 255;
     }
 
-    return 1;
+    return TI_ERRC_NONE;
 }
 
 /**
@@ -159,15 +161,15 @@ uint32_t init_heap() {
  * @param size
  * @return
  */
-void* alloc(uint32_t size) {
+enum ti_errc_t alloc(uint32_t size, void** res) {
     if (size == 0 || size > POOL_BLOCK_SIZES[NUMBER_OF_POOLS - 1]) {
-        return (void*)(0);
+        return TI_ERRC_INVALID_ARG;
     }
     // find ideal i
     uint32_t i = 0;
     // i < NUMBER_OF_POOLS comes first so that it can terminate condition early
     for(; i < NUMBER_OF_POOLS && size > POOL_BLOCK_SIZES[i]; i++);
-    if (i >= NUMBER_OF_POOLS) return (void*)(0);
+    if (i >= NUMBER_OF_POOLS) return TI_ERRC_INVALID_ARG;
     // if the pool for ideal i is already full (null head), keep going to next block until we find a free one
     struct block_t* block = pool_heads[i];
     while(block == ((void*)0) && i < NUMBER_OF_POOLS-1){ // subtracting 1 here because of ++i
@@ -175,11 +177,12 @@ void* alloc(uint32_t size) {
     }
 
     if(block == ((void*)0)){
-        return ((void*)0); // no space for a new block of this size
+        return TI_ERRC_INVALID_ARG; // no space for a new block of this size
     }
 
     // update free blocks
-    uint32_t index = get_index(block);
+    uint32_t index;
+    get_index(block, &index);
     uint32_t big_index = index / 8;
     uint32_t small_index = index % 8;
 
@@ -192,18 +195,19 @@ void* alloc(uint32_t size) {
         *(((uint8_t*)block) + j) = 0; // changed this to j? not sure why this was i before.
     }
 
-    return block;
+    *res = block;
+    return TI_ERRC_NONE;
 }
 
 /**
  *
  * @param mem
  */
-void free(void* mem) {
-
-    uint32_t i = get_pool(mem);
+enum ti_errc_t ti_free(void* mem) {
+    uint32_t i;
+    get_pool(mem, &i);
     if(i == -1U){
-        return; // bad call, already "free" since it's not in heap
+        return TI_ERRC_INVALID_ARG; // bad call, already "free" since it's not in heap
     }
 
     struct block_t new_head = (struct block_t){
@@ -213,12 +217,13 @@ void free(void* mem) {
     *((struct block_t*)mem) = new_head;
 
     pool_heads[i] = (struct block_t*)mem;
-
-    uint32_t index = get_index(mem);
+    uint32_t index;
+    get_index(mem, &index);
     uint32_t big_index = index / 8;
     uint32_t small_index = index % 8;
 
     is_free[big_index] |= (uint8_t)1 << small_index;
+    return TI_ERRC_NONE;
 }
 
 /**
@@ -227,8 +232,8 @@ void free(void* mem) {
  * @return
  */
 bool isFree(void* mem) {
-
-    uint32_t index = get_index(mem);
+    uint32_t index;
+    get_index(mem, &index);
 
     if(index == -1U){
         return false;
