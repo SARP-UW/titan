@@ -28,13 +28,6 @@
 #define UBX_ACK_NAK   0x00
 #define UBX_ACK_ACK   0x01
 
-/* Fallback for general error if not defined in errc.h */
-#ifndef TI_ERRC_ERROR
-#define TI_ERRC_ERROR 1
-#endif
-#ifndef TI_ERRC_TIMEOUT
-#define TI_ERRC_TIMEOUT 2
-#endif
 
 /* 
  * Assuming standard SPI transmit/receive function signatures from peripheral/spi.h.
@@ -212,13 +205,13 @@ static enum ti_errc_t ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_i
                 break;
             case 7: // Acknowledged Message ID
                 if (rx == msg_id) {
-                    return (ack_id == UBX_ACK_ACK) ? TI_ERRC_NONE : TI_ERRC_ERROR;
+                    return (ack_id == UBX_ACK_ACK) ? TI_ERRC_NONE : TI_ERRC_UNKNOWN;
                 }
                 state = 0;
                 break;
         }
     }
-    return TI_ERRC_TIMEOUT;
+    return TI_ERRC_MUTEX_TIMEOUT;
 }
 
 /**************************************************************************************************
@@ -226,7 +219,7 @@ static enum ti_errc_t ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_i
  **************************************************************************************************/
 
 enum ti_errc_t gnss_init(gnss_t *dev) {
-    if (!dev) return TI_ERRC_ERROR;
+    if (!dev) return TI_ERRC_INVALID_ARG;
     enum ti_errc_t err;
 
     /* 1. Configure Navigation/Measurement Rate (UBX-CFG-RATE) */
@@ -303,7 +296,7 @@ enum ti_errc_t gnss_init(gnss_t *dev) {
 }
 
 enum ti_errc_t gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt) {
-    if (!dev || !dev->initialized || !pvt) return TI_ERRC_ERROR;
+    if (!dev || !dev->initialized || !pvt) return TI_ERRC_INVALID_ARG;
 
     /* To poll a UBX message, send its class and ID with a zero-length payload */
     enum ti_errc_t err = ubx_send_msg(dev, UBX_CLASS_NAV, UBX_NAV_PVT, NULL, 0);
@@ -382,5 +375,5 @@ enum ti_errc_t gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt) {
         }
     }
     
-    return TI_ERRC_TIMEOUT;
+    return TI_ERRC_MUTEX_TIMEOUT;
 }
