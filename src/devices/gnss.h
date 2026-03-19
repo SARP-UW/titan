@@ -141,7 +141,7 @@ typedef struct {
  * @param dev Pointer to the gnss_t device structure.
  * @return ti_errc_t TI_ERRC_NONE on success.
  */
-ti_errc_t gnss_init(gnss_t *dev);
+enum ti_errc_t gnss_init(gnss_t *dev);
 
 /**
  * @brief Polls the latest UBX-NAV-PVT solution from the GNSS module.
@@ -150,4 +150,4 @@ ti_errc_t gnss_init(gnss_t *dev);
  * @param pvt Pointer to a gnss_pvt_t structure to populate with the fix data.
  * @return ti_errc_t TI_ERRC_NONE on success.
  */
-ti_errc_t gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt);
+enum ti_errc_t gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt);

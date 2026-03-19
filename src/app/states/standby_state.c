@@ -3,9 +3,7 @@
 //
 
 //     -- ( ) STANDBY: Rocket on pad awaiting instruction
-//     ~~~ ( ) Monitor ambient tank pressure and tempreature
 //     ~~~ ( ) Await the start fill command
-//     ~~~ ( ) Remote venting capability is active to safeguard system
 #include "app/state.h"
 
 bool standby_state_init(){

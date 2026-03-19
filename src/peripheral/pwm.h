@@ -19,8 +19,8 @@
 * @brief Interface for the PWM driver
 * */
 
-#pragma once
 
+#pragma once
 #include <stdint.h>
 #include "peripheral/errc.h"
 
@@ -30,11 +30,11 @@
 **************************************************************************************************/
 
 struct ti_pwm_config_t {
-    int32_t channel;
-    int32_t instance;
-    int32_t freq;
-    int32_t duty;
-    int32_t clock_freq;
+    uint8_t channel;      /**< PWM channel number (0-based) */
+    uint8_t instance;     /**< PWM hardware instance (0-based) */
+    uint32_t freq;        /**< Output frequency in Hz */
+    uint32_t duty;        /**< Duty cycle (0-1000 for 0-100%) */
+    uint32_t clock_freq;  /**< Source clock frequency in Hz */
 };
 
 
@@ -43,9 +43,9 @@ struct ti_pwm_config_t {
 **************************************************************************************************/
 
 /**
-* @brief Configures a timer and GPIO pin to output PWM at the specified frequency and duty cycle.
-*
-* @param pwm_config Takes information from the pwm_config structure
-* @param errc Pointer to error code
-*/
-void ti_set_pwm(struct ti_pwm_config_t pwm_config, enum ti_errc_t* errc);
+ * @brief Configures a timer and GPIO pin to output PWM at the specified frequency and duty cycle.
+ *
+ * @param pwm_config Takes information from the pwm_config structure
+ * @return ti_errc_t error code
+ */
+enum ti_errc_t ti_set_pwm(struct ti_pwm_config_t pwm_config);

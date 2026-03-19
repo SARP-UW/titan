@@ -166,7 +166,7 @@ static enum ti_errc_t actuator_update_reg(actuator_t *dev, uint8_t addr, uint16_
  * @section Public Function Implementations
  **************************************************************************************************/
 
-enum ti_errc_t actuator_init(actuator_t *dev, const actuator_spi_t *spi_config, const actuator_config_t *config) {
+enum ti_errc_t actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config, const actuator_config_t *config) {
     if (!dev || !spi_config || !config) return TI_ERRC_INVALID_ARG;
     // Copy both configs into the device handle so all future calls can reference them
     dev->spi_config = *spi_config;

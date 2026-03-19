@@ -82,7 +82,7 @@ void qspi_init() {
     SET_FIELD(QUADSPI_CR, QUADSPI_CR_EN);               // Enable quadspi
 }
 
-enum ti_errc_t qspi_command_blk(qspi_cmd_t *cmd, uint8_t *buf, bool is_read) {
+enum ti_errc_t qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *buf, bool is_read) {
     if (READ_FIELD(QUADSPI_SR, QUADSPI_SR_BUSY)) return TI_ERRC_BUSY;
 
     if (cmd->data_size > 0) {

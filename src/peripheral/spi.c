@@ -87,9 +87,9 @@ static inline void ss_high(uint8_t* ss_list, uint8_t slave_count) {
     }
 }
 
-int spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
+enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
     if (inst > 6 || inst < 1) {
-        return -1;
+        return TI_ERRC_INVALID_ARG;
     }
 
     // Enable clocks for MOSI, MISO, and SCK
@@ -292,10 +292,10 @@ int spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
     // Set SPI as master
     SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_MASTER);
 
-    return 1;
+    return TI_ERRC_NONE;
 }
 
-int spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size) {
+enum ti_errc_t spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size) {
     if (size == 0 || ss_pin > 255) return -1;
 
     CLR_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
@@ -328,5 +328,5 @@ int spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_
     // Pull SS pin high to end transfer
     tal_set_pin(ss_pin, 1);
 
-    return 1;
+    return TI_ERRC_NONE;
 }

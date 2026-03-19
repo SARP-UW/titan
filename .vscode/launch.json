@@ -1,35 +1,46 @@
 {
-    "version":"0.2.0",
-    "configurations": [
-        {
-          "name": "openocd dev debug CM7",
-          "cwd": "${workspaceRoot}",
-          "executable": "${workspaceFolder}/build/titan.elf",
-          "armToolchainPath": "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin",
-          "request": "attach",
-          "type": "cortex-debug",
-          "servertype": "openocd",
-          "device": "STM32H745ZIT6",
-          "configFiles": ["${workspaceFolder}/flash_config.cfg"],
-          "svdFile": "${workspaceFolder}/port.svd",
-          "breakAfterReset": true,
-          "targetProcessor": 1,
-          "liveWatch": { "enabled": true, "samplesPerSecond": 4 }
-        },
-        {
-          "name": "openocd test debug CM7",
-          "cwd": "${workspaceRoot}",
-          "executable": "${workspaceFolder}/build/titan.elf",
-          "armToolchainPath": "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin",
-          "request": "attach",
-          "type": "cortex-debug",
-          "servertype": "openocd",
-          "device": "STM32H745ZIT6",
-          "configFiles": ["${workspaceFolder}/flash_config.cfg"],
-          "svdFile": "${workspaceFolder}/port.svd",
-          "breakAfterReset": true,
-          "targetProcessor": 1,
-          "liveWatch": { "enabled": true, "samplesPerSecond": 4 }
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "openocd dev debug CM7",
+      "cwd": "${workspaceRoot}",
+      "executable": "/Users/mahiremran/Desktop/GitHub/titan/build/test_spi.elf",
+      "armToolchainPath": "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin",
+      "request": "launch",
+      "type": "cortex-debug",
+      "servertype": "openocd",
+      "device": "STM32H745ZIT6",
+      "configFiles": [
+        "${workspaceFolder}/flash_config.cfg"
+      ],
+      "svdFile": "${workspaceFolder}/port.svd",
+      "runToEntryPoint": "main",
+      "breakAfterReset": true,
+      "targetProcessor": 1
+    },
+    {
+      "name": "openocd test debug CM7",
+      "cwd": "${workspaceRoot}",
+      "executable": "/Users/mahiremran/Desktop/GitHub/titan/build/test_spi.elf",
+      "armToolchainPath": "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin",
+      "request": "attach",
+      "type": "cortex-debug",
+      "servertype": "openocd",
+      "device": "STM32H745ZIT6",
+      "configFiles": [
+        "${workspaceFolder}/flash_config.cfg"
+      ],
+      "svdFile": "${workspaceFolder}/port.svd",
+      "breakAfterReset": true,
+      "targetProcessor": 1,
+      "liveWatch": {
+        "enabled": true,
+        "samplesPerSecond": 4
+      },
+      "preLaunchCommands": [
+        "monitor reset halt"
+      ]
+    }
+  ],
+  "project.debugTarget": "/Users/mahiremran/Desktop/GitHub/titan/build/test_pwm.elf"
 }

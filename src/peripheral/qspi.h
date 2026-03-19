@@ -30,15 +30,14 @@
  * @section Type definitions
  **************************************************************************************************/
 
- /**
- * @brief Deines the number of data lines being used for
- * a transaction.
+/**
+ * @brief Defines the number of data lines being used for a transaction.
  */
 typedef enum {
-    QSPI_MODE_NONE,
-    QSPI_MODE_SINGLE,
-    QSPI_MODE_DUAL,
-    QSPI_MODE_QUAD
+    QSPI_MODE_NONE,   /**< No data lines used */
+    QSPI_MODE_SINGLE, /**< Single data line */
+    QSPI_MODE_DUAL,   /**< Dual data lines */
+    QSPI_MODE_QUAD    /**< Quad data lines */
 } qspi_mode_t;
 
 /**
@@ -76,7 +75,7 @@ void qspi_init();
  * is_read to true.
  * @return an error code -- TI_ERRC_NONE if no error occurs 
  */
-enum ti_errc_t qspi_command_blk(qspi_cmd_t *cmd, uint8_t *buf, bool is_read);
+enum ti_errc_t qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *buf, bool is_read);
 
 /**
  * @brief status polling mode ensures that the flash memory chip is not busy.

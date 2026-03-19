@@ -226,7 +226,7 @@ static enum ti_errc_t radio_send_cmd_get_resp(radio_t *dev, const uint8_t *cmd, 
  * @section Public Function Implementations
  **************************************************************************************************/
 
-enum ti_errc_t radio_init(radio_t *dev, const radio_spi_t *spi_config, const radio_config_t *config) {
+enum ti_errc_t radio_init(radio_t *dev, const radio_spi_dev *spi_config, const radio_config_t *config) {
     if (!dev || !spi_config || !config) return TI_ERRC_INVALID_ARG;
     // Copy both configs into the device handle for use by all future calls
     dev->spi_config = *spi_config;

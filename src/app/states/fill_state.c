@@ -5,6 +5,7 @@
 //     ~~~ ( ) Actuate GSE Valves to load propellant
 //     ~~~ ( ) Monitor mass flow and pressure
 //     ~~~ ( ) If overpressurization is detected, auto abort to SAFE/ABORT
+//     ~~~ ( ) Manage automatic venting of ethonol tank down to nitrous pressure
 bool fill_state_init(){
 
     return 1;

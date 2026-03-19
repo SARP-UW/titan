@@ -1,10 +1,28 @@
 #!/usr/bin/env bash
+
 set -e
 set -o pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+rm -rf "$SCRIPT_DIR/build_logs/"
+LOG_DIR="$SCRIPT_DIR/build_logs"
+mkdir -p "$LOG_DIR"
+
+LOG_FILE="$LOG_DIR/build_$(date +%Y%m%d_%H%M%S).log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
 FW_TARGET="${1:-${FW_TARGET:-titan}}"
 FW_TARGETS=(titan test_pwm test_spi test_usart test_oscilloscope)
+MAX_ATTEMPTS=3
+UPDATE_DEBUG_TARGET=false
 
+for arg in "${@:2}"; do
+  case "$arg" in
+    --set-debug-target|-d) UPDATE_DEBUG_TARGET=true ;;
+  esac
+done
+
+# ── Target validation ──────────────────────────────────────────────────────────
 case "$FW_TARGET" in
   titan|test_pwm|test_spi|test_usart|test_oscilloscope|commit_check|all|clean|docs)
     ;;
@@ -15,69 +33,17 @@ case "$FW_TARGET" in
     ;;
 esac
 
-if [ "$FW_TARGET" = "docs" ]; then
-  if ! command -v doxygen &> /dev/null; then
-    echo "Error: doxygen is not installed. Install with: brew install doxygen"
-    exit 5
-  fi
-  echo "Generating Doxygen documentation..."
-  doxygen Doxyfile
-  echo "Docs generated in docs/html/"
-  exit 0
-fi
-
-if [ "$FW_TARGET" = "clean" ]; then
-  echo "Cleaning build/ contents..."
-  mkdir -p build
-  find build -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-  echo "Clean complete."
-  exit 0
-fi
-
-if [ "$FW_TARGET" = "commit_check" ]; then
-  echo "Running local pre-commit check:"
-  cmake -S . -B build || { echo "cmake configure failed"; exit 20; }
-
-  cd build/ || exit 22
-  for target in "${FW_TARGETS[@]}"; do
-    echo "Building ${target}.elf"
-    make "${target}.elf" || { echo "make failed for ${target}.elf"; exit 21; }
-  done
-  make test_alloc_target || { echo "make test_alloc failed"; exit 21; }
-  echo "Built target test_alloc"
-  ctest --output-on-failure || { echo "Unit tests failed"; exit 21; }
-  cd ../
-  echo "Local CMake check passed. Good to go for committing! :D"
-  exit 0
-fi
-
-if [ "$FW_TARGET" = "all" ]; then
-  echo "Running full build (make all):"
-  cmake -S . -B build || { echo "cmake configure failed"; exit 20; }
-
-  cd build/ || exit 22
-  make all || { echo "make all failed"; exit 21; }
-  echo "Built target test_alloc"
-  ctest --output-on-failure || { echo "Unit tests failed"; exit 21; }
-  cd ../
-
-  echo "Full build passed."
-  exit 0
-fi
-
-OPENOCD_CMD=(openocd -f interface/stlink.cfg -f target/stm32h7x_dual_bank.cfg -c "program ${FW_TARGET}.elf verify reset exit")
-
-# Use OS to detect the binary
+# ── OS detection ───────────────────────────────────────────────────────────────
 OS_TYPE=$(uname -s)
 case "$OS_TYPE" in
   Darwin)
-    USB_RESET_BIN="./stm_usb/stm_usb_mac"
+    USB_RESET_BIN="$SCRIPT_DIR/stm_usb/stm_usb_mac"
     ;;
   Linux)
-    USB_RESET_BIN="./stm_usb/stm_usb_linux"
+    USB_RESET_BIN="$SCRIPT_DIR/stm_usb/stm_usb_linux"
     ;;
   MINGW*|MSYS*|CYGWIN*|Windows_NT)
-    USB_RESET_BIN="./stm_usb/stm_usb_win.exe"
+    USB_RESET_BIN="$SCRIPT_DIR/stm_usb/stm_usb_win.exe"
     ;;
   *)
     echo "Unsupported OS: $OS_TYPE"
@@ -85,8 +51,6 @@ case "$OS_TYPE" in
     ;;
 esac
 
-
-# Make sure file was found
 if [ ! -f "$USB_RESET_BIN" ]; then
   echo "USB reset binary not found: $USB_RESET_BIN"
   exit 2
@@ -102,132 +66,192 @@ run_usb_reset() {
   fi
 }
 
-# initial USB reset
+# ── CLI binary detection (Linux/Windows only) ─────────────────────────────────
+find_cli() {
+  case "$OS_TYPE" in
+    Linux)
+      CLI_BIN="$(command -v STM32_Programmer_CLI || true)"
+      [ -z "$CLI_BIN" ] && CLI_BIN="/opt/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI"
+      ;;
+    MINGW*|MSYS*|CYGWIN*|Windows_NT)
+      CLI_BIN="$(command -v STM32_Programmer_CLI.exe || true)"
+      [ -z "$CLI_BIN" ] && CLI_BIN="/c/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI.exe"
+      ;;
+    *)
+      CLI_BIN=""
+      ;;
+  esac
+}
+
+# ── Update executable in every launch.json configuration ──────────────────────
+update_debug_target() {
+  local elf_path="$1"
+  local launch="$SCRIPT_DIR/.vscode/launch.json"
+
+  if [ ! -f "$launch" ]; then
+    echo "Warning: $launch not found, skipping debug target update."
+    return
+  fi
+  if ! command -v jq &>/dev/null; then
+    echo "Warning: jq not installed — cannot update debug target. Install with: brew install jq"
+    return
+  fi
+
+  jq --arg val "$elf_path" \
+    '.configurations = [.configurations[] | .executable = $val]' \
+    "$launch" > "$launch.tmp" && mv "$launch.tmp" "$launch"
+  echo "Debug target set to: $elf_path"
+}
+
+# ── Special targets ────────────────────────────────────────────────────────────
+if [ "$FW_TARGET" = "docs" ]; then
+  if ! command -v doxygen &>/dev/null; then
+    echo "Error: doxygen is not installed. Install with: brew install doxygen"
+    exit 5
+  fi
+  echo "Generating Doxygen documentation..."
+  doxygen Doxyfile
+  echo "Docs generated in docs/html/"
+  exit 0
+fi
+
+if [ "$FW_TARGET" = "clean" ]; then
+  echo "Cleaning build/ contents..."
+  mkdir -p "$SCRIPT_DIR/build"
+  find "$SCRIPT_DIR/build" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+  echo "Clean complete."
+  exit 0
+fi
+
+if [ "$FW_TARGET" = "commit_check" ]; then
+  echo "Running local pre-commit check:"
+  cmake -S "$SCRIPT_DIR" -B "$SCRIPT_DIR/build" || { echo "cmake configure failed"; exit 20; }
+  cd "$SCRIPT_DIR/build" || exit 22
+  for target in "${FW_TARGETS[@]}"; do
+    echo "Building ${target}.elf"
+    make "${target}.elf" || { echo "make failed for ${target}.elf"; exit 21; }
+  done
+  make test_alloc_target || { echo "make test_alloc failed"; exit 21; }
+  echo "Built target test_alloc"
+  ctest --output-on-failure || { echo "Unit tests failed"; exit 21; }
+  echo "Local CMake check passed. Good to go for committing! :D"
+  exit 0
+fi
+
+if [ "$FW_TARGET" = "all" ]; then
+  echo "Running full build (make all):"
+  cmake -S "$SCRIPT_DIR" -B "$SCRIPT_DIR/build" || { echo "cmake configure failed"; exit 20; }
+  cd "$SCRIPT_DIR/build" || exit 22
+  make all || { echo "make all failed"; exit 21; }
+  ctest --output-on-failure || { echo "Unit tests failed"; exit 21; }
+  echo "Full build passed."
+  exit 0
+fi
+
+# ── Build ──────────────────────────────────────────────────────────────────────
 run_usb_reset
 
-# Building project
-mkdir -p "build/"
-cd "build/"
-
 echo "Running cmake .."
-cmake .. || { echo "cmake failed"; exit 20; }
-
+cmake -S "$SCRIPT_DIR" -B "$SCRIPT_DIR/build"
 echo "Running make"
-make "${FW_TARGET}.elf" || { echo "make failed"; exit 21; }
+cd "$SCRIPT_DIR/build" && make "${FW_TARGET}.elf" || { echo "make failed"; exit 21; }
+cd "$SCRIPT_DIR"
 
-# running openocd
-MAX_ATTEMPTS=3
-attempt_count=0
+ELF_FILE="$SCRIPT_DIR/build/${FW_TARGET}.elf"
+echo "ELF path: $ELF_FILE"
 
-while [ $attempt_count -lt $MAX_ATTEMPTS ]; do
-  attempt_count=$((attempt_count+1))
-  echo "Flashing with OpenOCD (attempt $attempt_count/$MAX_ATTEMPTS)..."
-  OPENOCD_OUTPUT_FILE="$(mktemp)"
-  # Capture both stdout and stderr into the file
-  if "${OPENOCD_CMD[@]}" >"$OPENOCD_OUTPUT_FILE" 2>&1; then
-    OPENOCD_RC=0
-  else
-    OPENOCD_RC=$?
-  fi
+if [ ! -f "$ELF_FILE" ]; then
+  echo "ELF not found: $ELF_FILE"
+  exit 1
+fi
 
-  # Normalize output
-  output="$(
-    tr -d '\r' <"$OPENOCD_OUTPUT_FILE" \
-    | sed 's/\x1b\[[0-9;]*m//g'
-  )"
+if [ "$UPDATE_DEBUG_TARGET" = true ]; then
+  update_debug_target "$ELF_FILE"
+fi
 
-  # Timeout waiting for algorithm
-  if printf '%s\n' "$output" | grep -iq -- "timeout waiting for algorithm"; then
-    echo "Timeout waiting for algorithm. Attempting automated recovery..."
+# ── Flash ──────────────────────────────────────────────────────────────────────
+OPENOCD_RC=1
+for attempt in $(seq 1 $MAX_ATTEMPTS); do
+  echo "Flashing with OpenOCD (attempt ${attempt}/${MAX_ATTEMPTS})..."
+  OPENOCD_LOG="$LOG_DIR/openocd_attempt${attempt}.log"
+
+  OPENOCD_CMD="init; reset halt; \
+    mww 0x52002014 0xFFFF0000; \
+    mww 0x52002114 0xFFFF0000; \
+    flash write_image erase \"${ELF_FILE}\"; \
+    reset run; shutdown"
+
+  set +e
+  openocd \
+    -f interface/stlink.cfg \
+    -f target/stm32h7x_dual_bank.cfg \
+    -c "$OPENOCD_CMD" \
+    2>&1 | tee "$OPENOCD_LOG"
+  OPENOCD_RC=${PIPESTATUS[0]}
+  set -e
+
+  if grep -qiE "(WRPERR|failed erasing|erase time-out|Mass erase operation failed|Programming Failed|timeout waiting for algorithm|checksum mismatch)" "$OPENOCD_LOG"; then
+    echo "Flash error detected — running recovery..."
 
     case "$OS_TYPE" in
-      # no CLI on mac
       Darwin)
-        echo "Open STM32CubeProgrammer app, connect board, do full chip erase,"
+        echo "Open STM32CubeProgrammer app, connect the board, do a full chip erase,"
         echo "then disconnect the board and press Enter to continue."
-        read -r -p "Press Enter after you have completed the full chip erase. "
-        # re-run USB reset to re-enumerate device
-        cd ../ 
+        read -r -p "Press Enter after full chip erase is complete. "
         run_usb_reset
-        cd build/
-        rm -f "$OPENOCD_OUTPUT_FILE"
+        echo "Recovery complete — retrying OpenOCD..."
         continue
         ;;
-      Linux)
-        # linux - find CLI
-        CLI_BIN="$(command -v STM32_Programmer_CLI || true)"
-        # TODO: unsure if this is right path for CLI in linux
-        [ -z "$CLI_BIN" ] && CLI_BIN="/opt/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI"
-        ;;
-      MINGW*|MSYS*|CYGWIN*|Windows_NT)
-        # Windows - find CLI
-        CLI_BIN="$(command -v STM32_Programmer_CLI.exe || true)"
-        # TODO: unsure if this is right path for CLI in windows
-        [ -z "$CLI_BIN" ] && CLI_BIN="/c/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI.exe"
-        ;;
-      *)
-        echo "Unsupported OS for automated CLI erase: $OS_TYPE"
-        rm -f "$OPENOCD_OUTPUT_FILE"
-        break
+
+      Linux|MINGW*|MSYS*|CYGWIN*|Windows_NT)
+        find_cli
+        if [ ! -x "$CLI_BIN" ] && ! command -v "$CLI_BIN" >/dev/null 2>&1; then
+          echo "STM32_Programmer_CLI not found at: $CLI_BIN"
+          echo "Install STM32CubeProgrammer or add it to PATH, then retry."
+          break
+        fi
+
+        echo "Found STM32 CLI: $CLI_BIN"
+
+        echo "Setting RDP to Level 1..."
+        "$CLI_BIN" -c port=SWD mode=UR reset=HWrst freq=1000 -ob RDP=0xBB || true
+        sleep 2
+
+        run_usb_reset
+        sleep 8
+
+        echo "Regressing RDP to Level 0 (triggers H7 mass erase)..."
+        for rdp_attempt in 1 2 3; do
+          if "$CLI_BIN" -c port=SWD mode=UR reset=HWrst freq=1000 -ob RDP=0xAA; then
+            echo "RDP regression succeeded."
+            break
+          fi
+          echo "RDP regression attempt $rdp_attempt failed, retrying in 3s..."
+          sleep 3
+        done
+
+        echo "Waiting 15s for H7 mass erase to complete..."
+        sleep 15
+
+        run_usb_reset
+        sleep 8
+
+        echo "Recovery complete — retrying OpenOCD..."
+        continue
         ;;
     esac
-    
-    # run CLI (windows/linux only)
-    if [[ "$OS_TYPE" != "Darwin" ]]; then
-      if [ ! -x "$CLI_BIN" ] && ! command -v "$CLI_BIN" >/dev/null 2>&1; then
-        echo "STM32_Programmer_CLI not found at: $CLI_BIN"
-        echo "Please install STM32CubeProgrammer CLI or add it to PATH, then retry."
-        rm -f "$OPENOCD_OUTPUT_FILE"
-        break
-      fi
-
-      echo "Found STM32 CLI: $CLI_BIN"
-      echo "Attempting connect -> usb replug -> full chip erase -> disconnect"
-      # connect with devboard
-      "$CLI_BIN" -c port=SWD -d 0
-      rc=$?; if [ $rc -ne 0 ]; then echo "CLI connect failed (rc=$rc)"; rm -f "$OPENOCD_OUTPUT_FILE"; break; fi
-      # usb replug
-      "$CLI_BIN" -c port=SWD -d 0 -srst_only
-      rc=$?; if [ $rc -ne 0 ]; then echo "CLI soft-reset failed (rc=$rc)"; "$CLI_BIN" -c port=SWD -d 0 -dis >/dev/null 2>&1 || true; rm -f "$OPENOCD_OUTPUT_FILE"; break; fi
-      # full chip erase
-      "$CLI_BIN" -c port=SWD -d 0 -e all
-      rc=$?; if [ $rc -ne 0 ]; then echo "CLI erase failed (rc=$rc)"; "$CLI_BIN" -c port=SWD -d 0 -dis >/dev/null 2>&1 || true; rm -f "$OPENOCD_OUTPUT_FILE"; break; fi
-      # disconnect
-      "$CLI_BIN" -c port=SWD -d 0 -dis
-      rc=$?; if [ $rc -ne 0 ]; then echo "CLI disconnect returned rc=$rc (nonfatal)"; fi
-
-      cd ../ 
-      run_usb_reset
-      cd build/
-      rm -f "$OPENOCD_OUTPUT_FILE"
-      echo "Recovery via STM32CubeProgrammer CLI complete — retrying OpenOCD flash..."
-      continue
-    fi
   fi
 
-  # Checksum mismatch
-  if printf '%s\n' "$output" | grep -iq -- "checksum mismatch"; then
-    echo "OpenOCD reported checksum mismatch (attempt $checksum_fail_count/$MAX_CHECKSUM_RETRIES)."
-    cd ../
-    echo "Running USB reset"
-    run_usb_reset
-    cd build/
-    rm -f "$OPENOCD_OUTPUT_FILE"
-    continue
-  fi
-
-  rm -f "$OPENOCD_OUTPUT_FILE"
-
-  # Success
-  if [ $OPENOCD_RC -eq 0 ]; then
+  if [ "$OPENOCD_RC" -eq 0 ]; then
     echo "Flash successful."
     break
   fi
 
+  echo "OpenOCD failed (exit $OPENOCD_RC), retrying in 1s..."
+  sleep 1
 done
 
-if [ $attempt_count -ge $MAX_ATTEMPTS ]; then
+if [ "$OPENOCD_RC" -ne 0 ]; then
   echo "OpenOCD did not succeed after $MAX_ATTEMPTS attempts."
-  echo "Other issue likely occurred."
   exit 32
 fi

@@ -33,8 +33,7 @@ void _start() {
     enum ti_errc_t* errc = &my_err;
     asm("BKPT #0");
     while (true) {
-        ti_set_pwm(pwm_config, errc);
-        enum ti_errc_t err = *errc;
+        ti_set_pwm(pwm_config);
         // asm("BKPT #0");
         pwm_config.duty += dir;
         if (pwm_config.duty == 1000 || pwm_config.duty == 0) {

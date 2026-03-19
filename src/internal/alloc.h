@@ -1,6 +1,8 @@
+
 #pragma once
 #include "stdbool.h"
 #include "stdint.h"
+#include "../peripheral/errc.h"
 
 // POINTER TO START OF HEAP
 extern void* HEAP_START;
@@ -40,21 +42,25 @@ static uint32_t POOL_SIZES[NUMBER_OF_POOLS] = {118, 100, 200, 100, 100, 5, 5};
 
 /**
  * Initialize heap.  Draws on parameters set up above
+ * @return ti_errc_t error code
  */
-uint32_t init_heap();
+enum ti_errc_t init_heap();
 
 /**
  * Allocate a block of size @param size
+ * @return ti_errc_t error code
  */
-void* alloc(uint32_t size);
+enum ti_errc_t alloc(uint32_t size, void** res);
 
 /**
  * Free the block at @param mem
+ * @return ti_errc_t error code
  */
-void free(void* mem);
+enum ti_errc_t ti_free(void* mem);
 
 /**
  * Check if the block at @param mem is free
+ * @return ti_errc_t error code
  */
 bool isFree(void* mem);
 
