@@ -103,7 +103,7 @@ static uint32_t barometer_transfer(barometer_t *dev, uint8_t cmd, uint8_t bytes_
  * @section Public Function Implementations
  **************************************************************************************************/
 
-enum ti_errc_t barometer_init(barometer_t *dev) {
+enum ti_errc_t barometer_init(barometer_t* dev) {
     // Check OSR and device fields
     enum ti_errc_t status = validate_dev_values(dev);
     if (status != TI_ERRC_NONE) return status;
@@ -125,7 +125,7 @@ enum ti_errc_t barometer_init(barometer_t *dev) {
     return TI_ERRC_NONE;
 }
 
-enum ti_errc_t get_barometer_data(barometer_t *dev) {
+enum ti_errc_t get_barometer_data(barometer_t* dev) {
     barometer_result_t result;
     barometer_result_t *ptr_result = &result;
 

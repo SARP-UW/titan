@@ -282,7 +282,7 @@ int spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
     // Set baudrate prescaler ( 64MHz /8  = 8MHz) 
     WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_MBR, 0b111); 
     // Set data size
-    WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_DSIZE, 0b00111);
+    WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_DSIZE, 0b00111); // TODO: Ensure that this is lower than the slowest device's baudrate
     // Set clock polarities
     CLR_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL);
     CLR_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA);
