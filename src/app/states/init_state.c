@@ -17,8 +17,9 @@
 //     ~~~ ( ) Establish radio and umbillical communication
 //     ~~~ ( ) Verify all actuators and valves in safe position
 bool init_state_init() {
-
+    
     qspi_init(); // probably should return a ti_errc_t
+    
 
     return 1;
 }
