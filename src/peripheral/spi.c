@@ -22,6 +22,7 @@
 #include "peripheral/spi.h"
 #include "internal/mmio.h"
 #include "peripheral/gpio.h"
+#include "peripheral/errc.h"
 #include <stdint.h>
 
 #define INST1_SCK 44
