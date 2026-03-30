@@ -29,7 +29,7 @@
  **************************************************************************************************/
 
 /**
- * @brief Initialize an SPI interface.
+ * @brief Initialize an SPI instance.
  *
  * Prepares the specified SPI instance for communication. This must be called
  * before attempting any SPI transfers.

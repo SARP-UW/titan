@@ -16,7 +16,7 @@
  * 
  * @file peripheral/spi.c
  * @authors Jude Merritt
- * @brief Implementation of SPI driver interface
+ * @brief Implementation of SPI driver
  */
 
 #include "peripheral/spi.h"
