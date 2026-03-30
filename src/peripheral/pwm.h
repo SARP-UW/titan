@@ -48,4 +48,4 @@ struct ti_pwm_config_t {
  * @param pwm_config Takes information from the pwm_config structure
  * @return ti_errc_t error code
  */
-enum ti_errc_t ti_set_pwm(struct ti_pwm_config_t pwm_config);
+void ti_set_pwm(struct ti_pwm_config_t pwm_config, enum ti_errc_t *errc);

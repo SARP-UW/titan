@@ -2,7 +2,6 @@
 // Created by Joshua Beard on 1/17/26.
 //
 
-#pragma once
 #include <stdint.h>
 #include "app/state.h"
 #include "init_state.h"
@@ -17,8 +16,9 @@
 //     ~~~ ( ) Establish radio and umbillical communication
 //     ~~~ ( ) Verify all actuators and valves in safe position
 bool init_state_init() {
-
+    
     qspi_init(); // probably should return a ti_errc_t
+    ti_log_init(); /* Scan flash log region; safe to ignore return — logger degrades gracefully */
 
     return 1;
 }

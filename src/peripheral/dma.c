@@ -1,16 +1,21 @@
 #include "dma.h"
+#include "errc.h"
 
-tal_err_t *dma_init(void) {
-    return (void*) (0);
+void* dma_init(enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    return NULL;
 }
 
 bool dma_configure_stream(const dma_config_t* config) {
-    return 1;
+    (void)config;
+    return true;
 }
 inline static bool check_periph_dma_config_validity(periph_dma_config_t *dma_config) {
-    return 1;
+    (void)dma_config;
+    return true;
 }
 
 bool dma_start_transfer( dma_transfer_t *dma_transfer) {
-    return 1;
+    (void)dma_transfer;
+    return true;
 }

@@ -1,6 +1,6 @@
 /**
  * This file is part of the Titan Flight Computer Project
- * Copyright (c) 2025 UW SARP
+ * Copyright (c) 2026 UW SARP
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,17 +38,6 @@ typedef enum {
     OSR_2048 = 0x06, /**< 2048 samples per measurement */
     OSR_4096 = 0x08  /**< 4096 samples per measurement */
 } barometer_osr_t;
-
-/**
- * @brief Barometer device struct
- */
-struct barometer_t {
-    uint8_t spi_inst;      /**< SPI hardware instance */
-    uint8_t ss_pin;        /**< Slave select pin */
-    uint32_t pressure;     /**< Last measured pressure */
-    uint32_t temperature;  /**< Last measured temperature */
-    enum ti_errc_t errc;        /**< Error code from last operation */
-};
 
 /**
  * @brief SPI specifications
@@ -96,14 +85,15 @@ typedef struct {
  * @brief Initializes the MS561101BA03 barometer and loads calibration data.
  *
  * @param dev pointer to the barometer_t structure
- * @return ti_errc_t TI_ERRC_NONE if no errors occur, and an error code otherwise
+ * @param errc Pointer to error status output.
  */
-enum ti_errc_t barometer_init(barometer_t *dev);
+void barometer_init(barometer_t *dev, enum ti_errc_t *errc);
 
 /**
  * @brief Performs a conversion and calculates compensated pressure and temperature.
  *
  * @param dev pointer to the barometer_t structure
- * @return ti_errc_t TI_ERRC_NONE if no errors occur, and an error code otherwise
+ * @param errc Pointer to error status output.
+ * @return barometer_result_t result struct.
  */
-enum ti_errc_t get_barometer_data(barometer_t *dev);
+barometer_result_t get_barometer_data(barometer_t *dev, enum ti_errc_t *errc);

@@ -1,0 +1,68 @@
+name: Build program
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: ["main"]
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+
+jobs:
+  cmake-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install ARM GCC toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi
+
+      - name: CMake configure
+        run: cmake -S . -B build
+
+      - name: Build all targets
+        run: cmake --build build
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+  lint-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install ARM GCC toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi
+
+      - name: Install clang-tidy
+        run: sudo apt-get install -y clang-tidy
+
+      - name: CMake configure
+        run: cmake -S . -B build
+
+      - name: Build compile_commands.json
+        run: cmake --build build --target titan.elf
+
+      - name: Run clang-tidy
+        run: |
+          ARM_GCC_INCLUDE_ARGS=$(echo '#include <string.h>' \
+            | arm-none-eabi-gcc -x c -E -v - 2>&1 \
+            | awk '/#include <...> search starts here:/{inlist=1;next} /End of search list./{inlist=0} inlist {gsub(/^ +/, "", $0); printf "--extra-arg=-isystem%s ", $0}')
+
+          if [ -z "$ARM_GCC_INCLUDE_ARGS" ]; then
+            echo "Failed to resolve arm-none-eabi-gcc include paths for clang-tidy"
+            exit 1
+          fi
+
+          find src -name "*.c" ! -path "*/app/*" -print0 \
+            | xargs -0 clang-tidy -p build --quiet --warnings-as-errors='*' $ARM_GCC_INCLUDE_ARGS

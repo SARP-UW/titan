@@ -77,7 +77,7 @@ typedef struct {
  * @param dev Pointer to the temperature_t device structure.
  * @return enum ti_errc_t TI_ERRC_NONE on success.
  */
-enum ti_errc_t temperature_init(temperature_t *dev);
+void temperature_init(temperature_t *dev, enum ti_errc_t *errc);
 
 /**
  * @brief Reads the current temperature from the temperature.
@@ -88,6 +88,6 @@ enum ti_errc_t temperature_init(temperature_t *dev);
  *
  * @param dev Pointer to the temperature_t device structure.
  * @param res Pointer to the result struct to store output.
- * @return enum ti_errc_t TI_ERRC_NONE on success.
+ * @param errc Pointer to error status output.
  */
-enum ti_errc_t temperature_read_temp(temperature_t *dev, temperature_result_t* res);
+void temperature_read_temp(temperature_t *dev, temperature_result_t* res, enum ti_errc_t *errc);

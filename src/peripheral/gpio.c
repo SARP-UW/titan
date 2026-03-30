@@ -27,7 +27,7 @@
  * port_index_from_pin[overall pin #] = 100 * port + PIN # Within Port
  * -1 if pin doesn't exist
 */
-int32_t port_index_from_pin[140] = {-1,402,403,404,405,406,-1,-1,-1,213,
+static int32_t port_index_from_pin[140] = {-1,402,403,404,405,406,-1,-1,-1,213,
                                     214,215,-1,-1,-1,-1,-1,-1,-1,-1,
                                     506,507,508,509,510,700,701,-1,200,201,
                                     -1,-1,-1,-1,-1,-1,-1,0,1,2,
@@ -65,7 +65,7 @@ void tal_set_mode(int pin, int mode)
     return; 
   }
   int port = v / 100;
-  int index = v - 100 * port;
+  int index = v - (100 * port);
 
   WRITE_FIELD(GPIOx_MODER[port], GPIOx_MODER_MODEx[index], mode);
 }
@@ -77,7 +77,7 @@ void tal_set_drain(int pin, int drain)
     return; 
   }
   int port = v / 100;
-  int index = v - 100 * port;
+  int index = v - (100 * port);
 
   WRITE_FIELD(GPIOx_OTYPER[port], GPIOx_OTYPER_OTx[index], drain);
 }
@@ -89,7 +89,7 @@ void tal_set_speed(int pin, int speed)
     return; 
   }
   int port = v / 100;
-  int index = v - 100 * port;
+  int index = v - (100 * port);
 
   WRITE_FIELD(GPIOx_OSPEEDR[port], GPIOx_OSPEEDR_OSPEEDx[index], speed);
 }
@@ -102,7 +102,7 @@ void tal_pull_pin(int pin, int pull)
     return; 
   }
   int port = v / 100;
-  int index = v - 100 * port;
+  int index = v - (100 * port);
 
   switch (pull)
   {
@@ -132,7 +132,7 @@ void tal_set_pin(int pin, int value)
     return; 
   }
   int port = v / 100;
-  int index = v - 100 * port;
+  int index = v - (100 * port);
 
   switch (value){
     case 0:{
@@ -150,14 +150,14 @@ void tal_set_pin(int pin, int value)
   }
 }
 
-void tal_alternate_mode(int pin, int value)
+void tal_alternate_mode /* NOLINT(bugprone-easily-swappable-parameters) */(int pin, int value)
 {
   int v = port_index_from_pin[pin];
   if(v == -1){ 
     return; 
   }
   int port = v / 100;
-  int index = v - 100 * port;
+  int index = v - (100 * port);
 
   if(index <= 7){
     // use AFRL
@@ -176,7 +176,7 @@ bool tal_read_pin(int pin)
     return false;  // throw error
   }
   int port = v / 100;
-  int index = v - 100 * port;
+  int index = v - (100 * port);
   
   uint32_t read_val = READ_FIELD(GPIOx_IDR[port], GPIOx_IDR_IDx[index]);
   return read_val == 1;
@@ -185,37 +185,37 @@ bool tal_read_pin(int pin)
 bool tal_enable_clock(int pin) {
     gpio_port_t port = port_index_from_pin[pin] / 100;
     switch (port) {
-        case (GPIO_PORT_A): // 
+    case GPIO_PORT_A: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOAEN);
             return true;
-        case (GPIO_PORT_B): // 
+    case GPIO_PORT_B: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOBEN);
             return true;
-        case (GPIO_PORT_C): // 
+    case GPIO_PORT_C: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOCEN);
             return true;
-        case (GPIO_PORT_D): // 
+    case GPIO_PORT_D: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIODEN);
             return true;
-        case (GPIO_PORT_E): // 
+    case GPIO_PORT_E: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOEEN);
             return true;
-        case (GPIO_PORT_F): // 
+    case GPIO_PORT_F: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOFEN);
             return true;
-        case (GPIO_PORT_G): // 
+    case GPIO_PORT_G: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOGEN);
             return true;
-        case (GPIO_PORT_H): // 
+    case GPIO_PORT_H: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOHEN);
             return true;
-        case (GPIO_PORT_I): // 
+    case GPIO_PORT_I: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOIEN);
             return true;
-        case (GPIO_PORT_J): // 
+    case GPIO_PORT_J: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOJEN);
             return true;
-        case (GPIO_PORT_K): // 
+    case GPIO_PORT_K: // 
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOKEN);
             return true;
     }
@@ -225,37 +225,37 @@ bool tal_enable_clock(int pin) {
 bool tal_disable_clock(int pin) {
     gpio_port_t port = port_index_from_pin[pin] / 100;
     switch (port) {
-        case (GPIO_PORT_A): // 
+    case GPIO_PORT_A: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOAEN);
             return true;
-        case (GPIO_PORT_B): // 
+    case GPIO_PORT_B: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOBEN);
             return true;
-        case (GPIO_PORT_C): // 
+    case GPIO_PORT_C: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOCEN);
             return true;
-        case (GPIO_PORT_D): // 
+    case GPIO_PORT_D: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIODEN);
             return true;
-        case (GPIO_PORT_E): // 
+    case GPIO_PORT_E: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOEEN);
             return true;
-        case (GPIO_PORT_F): // 
+    case GPIO_PORT_F: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOFEN);
             return true;
-        case (GPIO_PORT_G): // 
+    case GPIO_PORT_G: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOGEN);
             return true;
-        case (GPIO_PORT_H): // 
+    case GPIO_PORT_H: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOHEN);
             return true;
-        case (GPIO_PORT_I): // 
+    case GPIO_PORT_I: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOIEN);
             return true;
-        case (GPIO_PORT_J): // 
+    case GPIO_PORT_J: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOJEN);
             return true;
-        case (GPIO_PORT_K): // 
+    case GPIO_PORT_K: // 
             CLR_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOKEN);
             return true;
     }

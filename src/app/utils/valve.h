@@ -1,6 +1,6 @@
 /**
  * This file is part of the Titan Flight Computer Project
- * Copyright (c) 2024 UW SARP
+ * Copyright (c) 2025 UW SARP
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,35 +14,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * @file peripheral/watchdog.h
+ * @file app/utils/valve.h
  * @authors Joshua Beard
- * @brief Driver for the watchdog timer
+ * @brief Utility functions to actuate valves by name
  */
 
-#pragma once
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "src/util/error.h"
+
+enum Valve {
+    
+};
 
 /**
- * Enables the Independent Watchdog
- * Doc Page 2047 for an overview
- * @return if enable succeeded.
+ * @param valve Valve name to actuate as defined in the Valve enum
+ * @param actuated True if providing power to valve, False if unpowering valve
+ * 
+ * @note The actuated parameter is done this way (instead of open/closed) because some
+ * valves may have a different default state and it would become confusing in software
+ * to need to track which ones need power or a lack of power to reach a commanded state
  */
-// NOLINTNEXTLINE(readability-identifier-naming)
-bool ti_IWDG_enable();
+tal_err_t set_valve(enum Valve valve, bool actuated){
 
-/**
- * Resets the countdown so the board doesn't reset
- */
-// NOLINTNEXTLINE(readability-identifier-naming)
-void ti_IWDG_reset_timer();
-
-#ifdef __cplusplus
 }
-#endif

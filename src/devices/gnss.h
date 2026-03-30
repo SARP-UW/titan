@@ -138,16 +138,16 @@ typedef struct {
  * Applies the constellations, nav rate, dynamic model, and power mode defined 
  * in dev->config. Blocks until initialization sequence is acknowledged by the module.
  *
- * @param dev Pointer to the gnss_t device structure.
- * @return ti_errc_t TI_ERRC_NONE on success.
+ * @param dev  Pointer to the gnss_t device structure.
+ * @param errc Pointer to error status output.
  */
-enum ti_errc_t gnss_init(gnss_t *dev);
+void gnss_init(gnss_t *dev, enum ti_errc_t *errc);
 
 /**
  * @brief Polls the latest UBX-NAV-PVT solution from the GNSS module.
  *
- * @param dev Pointer to the gnss_t device structure.
- * @param pvt Pointer to a gnss_pvt_t structure to populate with the fix data.
- * @return ti_errc_t TI_ERRC_NONE on success.
+ * @param dev  Pointer to the gnss_t device structure.
+ * @param pvt  Pointer to a gnss_pvt_t structure to populate with the fix data.
+ * @param errc Pointer to error status output.
  */
-enum ti_errc_t gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt);
+void gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt, enum ti_errc_t *errc);
