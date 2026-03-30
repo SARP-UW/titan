@@ -23,7 +23,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 
 // let A = 0, B = 1, --- , K = 10
 // Port [A:K] = [0:10]
@@ -107,7 +106,7 @@ void tal_set_pin(int pin, int value);
                  1110b: AF14
                  1111b: AF15
 */
-void tal_alternate_mode(int pin, int value);
+void tal_alternate_mode /* NOLINT(bugprone-easily-swappable-parameters) */(int pin, int value);
 
 /**
  * @param pin: The single integer value of the pin, found in specific docs page

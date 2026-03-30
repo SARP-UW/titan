@@ -1,3 +1,4 @@
+// NOLINTBEGIN
 /**
  * This file is part of the Titan Project.
  * Copyright (c) 2025 UW SARP
@@ -5323,7 +5324,7 @@ ro_reg32_t const FLASH_BOOT_CURR  = (ro_reg32_t)0x52002040U;
 ro_reg32_t const FLASH_BOOT_PRGR  = (ro_reg32_t)0x52002044U;
 rw_reg32_t const FLASH_CRCDATAR   = (rw_reg32_t)0x5200205CU;
 ro_reg32_t const FLASH_ECC_FA1R   = (ro_reg32_t)0x52002060U;
-ro_reg32_t const FLASH_KEYR2      = (ro_reg32_t)0x52002104U;
+rw_reg32_t const FLASH_KEYR2      = (rw_reg32_t)0x52002104U;
 rw_reg32_t const FLASH_CR2        = (rw_reg32_t)0x5200210CU;
 rw_reg32_t const FLASH_SR2        = (rw_reg32_t)0x52002110U;
 rw_reg32_t const FLASH_CCR2       = (rw_reg32_t)0x52002114U;
@@ -14581,3 +14582,4 @@ rw_reg32_t const ART_CTR = (rw_reg32_t)0x40024400U;
 
 const field32_t ART_CTR_EN         = {.msk = 0x00000001U, .pos = 0};
 const field32_t ART_CTR_PCACHEADDR = {.msk = 0x000FFF00U, .pos = 8};
+// NOLINTEND

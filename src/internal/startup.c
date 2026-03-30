@@ -1,3 +1,4 @@
+// NOLINTBEGIN
 /**
  * This file is part of the Titan Project.
  * Copyright (c) 2025 UW SARP
@@ -23,6 +24,22 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+/************************************************************************************************
+ * @section Freestanding C runtime builtins
+ *
+ * The project links with -nostdlib, so the compiler-emitted calls to memset
+ * (e.g. for struct zero-initialisation) have no libc to fall back to.
+ * Provide a minimal implementation here so every firmware target links cleanly.
+ ************************************************************************************************/
+
+void *memset(void *s, int c, size_t n) { // NOLINT(misc-use-internal-linkage)
+  unsigned char *p = (unsigned char *)s;
+  while (n--) {
+    *p++ = (unsigned char)c;
+  }
+  return s;
+}
 
 /************************************************************************************************
  * @section Program Initialization Routines
@@ -117,3 +134,4 @@ void cm4_reset_exc_handler(void) {
     asm("wfi");
   }
 }
+// NOLINTEND

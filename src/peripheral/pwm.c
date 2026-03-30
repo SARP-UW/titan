@@ -1,6 +1,6 @@
 /**
 * This file is part of the Titan Flight Computer Project
-* Copyright (c) 2025 UW SARP
+* Copyright (c) 2026 UW SARP
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -38,37 +38,36 @@
 * @section Private Function Implementations
 **************************************************************************************************/
 
-static enum ti_errc_t check_pwm_config_validity(struct ti_pwm_config_t pwm_config) {
+static void check_pwm_config_validity(struct ti_pwm_config_t pwm_config, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     if (pwm_config.freq <= 0) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM frequency must be positive"); return; //
     }
 
     if (pwm_config.clock_freq <= 0) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM clock frequency must be positive"); return; //
     }
 
     uint32_t freq_prescaler = pwm_config.clock_freq / pwm_config.freq;
     if (freq_prescaler == 0 || freq_prescaler > UINT16_MAX) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM prescaler calculation invalid"); return; //
     }
 
     if (pwm_config.duty > MAX_DUTY_CYCLE) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM duty cycle out of range"); return; //
     }
 
     if (pwm_config.channel < 1 || pwm_config.channel > 4) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM channel out of range"); return; //
     }
 
     if (pwm_config.instance < 2 || pwm_config.instance > 5) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM instance out of range"); return; //
     }
-
-    return TI_ERRC_NONE;
 }
 
 
-void pwm_set_pin_vals(int* pin, int* alt_mode, int32_t instance, int32_t channel) {
+static void pwm_set_pin_vals /* NOLINT(bugprone-easily-swappable-parameters) */(int* pin, int* alt_mode, int32_t instance, int32_t channel) {
     *alt_mode = (instance == 2) ? 1 : 2;
     switch (instance) {
         case 2:
@@ -162,47 +161,54 @@ void pwm_set_pin_vals(int* pin, int* alt_mode, int32_t instance, int32_t channel
 * @section Public Function Implementations
 **************************************************************************************************/
 
-enum ti_errc_t ti_set_pwm(struct ti_pwm_config_t pwm_config) {
-
-
+void ti_set_pwm(struct ti_pwm_config_t pwm_config, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     if (pwm_config.instance > INSTANCE_COUNT) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM instance out of range"); return; //
     }
 
-    enum ti_errc_t validation = check_pwm_config_validity(pwm_config);
-
-    if (validation != TI_ERRC_NONE) {
-        return validation;
+    check_pwm_config_validity(pwm_config, errc); //
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Propagated"); return; //
     }
 
     // Enable PWM clock
     SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_TIMxEN[pwm_config.instance]);
 
     // Set up GPIO pin
-    int pin;
-    int alt_mode;
+    int pin = 0;
+    int alt_mode = 0;
     pwm_set_pin_vals(&pin, &alt_mode, pwm_config.instance, pwm_config.channel);
     tal_enable_clock(pin);
     tal_set_mode(pin, 2);
     tal_alternate_mode(pin, alt_mode);
 
     // Determine the appropriate ARR field based on 32-bit (TIM2, TIM5) vs 16-bit (TIM3, TIM4)
-    bool is_32bit_timer = (pwm_config.instance == 2 || pwm_config.instance == 5);
-    const field32_t arr_field = is_32bit_timer ? G_TIMx_ARR_ARR_32B : G_TIMx_ARR_ARR_L;
+    const bool is_32bit_timer = ((pwm_config.instance == 2) || (pwm_config.instance == 5)) != 0;
+    field32_t arr_field = G_TIMx_ARR_ARR_L;
+    if (is_32bit_timer) {
+        arr_field = G_TIMx_ARR_ARR_32B;
+    }
 
     // Set frequency of timer (using the correct 16-bit or 32-bit field)
-    int32_t freq_prescaler = (pwm_config.clock_freq / pwm_config.freq) - 1;
+    uint32_t freq_prescaler = (pwm_config.clock_freq / pwm_config.freq) - 1;
 
     WRITE_FIELD(G_TIMx_ARR[pwm_config.instance], arr_field, freq_prescaler);
 
     // Determine the appropriate CCR field based on 32-bit vs 16-bit
-    const field32_t ccr_field_1 = is_32bit_timer ? G_TIMx_CCR1_CCR1_32B : G_TIMx_CCR1_CCR1_L;
-    const field32_t ccr_field_2 = is_32bit_timer ? G_TIMx_CCR2_CCR2_32B : G_TIMx_CCR2_CCR2_L;
-    const field32_t ccr_field_3 = is_32bit_timer ? G_TIMx_CCR3_CCR3_32B : G_TIMx_CCR3_CCR3_L;
-    const field32_t ccr_field_4 = is_32bit_timer ? G_TIMx_CCR4_CCR4_32B : G_TIMx_CCR4_CCR4_L;
+    field32_t ccr_field_1 = G_TIMx_CCR1_CCR1_L;
+    field32_t ccr_field_2 = G_TIMx_CCR2_CCR2_L;
+    field32_t ccr_field_3 = G_TIMx_CCR3_CCR3_L;
+    field32_t ccr_field_4 = G_TIMx_CCR4_CCR4_L;
+    if (is_32bit_timer) {
+        ccr_field_1 = G_TIMx_CCR1_CCR1_32B;
+        ccr_field_2 = G_TIMx_CCR2_CCR2_32B;
+        ccr_field_3 = G_TIMx_CCR3_CCR3_32B;
+        ccr_field_4 = G_TIMx_CCR4_CCR4_32B;
+    }
 
     // Set duty cycle
-    int32_t ccr_value = (freq_prescaler * pwm_config.duty) / MAX_DUTY_CYCLE;
+    uint32_t ccr_value = (freq_prescaler * pwm_config.duty) / MAX_DUTY_CYCLE;
 
     switch(pwm_config.channel) {
         case 1:
@@ -218,7 +224,7 @@ enum ti_errc_t ti_set_pwm(struct ti_pwm_config_t pwm_config) {
             WRITE_FIELD(G_TIMx_CCR4[pwm_config.instance], ccr_field_4, ccr_value);
             break;
         default:
-            return TI_ERRC_INVALID_ARG;
+            TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid PWM channel for CCR"); return; //
     }
 
     // Set to output compare
@@ -236,5 +242,4 @@ enum ti_errc_t ti_set_pwm(struct ti_pwm_config_t pwm_config) {
     SET_FIELD(G_TIMx_CR1[pwm_config.instance], G_TIMx_CR1_CEN);
     // Enable PWM output
     SET_FIELD(G_TIMx_CR1[pwm_config.instance], G_TIMx_CR1_ARPE);
-    return TI_ERRC_NONE;
 }

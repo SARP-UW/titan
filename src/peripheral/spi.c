@@ -87,9 +87,10 @@ static inline void ss_high(uint8_t* ss_list, uint8_t slave_count) {
     }
 }
 
-enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
+void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     if (inst > 6 || inst < 1) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI instance range error"); return;
     }
 
     // Enable clocks for MOSI, MISO, and SCK
@@ -111,6 +112,8 @@ enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
             break;
         case INST_SIX:
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOGEN);
+            break;
+        default:
             break;
     }
 
@@ -233,6 +236,8 @@ enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
             tal_set_speed(INST6_MISO, 3);
             tal_set_speed(INST6_MOSI, 3);
             break;
+        default:
+            break;
     }
 
     // High speed clock enable
@@ -267,6 +272,8 @@ enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
         case INST_SIX:
             SET_FIELD(RCC_APB4ENR, RCC_APB4ENR_SPI6EN);
             break;
+        default:
+            break;
     }
     
     // Ensure SS lines are high
@@ -292,11 +299,13 @@ enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
     // Set SPI as master
     SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_MASTER);
 
-    return TI_ERRC_NONE;
 }
 
-enum ti_errc_t spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size) {
-    if (size == 0 || ss_pin > 255) return -1;
+void spi_transfer_sync /* NOLINT(bugprone-easily-swappable-parameters) */(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (size == 0) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Transfer size cannot be zero"); return; //
+    }
 
     CLR_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
     WRITE_FIELD(SPIx_CR2[inst], SPIx_CR2_TSIZE, size);
@@ -327,6 +336,4 @@ enum ti_errc_t spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* 
 
     // Pull SS pin high to end transfer
     tal_set_pin(ss_pin, 1);
-
-    return TI_ERRC_NONE;
 }

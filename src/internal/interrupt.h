@@ -1,3 +1,4 @@
+// NOLINTBEGIN
 /**
  * This file is part of the Titan Project.
  * Copyright (c) 2024 UW SARP
@@ -318,3 +319,4 @@ extern const int32_t UARTx_IRQ_NUM[9];          /** @brief UART global interrupt
 extern const int32_t TIMx_CC_IRQ_NUM[9];        /** @brief TIM capture/compare global interrupt. */
 extern const int32_t DMAx_STRx_IRQ_NUM[3][8];   /** @brief DMA1 stream x interrupt. */
 extern const int32_t FDCANx_ITx_IRQ_NUM[3][2];  /** @brief FDCAN1 interrupt x. */
+// NOLINTEND

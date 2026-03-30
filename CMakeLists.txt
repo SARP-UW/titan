@@ -37,37 +37,30 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+
 project(titan C ASM)
 
 enable_testing()
 
-set(COMMON_SOURCES
-  ${CMAKE_SOURCE_DIR}/src/internal/startup.c
-  ${CMAKE_SOURCE_DIR}/src/internal/interrupt.c
-  ${CMAKE_SOURCE_DIR}/src/internal/vtable.c
-  ${CMAKE_SOURCE_DIR}/src/internal/mmio.c
-  ${CMAKE_SOURCE_DIR}/src/internal/alloc.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/gpio.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/watchdog.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/pwm.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/uart.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/dma.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/spi.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/qspi.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/systick.c
-  ${CMAKE_SOURCE_DIR}/src/devices/actuator.c
-  ${CMAKE_SOURCE_DIR}/src/devices/radio.c
-  ${CMAKE_SOURCE_DIR}/src/devices/barometer.c
-  ${CMAKE_SOURCE_DIR}/src/devices/temperature.c
-  ${CMAKE_SOURCE_DIR}/src/devices/gnss.c
-
+file(GLOB_RECURSE COMMON_SOURCES
+  ${CMAKE_SOURCE_DIR}/src/*.c
 )
+# Remove main.c from COMMON_SOURCES
+list(REMOVE_ITEM COMMON_SOURCES ${CMAKE_SOURCE_DIR}/src/main.c)
 
 function(add_firmware_target target_name entry_file)
-  add_executable(${target_name}.elf
-    ${entry_file}
-    ${COMMON_SOURCES}
-  )
+  if ("${entry_file}" STREQUAL "${CMAKE_SOURCE_DIR}/src/main.c")
+    add_executable(${target_name}.elf
+      ${entry_file}
+      ${COMMON_SOURCES}
+      ${CMAKE_SOURCE_DIR}/src/main.c
+    )
+  else()
+    add_executable(${target_name}.elf
+      ${entry_file}
+      ${COMMON_SOURCES}
+    )
+  endif()
 
   target_include_directories(${target_name}.elf PRIVATE
     ${CMAKE_SOURCE_DIR}/src

@@ -25,19 +25,20 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "peripheral/watchdog.h"
 #include "internal/mmio.h"
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-int32_t START_KEY = 0xCCCC;
-int32_t REG_ACCESS = 0x5555;
-int32_t RESET_RLR = 0xAAAA;
-int32_t PRESCALER_DIVIDER = 1; // doc page 2051, can be other values to increase
+static const int32_t start_key = 0xCCCC;
+static const int32_t reg_access = 0x5555;
+static const int32_t reset_rlr = 0xAAAA;
+static const int32_t prescaler_divider = 1; // doc page 2051, can be other values to increase
                                // frequency of countdown clock
 
-int32_t RESET_COUNT = 4000; // any 12 bit number
+static const int32_t reset_count = 4000; // any 12 bit number
 
 /**
  * Clock is 32 kHz (32,000 clk per second).  Lets say we want a one second delay
@@ -50,25 +51,27 @@ int32_t RESET_COUNT = 4000; // any 12 bit number
  * delay, because 8000 > 4095
  */
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 bool ti_IWDG_enable() {
   WRITE_FIELD(RCC_APB3ENR, RCC_APB3ENR_WWDG1EN, 1);
 
-  WRITE_FIELD(IWDGx_KR[1], IWDGx_KR_KEY, START_KEY);
+  WRITE_FIELD(IWDGx_KR[1], IWDGx_KR_KEY, start_key);
 
-  WRITE_FIELD(IWDGx_KR[1], IWDGx_KR_KEY, REG_ACCESS);
+  WRITE_FIELD(IWDGx_KR[1], IWDGx_KR_KEY, reg_access);
 
-  WRITE_FIELD(IWDGx_PR[1], IWDGx_PR_PR, PRESCALER_DIVIDER);
+  WRITE_FIELD(IWDGx_PR[1], IWDGx_PR_PR, prescaler_divider);
 
-  WRITE_FIELD(IWDGx_RLR[1], IWDGx_RLR_RL, RESET_COUNT);
+  WRITE_FIELD(IWDGx_RLR[1], IWDGx_RLR_RL, reset_count);
   // Wait for SR to be zeroed? says in doc but idk
 
-  return 1;
+  return true;
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void ti_IWDG_reset_timer() {
-  WRITE_FIELD(IWDGx_KR[1], IWDGx_KR_KEY, RESET_RLR);
+  WRITE_FIELD(IWDGx_KR[1], IWDGx_KR_KEY, reset_rlr);
 }
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif

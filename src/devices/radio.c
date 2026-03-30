@@ -106,16 +106,16 @@ static const uint8_t radio_rx_default_args[] = { 0x00, 0x00, 0x08, 0x08, 0x08 };
  * @section Forward Declarations
  **************************************************************************************************/
 
-static enum ti_errc_t radio_wait_cts(radio_t *dev);
-static enum ti_errc_t radio_send_cmd(radio_t *dev, const uint8_t *cmd, size_t len);
-static enum ti_errc_t radio_send_cmd_get_resp(radio_t *dev, const uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len);
-static enum ti_errc_t radio_change_state(radio_t *dev, uint8_t next_state);
-static enum ti_errc_t radio_write_tx_fifo(radio_t *dev, const uint8_t *data, size_t len);
-static enum ti_errc_t radio_read_rx_fifo(radio_t *dev, uint8_t *data, size_t len);
-static enum ti_errc_t radio_start_tx(radio_t *dev, uint8_t channel, uint8_t condition, uint16_t length, uint16_t tx_delay);
-static enum ti_errc_t radio_start_rx(radio_t *dev, uint8_t channel, const uint8_t *args, size_t args_len);
-static enum ti_errc_t radio_fifo_info(radio_t *dev, uint8_t arg, uint8_t *resp, size_t resp_len);
-static enum ti_errc_t radio_get_packet_info(radio_t *dev, uint8_t *resp, size_t resp_len);
+static void radio_wait_cts(radio_t *dev, enum ti_errc_t *errc);
+static void radio_send_cmd(radio_t *dev, const uint8_t *cmd, size_t len, enum ti_errc_t *errc);
+static void radio_send_cmd_get_resp(radio_t *dev, const uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len, enum ti_errc_t *errc);
+static void radio_change_state(radio_t *dev, uint8_t next_state, enum ti_errc_t *errc);
+static void radio_write_tx_fifo(radio_t *dev, const uint8_t *data, size_t len, enum ti_errc_t *errc);
+static void radio_read_rx_fifo(radio_t *dev, uint8_t *data, size_t len, enum ti_errc_t *errc);
+static void radio_start_tx(radio_t *dev, uint8_t channel, uint8_t condition, uint16_t length, uint16_t tx_delay, enum ti_errc_t *errc);
+static void radio_start_rx(radio_t *dev, uint8_t channel, const uint8_t *args, size_t args_len, enum ti_errc_t *errc);
+static void radio_fifo_info(radio_t *dev, uint8_t arg, uint8_t *resp, size_t resp_len, enum ti_errc_t *errc);
+static void radio_get_packet_info(radio_t *dev, uint8_t *resp, size_t resp_len, enum ti_errc_t *errc);
 
 /**************************************************************************************************
  * @section Private Helper Functions
@@ -125,10 +125,11 @@ static enum ti_errc_t radio_get_packet_info(radio_t *dev, uint8_t *resp, size_t 
  * @brief Polls the Si446x until CTS (Clear-To-Send) is asserted.
  *
  * @param dev  Pointer to the radio device handle.
- * @return TI_ERRC_NONE on success, TI_ERRC_RADIO_CTS_TIMEOUT on timeout.
+ * @param errc Pointer to error status output.
  */
-static enum ti_errc_t radio_wait_cts(radio_t *dev) {
-    if (!dev) return TI_ERRC_INVALID_ARG;
+static void radio_wait_cts(radio_t *dev, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (!dev) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "dev pointer is NULL"); return; } //
     // The Si446x has an internal command processor. After sending any command,
     // you MUST wait for CTS (Clear-To-Send) before sending another.
     // We poll by sending READ_CMD_BUFF (0x44) and checking if byte[1] == 0xFF.
@@ -140,14 +141,16 @@ static enum ti_errc_t radio_wait_cts(radio_t *dev) {
         uint8_t tx[2] = { SI446X_CMD_READ_CMD_BUFF, 0x00 };
         uint8_t rx[2] = { 0x00, 0x00 };
         // Send the CTS check over SPI
-        spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, 2);
+        spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, 2, errc); //
+        if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
+
         // rx[0] = echo of our command, rx[1] = CTS status (0xFF = ready, anything else = busy)
         if (rx[1] == SI446X_CTS_READY_VALUE) {
-            return TI_ERRC_NONE;
+            return;
         }
     }
     // If we get here, the radio never became ready — likely a hardware fault
-    return TI_ERRC_RADIO_CTS_TIMEOUT;
+    TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "Si446x CTS timeout"); //
 }
 
 /**
@@ -156,10 +159,11 @@ static enum ti_errc_t radio_wait_cts(radio_t *dev) {
  * @param dev  Pointer to the radio device handle.
  * @param cmd  Pointer to the command byte array.
  * @param len  Number of command bytes.
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
+ * @param errc Pointer to error status output.
  */
-static enum ti_errc_t radio_send_cmd(radio_t *dev, const uint8_t *cmd, size_t len) {
-    if (!dev || !cmd || len == 0) return TI_ERRC_INVALID_ARG;
+static void radio_send_cmd(radio_t *dev, const uint8_t *cmd, size_t len, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (!dev || !cmd || len == 0) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Params invalid"); return; } //
     // Copy the command into a fixed-size buffer (max 16 bytes for Si446x commands).
     // We can't send the caller's buffer directly because spi_transfer_sync
     // needs matching tx/rx buffers of the same size.
@@ -169,12 +173,11 @@ static enum ti_errc_t radio_send_cmd(radio_t *dev, const uint8_t *cmd, size_t le
     
     // Send the command bytes over SPI. The Si446x clocks in command bytes
     // on the MOSI line. We don't care about the MISO response here.
-    if (spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, len) != 1) {
-        return TI_ERRC_UNKNOWN;
-    }
+    spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, len, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
     // After every command, we MUST wait for CTS before doing anything else.
     // The Si446x will ignore/corrupt further SPI traffic until it's ready.
-    return radio_wait_cts(dev);
+    radio_wait_cts(dev, errc); //
 }
 
 /**
@@ -185,9 +188,9 @@ static enum ti_errc_t radio_send_cmd(radio_t *dev, const uint8_t *cmd, size_t le
  * @param cmd_len   Number of command bytes.
  * @param resp      Pointer to the response buffer (may be NULL).
  * @param resp_len  Number of response bytes to read.
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
+ * @param errc      Pointer to error status output.
  */
-static enum ti_errc_t radio_send_cmd_get_resp(radio_t *dev, const uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len) {
+static void radio_send_cmd_get_resp(radio_t *dev, const uint8_t *cmd, size_t cmd_len, uint8_t *resp, size_t resp_len, enum ti_errc_t *errc) {
     // Two-phase SPI protocol used by the Si446x for all command+response interactions:
     //
     // Phase 1: Send the command (e.g., GET_INT_STATUS)
@@ -200,34 +203,33 @@ static enum ti_errc_t radio_send_cmd_get_resp(radio_t *dev, const uint8_t *cmd, 
     //          Byte 1 = CTS (must be 0xFF or something went wrong)
     //          Bytes 2..N = actual response data we want
     
-    enum ti_errc_t err = radio_send_cmd(dev, cmd, cmd_len);
-    if (err != TI_ERRC_NONE) return err;
+    radio_send_cmd(dev, cmd, cmd_len, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
 
     uint8_t tx[SI446X_CMD_BUFFER_SIZE] = {0};
     uint8_t rx[SI446X_CMD_BUFFER_SIZE] = {0};
     tx[0] = SI446X_CMD_READ_CMD_BUFF;
     
     // Transfer resp_len + 2 bytes: 1 for the command byte, 1 for CTS, then the response data
-    if (spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, resp_len + 2) != 1) {
-        return TI_ERRC_UNKNOWN;
-    }
+    spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, resp_len + 2, errc);
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
 
     // Verify CTS is present in the response, then copy out the data portion
     if (rx[1] == SI446X_CTS_READY_VALUE && resp != NULL) {
         memcpy(resp, &rx[2], resp_len);  // Skip [0]=echo, [1]=CTS, copy starting at [2]
     } else {
         // CTS not ready in response — radio is in a bad state
-        return TI_ERRC_RADIO_CTS_TIMEOUT;
+        TI_SET_ERRC(errc, TI_ERRC_DEVICE, "Si446x response CTS error"); //
     }
-    return TI_ERRC_NONE;
 }
 
 /**************************************************************************************************
  * @section Public Function Implementations
  **************************************************************************************************/
 
-enum ti_errc_t radio_init(radio_t *dev, const radio_spi_dev *spi_config, const radio_config_t *config) {
-    if (!dev || !spi_config || !config) return TI_ERRC_INVALID_ARG;
+void radio_init(radio_t *dev, const radio_spi_dev *spi_config, const radio_config_t *config, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (!dev || !spi_config || !config) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Params NULL"); return; } //
     // Copy both configs into the device handle for use by all future calls
     dev->spi_config = *spi_config;
     dev->config = *config;
@@ -236,8 +238,9 @@ enum ti_errc_t radio_init(radio_t *dev, const radio_spi_dev *spi_config, const r
     dev->apply_errata_12 = true;
 
     // Initialize SPI peripheral with our slave-select pin
-    uint8_t ss_list[1] = { dev->spi_config.ss_pin };
-    if (spi_init(dev->spi_config.spi_inst, ss_list, 1) != 1) return TI_ERRC_INVALID_ARG;
+    uint8_t ss_list[1] = { dev->spi_config.ss_pin }; //
+    spi_init(dev->spi_config.spi_inst, ss_list, 1, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
 
     // Configure reset pin as GPIO output (drives the Si4468 SDN/shutdown pin)
     if (dev->config.reset_pin) {
@@ -254,16 +257,16 @@ enum ti_errc_t radio_init(radio_t *dev, const radio_spi_dev *spi_config, const r
     }
 
     // Step 1: Hardware reset — puts the Si4468 into a clean power-on state
-    enum ti_errc_t err = radio_reset(dev);
-    if (err != TI_ERRC_NONE) return err;
+    radio_reset(dev, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
 
     // Step 2: Send power-up command sequence
     // This is a WDS (Wireless Development Suite) generated byte array that configures
     // the crystal oscillator frequency and boot options. Without this, the radio
     // stays in shutdown and won't respond to any other commands.
     if (radio_power_up_len > 0) {
-        err = radio_send_cmd(dev, radio_power_up_cmd, radio_power_up_len);
-        if (err != TI_ERRC_NONE) return err;
+        radio_send_cmd(dev, radio_power_up_cmd, radio_power_up_len, errc); //
+        if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
     }
 
     // Step 3: Apply Errata 12 workaround if needed
@@ -271,27 +274,26 @@ enum ti_errc_t radio_init(radio_t *dev, const radio_spi_dev *spi_config, const r
     // This forces the PLL to re-calibrate from a clean state, avoiding a silicon bug
     // where the PLL intermittently fails to lock after power-up.
     if (dev->apply_errata_12) {
-        radio_send_cmd(dev, radio_errata_12_cmd, sizeof(radio_errata_12_cmd));
-        radio_change_state(dev, SI446X_STATE_SLEEP);  // Force into sleep
-        radio_change_state(dev, SI446X_STATE_READY);  // Wake back up (PLL re-calibrates)
+        radio_send_cmd(dev, radio_errata_12_cmd, sizeof(radio_errata_12_cmd), errc); //
+        radio_change_state(dev, SI446X_STATE_SLEEP, errc);  // Force into sleep //
+        radio_change_state(dev, SI446X_STATE_READY, errc);  // Wake back up (PLL re-calibrates) //
     }
 
     // Step 4: Configure the Si4468's GPIO pins (WDS-generated)
     // All zeros = default GPIO config, which is fine for basic TX/RX operation.
     if (radio_gpio_cfg_len > 0) {
-        radio_send_cmd(dev, radio_gpio_cfg_cmd, radio_gpio_cfg_len);
+        radio_send_cmd(dev, radio_gpio_cfg_cmd, radio_gpio_cfg_len, errc); //
     }
-
-    return TI_ERRC_NONE;
 }
 
-enum ti_errc_t radio_reset(radio_t *dev) {
-    if (!dev) return TI_ERRC_INVALID_ARG;
+void radio_reset(radio_t *dev, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (!dev) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "dev NULL"); return; } //
     if (dev->config.reset_pin > 0) {
         // Determine the active/inactive levels based on PCB design.
         // Some boards wire SDN as active-high (assert = 1), others invert it.
-        uint8_t active = dev->config.reset_active_high ? 1 : 0;
-        uint8_t inactive = dev->config.reset_active_high ? 0 : 1;
+        uint8_t active = (uint8_t)dev->config.reset_active_high;
+        uint8_t inactive = (uint8_t)!dev->config.reset_active_high;
         
         // Assert reset — the Si4468 enters full shutdown, all state is lost
         tal_set_pin(dev->config.reset_pin, active);
@@ -302,33 +304,32 @@ enum ti_errc_t radio_reset(radio_t *dev) {
         // Wait for boot to complete before sending any SPI commands
         for(volatile int i=0; i<10000; i++);
     }
-    return TI_ERRC_NONE;
 }
 
-enum ti_errc_t radio_transmit(radio_t *dev, const uint8_t *data, size_t len) {
-    if (!dev || !data || len > RADIO_MAX_PACKET_SIZE) return TI_ERRC_INVALID_ARG;
+void radio_transmit(radio_t *dev, const uint8_t *data, size_t len, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (!dev || !data || len > RADIO_MAX_PACKET_SIZE) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid payload"); return; } //
     // TX sequence:
     // 1. Reset the TX FIFO — clear any stale data from a previous transmission.
     //    FIFO_INFO with arg 0x01 = reset TX FIFO only (0x02 = RX, 0x03 = both)
-    radio_fifo_info(dev, 0x01, NULL, 0);
+    radio_fifo_info(dev, 0x01, NULL, 0, errc); //
     // 2. Write the payload data into the TX FIFO.
     //    The FIFO is 64 bytes deep — one full packet.
-    radio_write_tx_fifo(dev, data, len);
+    radio_write_tx_fifo(dev, data, len, errc); //
     // 3. Start transmission.
     //    Channel = configured RF channel, condition = 0x03 (start immediately),
     //    length = number of payload bytes, tx_delay = 0 (no delay).
     //    After TX completes, the radio will assert nIRQ (if configured).
-    radio_start_tx(dev, dev->config.channel, 0x03, len, 0);
-    return TI_ERRC_NONE;
+    radio_start_tx(dev, dev->config.channel, 0x03, len, 0, errc); //
 }
 
-enum ti_errc_t radio_receive(radio_t *dev, uint8_t *data, size_t max_len, size_t *actual_len) {
-    if (!dev || !data || !actual_len) return TI_ERRC_INVALID_ARG;
-    
+void radio_receive(radio_t *dev, uint8_t *data, size_t max_len, size_t *actual_len, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (!dev || !data || !actual_len) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Params NULL"); return; } //
     // Step 1: Ask the radio how many bytes are in the last received packet.
     // PACKET_INFO returns a 2-byte response with the packet length.
-    uint8_t resp[2] = {0};
-    radio_get_packet_info(dev, resp, 2);
+    uint8_t resp[2] = {0}; //
+    radio_get_packet_info(dev, resp, 2, errc); //
     
     // Reassemble the 16-bit packet length from two bytes (big-endian)
     uint16_t pkt_len = ((uint16_t)resp[0] << 8) | resp[1];
@@ -336,26 +337,26 @@ enum ti_errc_t radio_receive(radio_t *dev, uint8_t *data, size_t max_len, size_t
     if (pkt_len == 0) {
         // No packet available — FIFO is empty
         *actual_len = 0;
-        return TI_ERRC_NONE;
+        return;
     }
     
     // Step 2: Cap the read to the caller's buffer size to prevent overflow.
     // If the packet is larger than max_len, we truncate (remaining bytes are lost
     // when we clear the FIFO below).
-    size_t read_len = (pkt_len > max_len) ? max_len : pkt_len;
-    radio_read_rx_fifo(dev, data, read_len);
-    *actual_len = read_len;
+    size_t read_len = (pkt_len > max_len) ? max_len : pkt_len; //
+    radio_read_rx_fifo(dev, data, read_len, errc); //
+    *actual_len = read_len; //
     
     // Step 3: Clear the RX FIFO (arg 0x02) to prepare for the next packet.
     // Without this, the FIFO would still contain the old packet data.
-    radio_fifo_info(dev, 0x02, NULL, 0);
+    radio_fifo_info(dev, 0x02, NULL, 0, errc); //
     // Step 4: Restart reception so we're ready for the next incoming packet.
-    radio_start_rx(dev, dev->config.channel, radio_rx_default_args, sizeof(radio_rx_default_args));
-    return TI_ERRC_NONE;
+    radio_start_rx(dev, dev->config.channel, radio_rx_default_args, sizeof(radio_rx_default_args), errc); //
 }
 
-enum ti_errc_t radio_get_int_status(radio_t *dev, uint8_t *ph_status, uint8_t *modem_status, uint8_t *chip_status) {
-    if (!dev) return TI_ERRC_INVALID_ARG;
+void radio_get_int_status(radio_t *dev, uint8_t *ph_status, uint8_t *modem_status, uint8_t *chip_status, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (!dev) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "dev NULL"); return; } //
     // GET_INT_STATUS (0x20) with 3 zero bytes = don't clear any pending interrupts.
     // The response is 8 bytes containing three independent status domains:
     //   resp[3] = Packet Handler status (TX/RX complete, CRC error, packet sent/received)
@@ -364,14 +365,13 @@ enum ti_errc_t radio_get_int_status(radio_t *dev, uint8_t *ph_status, uint8_t *m
     // The caller can pass NULL for any status they don't care about.
     uint8_t cmd[4] = { SI446X_CMD_GET_INT_STATUS, 0x00, 0x00, 0x00 };
     uint8_t resp[8] = {0};
-    
-    enum ti_errc_t err = radio_send_cmd_get_resp(dev, cmd, 4, resp, 8);
-    if (err == TI_ERRC_NONE) {
+
+    radio_send_cmd_get_resp(dev, cmd, 4, resp, 8, errc); //
+    if (errc && *errc == TI_ERRC_NONE) {
         if (ph_status) *ph_status = resp[3];       // Packet Handler interrupts
         if (modem_status) *modem_status = resp[5]; // Modem interrupts
         if (chip_status) *chip_status = resp[7];   // Chip-level interrupts
     }
-    return err;
 }
 
 bool radio_nirq_asserted(radio_t *dev) {
@@ -380,7 +380,7 @@ bool radio_nirq_asserted(radio_t *dev) {
     // Typical usage: poll this in the main loop. If true, call radio_get_int_status()
     // to find out what happened (TX done? RX packet? Fault?).
     // This avoids wasting SPI cycles polling status when nothing has happened.
-    return (tal_read_pin(dev->config.nirq_pin) == 0);
+    return (bool)!tal_read_pin(dev->config.nirq_pin);
 }
 
 /**************************************************************************************************
@@ -392,11 +392,11 @@ bool radio_nirq_asserted(radio_t *dev) {
  *
  * @param dev         Pointer to the radio device handle.
  * @param next_state  Target Si446x state (e.g. SI446X_STATE_READY).
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
+ * @param errc        Pointer to error status output.
  */
-static enum ti_errc_t radio_change_state(radio_t *dev, uint8_t next_state) {
+static void radio_change_state(radio_t *dev, uint8_t next_state, enum ti_errc_t *errc) {
     uint8_t cmd[] = { SI446X_CMD_CHANGE_STATE, next_state };
-    return radio_send_cmd(dev, cmd, 2);
+    radio_send_cmd(dev, cmd, 2, errc); //
 }
 
 /**
@@ -405,38 +405,38 @@ static enum ti_errc_t radio_change_state(radio_t *dev, uint8_t next_state) {
  * @param dev   Pointer to the radio device handle.
  * @param data  Pointer to the payload bytes.
  * @param len   Number of bytes to write.
- * @return TI_ERRC_NONE on success.
+ * @param errc  Pointer to error status output.
  */
-static enum ti_errc_t radio_write_tx_fifo(radio_t *dev, const uint8_t *data, size_t len) {
+static void radio_write_tx_fifo(radio_t *dev, const uint8_t *data, size_t len, enum ti_errc_t *errc) {
     // Write payload into the Si446x's 64-byte TX FIFO.
     // SPI frame: [WRITE_TX_FIFO command byte (0x66)] [payload byte 0] [payload byte 1] ...
     // Total transfer = len + 1 bytes (1 for the command, rest is data).
     uint8_t tx[RADIO_MAX_PACKET_SIZE + 1];
     uint8_t rx[RADIO_MAX_PACKET_SIZE + 1] = {0};
-    tx[0] = SI446X_CMD_WRITE_TX_FIFO;
-    memcpy(&tx[1], data, len);
-    spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, len + 1);
-    return TI_ERRC_NONE;
+    tx[0] = SI446X_CMD_WRITE_TX_FIFO; //
+    memcpy(&tx[1], data, len); //
+    spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, len + 1, errc); //
 }
 
 /**
  * @brief Reads data from the Si446x RX FIFO.
  *
- * @param dev   Pointer to the radio device handle.
- * @param data  Destination buffer for the received bytes.
- * @param len   Number of bytes to read.
- * @return TI_ERRC_NONE on success.
+ * @param dev    Pointer to the radio device handle.
+ * @param data   Destination buffer for the received bytes.
+ * @param len    Number of bytes to read.
+ * @param errc   Pointer to error status output.
  */
-static enum ti_errc_t radio_read_rx_fifo(radio_t *dev, uint8_t *data, size_t len) {
+static void radio_read_rx_fifo(radio_t *dev, uint8_t *data, size_t len, enum ti_errc_t *errc) {
     // Read received data from the Si446x's RX FIFO.
     // SPI frame: [READ_RX_FIFO command byte (0x77)] [dummy bytes...]
     // The Si446x clocks out the FIFO data on MISO while we send dummy bytes on MOSI.
     // rx[0] = echo of our command (discard), rx[1..N] = actual payload data.
     uint8_t tx[RADIO_MAX_PACKET_SIZE + 1] = { SI446X_CMD_READ_RX_FIFO };
     uint8_t rx[RADIO_MAX_PACKET_SIZE + 1] = {0};
-    spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, len + 1);
-    memcpy(data, &rx[1], len);  // Skip byte 0 (command echo), copy payload
-    return TI_ERRC_NONE;
+    spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, len + 1, errc); //
+    if (errc && *errc == TI_ERRC_NONE) {
+        memcpy(data, &rx[1], len);  // Skip byte 0 (command echo), copy payload
+    }
 }
 
 /**
@@ -447,11 +447,11 @@ static enum ti_errc_t radio_read_rx_fifo(radio_t *dev, uint8_t *data, size_t len
  * @param condition  TX condition byte (e.g. 0x03 for immediate start).
  * @param length     Packet length in bytes.
  * @param tx_delay   Delay before transmission (in radio clock ticks).
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
+ * @param errc       Pointer to error status output.
  */
-static enum ti_errc_t radio_start_tx(radio_t *dev, uint8_t channel, uint8_t condition, uint16_t length, uint16_t tx_delay) {
+static void radio_start_tx(radio_t *dev, uint8_t channel, uint8_t condition, uint16_t length, uint16_t tx_delay, enum ti_errc_t *errc) {
     uint8_t cmd[] = { SI446X_CMD_START_TX, channel, condition, (uint8_t)(length >> 8), (uint8_t)length, (uint8_t)(tx_delay >> 8), (uint8_t)tx_delay };
-    return radio_send_cmd(dev, cmd, 7);
+    radio_send_cmd(dev, cmd, 7, errc); //
 }
 
 /**
@@ -461,12 +461,12 @@ static enum ti_errc_t radio_start_tx(radio_t *dev, uint8_t channel, uint8_t cond
  * @param channel   RF channel number.
  * @param args      Pointer to additional START_RX arguments.
  * @param args_len  Number of additional argument bytes (max 6).
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
+ * @param errc      Pointer to error status output.
  */
-static enum ti_errc_t radio_start_rx(radio_t *dev, uint8_t channel, const uint8_t *args, size_t args_len) {
+static void radio_start_rx(radio_t *dev, uint8_t channel, const uint8_t *args, size_t args_len, enum ti_errc_t *errc) {
     uint8_t cmd[8] = { SI446X_CMD_START_RX, channel };
-    if (args && args_len <= 6) memcpy(&cmd[2], args, args_len);
-    return radio_send_cmd(dev, cmd, 2 + args_len);
+    if (args && args_len <= 6) memcpy(&cmd[2], args, args_len); //
+    radio_send_cmd(dev, cmd, 2 + args_len, errc); //
 }
 
 /**
@@ -476,22 +476,22 @@ static enum ti_errc_t radio_start_rx(radio_t *dev, uint8_t channel, const uint8_
  * @param arg       FIFO info argument (0x01 = reset TX, 0x02 = reset RX).
  * @param resp      Pointer to the response buffer (may be NULL).
  * @param resp_len  Number of response bytes to read.
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
+ * @param errc      Pointer to error status output.
  */
-static enum ti_errc_t radio_fifo_info(radio_t *dev, uint8_t arg, uint8_t *resp, size_t resp_len) {
+static void radio_fifo_info(radio_t *dev, uint8_t arg, uint8_t *resp, size_t resp_len, enum ti_errc_t *errc) {
     uint8_t cmd[] = { SI446X_CMD_FIFO_INFO, arg };
-    return radio_send_cmd_get_resp(dev, cmd, 2, resp, resp_len);
+    radio_send_cmd_get_resp(dev, cmd, 2, resp, resp_len, errc); //
 }
 
 /**
  * @brief Retrieves information about the last received packet.
  *
- * @param dev       Pointer to the radio device handle.
- * @param resp      Pointer to the response buffer.
- * @param resp_len  Number of response bytes to read.
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
+ * @param dev        Pointer to the radio device handle.
+ * @param resp       Pointer to the response buffer.
+ * @param resp_len   Number of response bytes to read.
+ * @param errc       Pointer to error status output.
  */
-static enum ti_errc_t radio_get_packet_info(radio_t *dev, uint8_t *resp, size_t resp_len) {
+static void radio_get_packet_info(radio_t *dev, uint8_t *resp, size_t resp_len, enum ti_errc_t *errc) {
     uint8_t cmd[] = { SI446X_CMD_PACKET_INFO, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    return radio_send_cmd_get_resp(dev, cmd, 6, resp, resp_len);
+    radio_send_cmd_get_resp(dev, cmd, 6, resp, resp_len, errc); //
 }

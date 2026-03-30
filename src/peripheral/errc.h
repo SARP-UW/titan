@@ -1,22 +1,22 @@
 /**
- * This file is part of the Titan Project.
- * Copyright (c) 2024 UW SARP
- * 
+ * This file is part of the Titan Flight Computer Project
+ * Copyright (c) 2026 UW SARP
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, version 3.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * @file peripheral/errc.h
- * @authors Aaron McBride
- * @brief Error code definitions and utility functions.
+ * @authors Aaron McBride, Mahir Emran
+ * @brief Error code definitions.
  */
 
 #pragma once
@@ -25,39 +25,79 @@
 
 /** @brief Error code enum. */
 enum ti_errc_t {
-  TI_ERRC_NONE = 0, /** @brief No error occurred. */
-  TI_ERRC_UNKNOWN,  /** @brief Unknown error occurred. */
-  TI_ERRC_INVALID_ARG, /** @brief Invalid argument passed to function. */
-  TI_ERRC_SPI_MAX_DEV, /** @brief Reached max device count for spi instance*/
-  TI_ERRC_SPI_NO_CONTEXT,  /** @brief Couldn't find context for spi device*/
-  TI_ERRC_GNSS_CONFIG_FAIL, /** @brief Failed to configure GNSS peripheral*/
-  TI_ERRC_DMA_NO_AVAIL_STREAM, /** @brief Failed to find available dma stream*/
-  TI_ERRC_SPI_BLOCKING_TIMEOUT, /** @brief Blocking SPI transfer timed out */
-  TI_ERRC_UBX_CHECKSUM, /** @brief Wrong ubx checksum */
-  TI_ERRC_UBX_HEADER, /** @brief Wrong ubx header */
-  TI_ERRC_UBX_CLASS_ID, /** @brief Wrong ubx class and id */
-  TI_ERRC_UBX_SIZE, /** @brief Wrong ubx size */
-  TI_ERRC_UBX_PAYLOAD, /** @brief Wrong ubx payload */
-  TI_ERRC_RADIO_CTS_TIMEOUT, /** @brief Radio CTS timeout */
-  TI_ERRC_MUTEX_LOCKED, /** @brief Failed to enable EXTI ISR because mutex is locked */
-  TI_ERRC_MUTEX_UNLOCKED, /** @brief Failed to disable EXTI ISR because mutex is unlocked */
-  TI_ERRC_MUTEX_TIMEOUT, /** @brief Failed to disable EXTI ISR because mutex timed out */
-  TI_ERRC_SPI_NOT_LOCKED,
-  TI_ERRC_BUSY, /** @brief The device is busy */
+  TI_ERRC_NONE = 0,     /** @brief No error occurred. */
+  TI_ERRC_UNKNOWN,      /** @brief Unknown or unclassified error. Use as a last resort. */
+  TI_ERRC_INVALID_ARG,  /** @brief Invalid argument passed to function. */
+  TI_ERRC_BUSY,         /** @brief Resource or device is currently busy. */
+  TI_ERRC_TIMEOUT,      /** @brief Operation timed out before completing. */
+  TI_ERRC_OVERFLOW,     /** @brief Buffer or resource capacity exceeded. */
+  TI_ERRC_NOT_FOUND,    /** @brief Requested resource or context could not be found. */
+  TI_ERRC_INTERNAL,     /** @brief Internal logic error that should not occur given valid inputs.
+                         *         Nothing the caller can do; indicates a bug or unexpected state. */
+  TI_ERRC_DEVICE,       /** @brief Error communicating with or reported by a specific device.
+                         *         The device may be unresponsive, misbehaving, or returning bad data. */
+  TI_ERRC_BUS,          /** @brief Error with an entire communication bus (SPI, I2C, UART, etc.).
+                         *         The bus may be stuck, not configured, or experiencing electrical issues. */
+  TI_ERRC_CHECKSUM,     /** @brief Data integrity check failed (checksum or CRC mismatch). */
+  TI_ERRC_PROTOCOL,     /** @brief Protocol violation or unexpected data received from a peer. */
 };
 
-/**
- * @brief Gets the name of an error code.
- * @param errc_in (enum ti_errc_t) The target error code.
- * @param errc_out (enum ti_errc_t*) Output error code for this function.
- * @returns (const char*) String containing the name of @p [errc].
- */
-const char* ti_get_errc_name(enum ti_errc_t errc_in, enum ti_errc_t* errc_out);
+/**************************************************************************************************
+ * @section Log Configuration & Data Structures
+ **************************************************************************************************/
+
+/** @brief Base address (in flash) of the log region (Bank 2, Sector 7). */
+#define TI_LOG_FLASH_START   0x081E0000U
+/** @brief Total size of the log region in bytes. */
+#define TI_LOG_FLASH_SIZE    0x00020000U
+/** @brief Erase granularity of the internal flash (128 KB sector). */
+#define TI_LOG_SECTOR_SIZE   0x00020000U
+/** @brief Magic word written in every valid log entry. */
+#define TI_LOG_MAGIC         0xD1A60001U
+/** @brief Size of each log entry in bytes (must be a multiple of flash word size, 32 B). */
+#define TI_LOG_ENTRY_SIZE    128U
+
+/** @brief A single log entry stored in flash. */
+typedef struct __attribute__((packed)) {
+  uint32_t magic;    /**< TI_LOG_MAGIC when valid, 0xFFFFFFFF when slot is empty. */
+  uint8_t  errc;     /**< The error code (cast to uint8_t). */
+  uint8_t  _pad[3];  /**< Reserved / alignment. */
+  uint32_t line;     /**< Source line number (__LINE__). */
+  char     func[28]; /**< Function name (__func__, truncated). */
+  char     file[40]; /**< Source file path (__FILE__, truncated). */
+  char     msg[48];  /**< Human-readable description (truncated). */
+} ti_log_entry_t;
+
+/**************************************************************************************************
+ * @section Public API
+ **************************************************************************************************/
 
 /**
- * @brief Gets the description of an error code.
- * @param errc_in (enum ti_errc_t) The target error code.
- * @param errc_out (enum ti_errc_t*) Output error code for this function.
- * @returns (const char*) String containing the description of @p [errc].
+ * @brief Initialises the internal flash log subsystem.
  */
-const char* ti_get_errc_desc(enum ti_errc_t errc_in, enum ti_errc_t* errc_out);
+enum ti_errc_t ti_log_init(void);
+
+/**
+ * @brief Low-level write to the flash log. Use macros instead.
+ */
+void ti_log_write(enum ti_errc_t errc, const char *msg,
+                  const char *func, const char *file, uint32_t line);
+
+/**************************************************************************************************
+ * @section Error Macros (Stack Trace Emulation)
+ **************************************************************************************************/
+
+/**
+ * @brief Sets the output error code and writes to the flash log.
+ * 
+ * Use this for both initial errors and for "Propagated" entries to build a trace.
+ *
+ * @param errc_ptr  Pointer to an enum ti_errc_t to set, or NULL.
+ * @param code      The TI_ERRC_* code.
+ * @param msg       String literal description.
+ */
+#define TI_SET_ERRC(errc_ptr, code, msg)                                        \
+  do {                                                                          \
+    if ((errc_ptr) != ((void*)0)) *(enum ti_errc_t *)(errc_ptr) = (code);      \
+    ti_log_write((code), (msg), __func__, __FILE__, __LINE__);                  \
+  } while (0)

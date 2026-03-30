@@ -1,0 +1,27 @@
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-reserved-identifier,
+  -bugprone-switch-missing-default-case,
+  -bugprone-narrowing-conversions,
+  performance-*,
+  readability-*,
+  -readability-braces-around-statements,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -clang-analyzer-security.ArrayBound,
+  -clang-analyzer-core.FixedAddressDereference,
+  -clang-analyzer-core.uninitialized.Assign,
+  misc-*,
+  -misc-misplaced-const,
+  -misc-include-cleaner
+WarningsAsErrors: 'bugprone-*,clang-analyzer-*'
+CheckOptions:
+  - key:             readability-identifier-naming.VariableCase
+    value:           lower_case
+  - key:             readability-identifier-naming.FunctionCase
+    value:           lower_case
