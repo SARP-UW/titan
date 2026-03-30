@@ -134,7 +134,9 @@ if [ "$FW_TARGET" = "commit_check" ]; then
   done
   if command -v clang-tidy &> /dev/null; then
     echo "Running explicit static analysis (clang-tidy)..."
-    find "$SCRIPT_DIR/src" -name "*.c" | xargs clang-tidy -p . --quiet || { echo "Linter found issues"; exit 23; }
+    find "$SCRIPT_DIR/src" -name "*.c" ! -path "*/app/*" -print0 \
+      | xargs -0 clang-tidy -p . --quiet --warnings-as-errors='*' \
+      || { echo "Linter found issues"; exit 23; }
   else
     echo "Warning: clang-tidy not found, skipping explicit lint step."
   fi

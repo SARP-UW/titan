@@ -40,7 +40,7 @@ static struct block_t* pool_heads[NUMBER_OF_POOLS];
  * @param i zero :)
  * @return
  */
-struct block_t* build_pool(void* curr, uint32_t pool_size, uint32_t pool_count, uint32_t i)
+static struct block_t* build_pool(void* curr, uint32_t pool_size, uint32_t pool_count, uint32_t i) // NOLINT(misc-no-recursion)
 {
     struct block_t* s = (struct block_t*)curr;
 
@@ -65,7 +65,7 @@ struct block_t* build_pool(void* curr, uint32_t pool_size, uint32_t pool_count, 
  *
  * Gets the number of blocks before the given block (its index in is_free)
  */
-void get_index(void* block, uint32_t* ret_index, enum ti_errc_t *errc){
+static void get_index(void* block, uint32_t* ret_index, enum ti_errc_t *errc){
     if (errc) *errc = TI_ERRC_NONE;
     /**
      * This function really annoyed me.  Basically we need the amount of total blocks before this pointer
@@ -110,7 +110,7 @@ void get_index(void* block, uint32_t* ret_index, enum ti_errc_t *errc){
  * 0; since the block at HEAP_START is always in the first pool
  *
  */
-void get_pool(void* block, uint32_t* res, enum ti_errc_t *errc){
+static void get_pool(void* block, uint32_t* res, enum ti_errc_t *errc){
     if (errc) *errc = TI_ERRC_NONE;
     *res = -1U;
     if((uint8_t*)block < (uint8_t*)HEAP_START || (uint8_t*)block > ((uint8_t*)HEAP_START) + TOTAL_HEAP_SIZE){ // out of range //

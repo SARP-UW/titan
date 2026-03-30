@@ -1,3 +1,4 @@
+// NOLINTBEGIN
 /**
  * This file is part of the Titan Project.
  * Copyright (c) 2026 UW SARP
@@ -8644,3 +8645,4 @@ extern const field32_t ART_CTR_PCACHEADDR; /** @brief Cacheable page index. */
 #define SI446X_PROP_PA_PWR_LVL          0x2201
 #define SI446X_PROP_PA_BIAS_CLKDUTY     0x2202
 #define SI446X_PROP_PA_TC               0x2203
+// NOLINTEND

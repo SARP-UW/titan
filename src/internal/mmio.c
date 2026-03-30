@@ -1,3 +1,4 @@
+// NOLINTBEGIN
 /**
  * This file is part of the Titan Project.
  * Copyright (c) 2025 UW SARP
@@ -14581,3 +14582,4 @@ rw_reg32_t const ART_CTR = (rw_reg32_t)0x40024400U;
 
 const field32_t ART_CTR_EN         = {.msk = 0x00000001U, .pos = 0};
 const field32_t ART_CTR_PCACHEADDR = {.msk = 0x000FFF00U, .pos = 8};
+// NOLINTEND

@@ -292,8 +292,8 @@ void radio_reset(radio_t *dev, enum ti_errc_t *errc) {
     if (dev->config.reset_pin > 0) {
         // Determine the active/inactive levels based on PCB design.
         // Some boards wire SDN as active-high (assert = 1), others invert it.
-        uint8_t active = dev->config.reset_active_high ? 1 : 0;
-        uint8_t inactive = dev->config.reset_active_high ? 0 : 1;
+        uint8_t active = (uint8_t)dev->config.reset_active_high;
+        uint8_t inactive = (uint8_t)!dev->config.reset_active_high;
         
         // Assert reset — the Si4468 enters full shutdown, all state is lost
         tal_set_pin(dev->config.reset_pin, active);
@@ -380,7 +380,7 @@ bool radio_nirq_asserted(radio_t *dev) {
     // Typical usage: poll this in the main loop. If true, call radio_get_int_status()
     // to find out what happened (TX done? RX packet? Fault?).
     // This avoids wasting SPI cycles polling status when nothing has happened.
-    return (tal_read_pin(dev->config.nirq_pin) == 0);
+    return (bool)!tal_read_pin(dev->config.nirq_pin);
 }
 
 /**************************************************************************************************

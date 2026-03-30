@@ -33,7 +33,7 @@
  * @return True if channel is valid, false otherwise.
  */
 static inline bool actuator_channel_valid(actuator_channel_t channel) {
-    return channel >= ACTUATOR_CHANNEL_0 && channel < ACTUATOR_CHANNEL_COUNT;
+    return ((channel >= ACTUATOR_CHANNEL_0) && (channel < ACTUATOR_CHANNEL_COUNT)) != 0;
 }
 
 /**
@@ -76,7 +76,8 @@ static void actuator_spi_transfer(actuator_t *dev, uint8_t addr, bool write, uin
     uint8_t rx[3] = {0};
 
     // Build address byte: set bit 7 if writing, mask address to 7 bits
-    tx[0] = (uint8_t)((write ? ACTUATOR_SPI_RW_BIT : 0x00) | (addr & 0x7F));
+    const uint8_t rw_bit = ((uint8_t)write) << 7;
+    tx[0] = (uint8_t)(rw_bit | (addr & 0x7FU));
     // Split 16-bit data into two bytes (big-endian, MSB first)
     tx[1] = (data_in >> 8) & 0xFF;
     tx[2] = data_in & 0xFF;
@@ -212,7 +213,7 @@ void actuator_set_enable(actuator_t *dev, bool enable, enum ti_errc_t *errc) {
     // for the actuator to drive outputs. This is a defense-in-depth safety pattern:
     //   - Software crash? Hardware enable is still off by default.
     //   - SPI bus stuck? Pull the GPIO to kill outputs.
-    tal_set_pin(dev->config.enable_pin, enable ? 1 : 0); //
+    tal_set_pin(dev->config.enable_pin, (int)enable); //
 }
 
 void actuator_set_active(actuator_t *dev, bool active, enum ti_errc_t *errc) {
@@ -221,7 +222,7 @@ void actuator_set_active(actuator_t *dev, bool active, enum ti_errc_t *errc) {
     // Even if hardware enable is high, the chip won't drive outputs unless
     // this bit is also set. Two independent safety layers.
     uint16_t mask = (1U << ACTUATOR_GLOBAL_CFG_ACTIVE_POS); //
-    uint16_t val = (active ? 1U : 0U) << ACTUATOR_GLOBAL_CFG_ACTIVE_POS; //
+    uint16_t val = ((uint16_t)active) << ACTUATOR_GLOBAL_CFG_ACTIVE_POS; //
     actuator_update_reg(dev, ACTUATOR_REG_GLOBAL_CFG, mask, val, errc); //
 }
 
@@ -268,13 +269,13 @@ void actuator_configure_channel(actuator_t *dev, actuator_channel_t channel, con
     //   [8]     ramp_up     — Gradual current increase when turning on (prevents inrush spikes)
     //   [7:0]   ramp        — Ramp rate value (how fast the gradual changes happen)
     uint16_t ctrl0_val = //
-        ((cfg->ctrl_mode & 0x3) << 14) |
-        ((cfg->hhf_enable ? 1 : 0) << 13) |
-        ((cfg->open_load_enable ? 1 : 0) << 12) |
-        ((cfg->h2l_enable ? 1 : 0) << 11) |
-        ((cfg->ramp_down ? 1 : 0) << 10) |
-        ((cfg->ramp_mid ? 1 : 0) << 9) |
-        ((cfg->ramp_up ? 1 : 0) << 8) |
+        ((cfg->ctrl_mode & 0x3U) << 14) |
+        (((uint16_t)cfg->hhf_enable) << 13) |
+        (((uint16_t)cfg->open_load_enable) << 12) |
+        (((uint16_t)cfg->h2l_enable) << 11) |
+        (((uint16_t)cfg->ramp_down) << 10) |
+        (((uint16_t)cfg->ramp_mid) << 9) |
+        (((uint16_t)cfg->ramp_up) << 8) |
         (cfg->ramp & 0xFF);
 
     // Pack CTRL1 register — a 16-bit bitfield with output stage settings:
@@ -287,12 +288,12 @@ void actuator_configure_channel(actuator_t *dev, actuator_channel_t channel, con
     //   [3:2]  gain       — Current sense amplifier gain (higher gain = more sensitive monitoring)
     //   [1:0]  snsf       — Sense filtering (smooths current measurements, reduces noise)
     uint16_t ctrl1_val = //
-        ((cfg->high_side ? 1 : 0) << 10) |
-        ((cfg->pwm_div & 0x3) << 8) |
-        ((cfg->t_blank & 0x3) << 6) |
-        ((cfg->slew_rate & 0x3) << 4) |
-        ((cfg->gain & 0x3) << 2) |
-        (cfg->snsf & 0x3);
+        (((uint16_t)cfg->high_side) << 10) |
+        ((cfg->pwm_div & 0x3U) << 8) |
+        ((cfg->t_blank & 0x3U) << 6) |
+        ((cfg->slew_rate & 0x3U) << 4) |
+        ((cfg->gain & 0x3U) << 2) |
+        (cfg->snsf & 0x3U);
     
     actuator_write_reg(dev, base + ACTUATOR_CH_REG_CTRL0, ctrl0_val, NULL, errc); //
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
@@ -307,7 +308,7 @@ void actuator_set_channel_enable(actuator_t *dev, actuator_channel_t channel, bo
     // Bit 0 = channel 0, bit 1 = channel 1, etc.
     // Uses read-modify-write so enabling one channel doesn't disable the others.
     uint16_t mask = (1U << channel); //
-    uint16_t val = (enable ? 1U : 0U) << channel; //
+    uint16_t val = ((uint16_t)enable) << channel; //
     actuator_update_reg(dev, ACTUATOR_REG_GLOBAL_CTRL, mask, val, errc); //
 }
 

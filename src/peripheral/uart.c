@@ -83,18 +83,18 @@ const static uint8_t uart_dmamux_req[UART_CHANNEL_COUNT]
                                             },
 };
 
-volatile dma_periph_streaminfo_t uart_to_dma[UART_CHANNEL_COUNT] = {0};
+static volatile dma_periph_streaminfo_t uart_to_dma[UART_CHANNEL_COUNT];
 
-bool uart_busy[UART_CHANNEL_COUNT] = {0};
+static bool uart_busy[UART_CHANNEL_COUNT] = {false};
 
-uart_context_t uart_contexts[UART_CHANNEL_COUNT] = {0};
+static uart_context_t uart_contexts[UART_CHANNEL_COUNT];
 
-uint32_t timeout;
+static uint32_t timeout;
 
 /**************************************************************************************************
  * @section Private Function Implementations
  **************************************************************************************************/
-bool set_alternate_function(uart_channel_t channel, uint8_t tx_pin,
+static bool set_alternate_function /* NOLINT(bugprone-easily-swappable-parameters) */(uart_channel_t channel, uint8_t tx_pin,
                             uint8_t rx_pin, uint8_t ck_pin) {
   switch (channel) {
     case UART1:
@@ -408,7 +408,7 @@ bool set_alternate_function(uart_channel_t channel, uint8_t tx_pin,
   return true;
 }
 
-bool uart_write_byte(uart_channel_t channel, uint8_t data) {
+static bool uart_write_byte /* NOLINT(bugprone-easily-swappable-parameters) */(uart_channel_t channel, uint8_t data) {
   uint32_t count = 0;
 
   if (IS_USART_CHANNEL(channel)) {
@@ -445,7 +445,7 @@ bool uart_write_byte(uart_channel_t channel, uint8_t data) {
   return true;
 }
 
-bool uart_read_byte(uint8_t channel, uint8_t *data) {
+static bool uart_read_byte(uint8_t channel, uint8_t *data) {
   uint32_t count = 0;
 
   // Input validation: ensure the destination pointer is not NULL
@@ -479,7 +479,7 @@ bool uart_read_byte(uint8_t channel, uint8_t *data) {
   return true;
 }
 
-static inline bool verify_transfer_parameters(uart_channel_t channel, uint8_t *buff,
+static inline bool verify_transfer_parameters(uart_channel_t channel, const uint8_t *buff,
                                        size_t size) {
 
   if (channel == 0) { // USED TO BE: channel == ((void*) (0)
@@ -504,8 +504,8 @@ static inline bool verify_transfer_parameters(uart_channel_t channel, uint8_t *b
 #define UART_FIELD_GENERATOR(uart, shift, reg)                                 \
   case uart: {                                                                 \
     field32_t n;                                                               \
-    n.msk = (1 << shift);                                                      \
-    n.pos = shift;                                                             \
+    n.msk = (1 << (shift));                                                    \
+    n.pos = (shift);                                                           \
     SET_FIELD(reg, n);                                                         \
     break;                                                                     \
   }

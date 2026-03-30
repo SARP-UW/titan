@@ -29,6 +29,7 @@
 /**************************************************************************************************
  * @section Data Structures
  **************************************************************************************************/
+// NOLINTNEXTLINE(readability-identifier-naming)
 static const rw_reg32_t **UARTx_CRx;
 
 /**************************************************************************************************
@@ -131,5 +132,5 @@ void uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
 void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
                             uint32_t size, enum ti_errc_t *errc);
 
-static inline bool verify_transfer_parameters(uart_channel_t channel, uint8_t *buff,
+static inline bool verify_transfer_parameters(uart_channel_t channel, const uint8_t *buff,
                                        size_t size);

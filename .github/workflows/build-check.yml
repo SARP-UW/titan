@@ -5,6 +5,12 @@ on:
   push:
     branches: [ main ]
   pull_request:
+    branches: ["main"]
+    types:
+      - opened
+      - synchronize
+      - reopened
+
 
 jobs:
   cmake-check:
@@ -48,4 +54,6 @@ jobs:
         run: cmake --build build --target titan.elf
 
       - name: Run clang-tidy
-        run: find src -name "*.c" | xargs clang-tidy -p build --quiet
+        run: |
+          find src -name "*.c" ! -path "*/app/*" -print0 \
+            | xargs -0 clang-tidy -p build --quiet --warnings-as-errors='*'

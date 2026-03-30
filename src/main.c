@@ -13,7 +13,7 @@
 #define YELLOW_LED 139
 #define RED_LED 74
 
-void _start() {
+// NOLINTNEXTLINE(readability-identifier-naming)
+void _start() { // NOLINT(misc-use-internal-linkage)
     // Add main loop here!
-    return;
 }

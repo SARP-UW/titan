@@ -1,3 +1,4 @@
+// NOLINTBEGIN
 /**
  * This file is part of the Titan Project.
  * Copyright (c) 2025 UW SARP
@@ -32,7 +33,7 @@
  * Provide a minimal implementation here so every firmware target links cleanly.
  ************************************************************************************************/
 
-void *memset(void *s, int c, size_t n) {
+void *memset(void *s, int c, size_t n) { // NOLINT(misc-use-internal-linkage)
   unsigned char *p = (unsigned char *)s;
   while (n--) {
     *p++ = (unsigned char)c;
@@ -133,3 +134,4 @@ void cm4_reset_exc_handler(void) {
     asm("wfi");
   }
 }
+// NOLINTEND

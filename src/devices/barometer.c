@@ -70,11 +70,11 @@ static void barometer_delay(uint8_t osr) {
     * 256   0.48   0.60
     */
     switch (osr) {
-        case (OSR_256):  conversion_time = 1;  break;
-        case (OSR_512):  conversion_time = 2;  break;
-        case (OSR_1024): conversion_time = 3;  break;
-        case (OSR_2048): conversion_time = 5;  break;
-        case (OSR_4096): conversion_time = 10; break;
+        case OSR_256:  conversion_time = 1;  break;
+        case OSR_512:  conversion_time = 2;  break;
+        case OSR_1024: conversion_time = 3;  break;
+        case OSR_2048: conversion_time = 5;  break;
+        case OSR_4096: conversion_time = 10; break;
         default: return;
     }
 
@@ -130,57 +130,57 @@ barometer_result_t get_barometer_data(barometer_t *dev, enum ti_errc_t *errc) {
     // Get raw D1 pressure data
     barometer_transfer(dev, D1_BASE_CMD + dev->osr, 0, errc);
     barometer_delay(dev->osr); //
-    uint32_t D1 = barometer_transfer(dev, ADC_READ, 3, errc); //
+    uint32_t d1 = barometer_transfer(dev, ADC_READ, 3, errc); //
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return dev->result; } //
 
     // Get raw D2 temperature data
     barometer_transfer(dev, D2_BASE_CMD + dev->osr, 0, errc);
     barometer_delay(dev->osr); //
-    uint32_t D2 = barometer_transfer(dev, ADC_READ, 3, errc); //
+    uint32_t d2 = barometer_transfer(dev, ADC_READ, 3, errc); //
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return dev->result; } //
 
-    if ((D1 || D2) <= 0) {
+    if ((d1 || d2) <= 0) {
         TI_SET_ERRC(errc, TI_ERRC_DEVICE, "Zero ADC data"); return dev->result; //
     }
 
     // Calculate temperature difference
-    int32_t dT = D2 - ((int32_t)dev->calibration_data.t_ref << 8);
+    int32_t delta_t = d2 - ((int32_t)dev->calibration_data.t_ref << 8);
 
     // Calculate actual temperature
-    int32_t temp = 2000 + (((int64_t)dT * dev->calibration_data.tempsens) >> 23);
+    int32_t temp = 2000 + (((int64_t)delta_t * dev->calibration_data.tempsens) >> 23);
 
     // Calculate initial offset and sensitivity
-    int64_t off  = ((int64_t)dev->calibration_data.off << 16) + (((int64_t)dev->calibration_data.tco * dT) >> 7);
-    int64_t sens = ((int64_t)dev->calibration_data.sens << 15) + (((int64_t)dev->calibration_data.tcs * dT) >> 8);
+    int64_t off  = ((int64_t)dev->calibration_data.off << 16) + (((int64_t)dev->calibration_data.tco * delta_t) >> 7);
+    int64_t sens = ((int64_t)dev->calibration_data.sens << 15) + (((int64_t)dev->calibration_data.tcs * delta_t) >> 8);
 
     // Second order temperature compensation
-    int64_t T2    = 0;
-    int64_t OFF2  = 0;
-    int64_t SENS2 = 0;
+    int64_t temp_2 = 0;
+    int64_t off_2  = 0;
+    int64_t sens_2 = 0;
 
     // If temperature is below 20°C
     if (temp < 2000) {
-        T2    = ((int64_t)dT * dT) >> 31;
-        OFF2  = 5 * ((int64_t)(temp - 2000) * (temp - 2000)) >> 1;
-        SENS2 = 5 * ((int64_t)(temp - 2000) * (temp - 2000)) >> 2;
+        temp_2 = ((int64_t)delta_t * delta_t) >> 31;
+        off_2  = 5 * ((int64_t)(temp - 2000) * (temp - 2000)) >> 1;
+        sens_2 = 5 * ((int64_t)(temp - 2000) * (temp - 2000)) >> 2;
 
         // If temperature if below -15°C
         if (temp < -1500) {
-            OFF2  = OFF2 + 7 * ((int64_t)(temp + 1500) * (temp + 1500));
-            SENS2 = SENS2 + (11 * ((int64_t)(temp + 1500) * (temp + 1500)) >> 1);
+            off_2  = off_2 + (7 * ((int64_t)(temp + 1500) * (temp + 1500)));
+            sens_2 = sens_2 + (11 * ((int64_t)(temp + 1500) * (temp + 1500)) >> 1);
         }
     }
 
-    temp -= T2;
-    off  -= OFF2;
-    sens -= SENS2;
+    temp -= temp_2;
+    off  -= off_2;
+    sens -= sens_2;
 
     // Calculate temperature compensated pressure
-    int32_t P = (((D1 * sens) >> 21) - off) >> 15;
+    int32_t pressure = (((d1 * sens) >> 21) - off) >> 15;
 
     // Results
-    dev->result.pressure    = (float)P / 100.0f;    // Units of mbar/hPa
-    dev->result.temperature = (float)temp / 100.0f; // Units of Celcius
+    dev->result.pressure    = (float)pressure / 100.0F;    // Units of mbar/hPa
+    dev->result.temperature = (float)temp / 100.0F; // Units of Celcius
 
     if ((dev->result.pressure <= 0 || dev->result.temperature) <= 0) {
         TI_SET_ERRC(errc, TI_ERRC_DEVICE, "Invalid computation"); return dev->result; //

@@ -156,7 +156,8 @@ static void ubx_send_msg(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const vo
         (uint8_t)(len & 0xFF), (uint8_t)((len >> 8) & 0xFF)
     };
     
-    uint8_t ck_a, ck_b;
+    uint8_t ck_a;
+    uint8_t ck_b;
     ubx_calc_checksum(class_id, msg_id, len, (const uint8_t *)payload, &ck_a, &ck_b);
     uint8_t checksum[2] = {ck_a, ck_b};
     if (errc) *errc = TI_ERRC_NONE;
@@ -179,7 +180,9 @@ static void ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const v
     ubx_send_msg(dev, class_id, msg_id, payload, len, errc);
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
     
-    uint8_t rx, state = 0, ack_id = 0;
+    uint8_t rx;
+    uint8_t state = 0;
+    uint8_t ack_id = 0;
     uint32_t attempts = 15000; // Safeguard against infinite loops
     
     while (attempts--) {
@@ -195,7 +198,9 @@ static void ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const v
                 if (rx == UBX_ACK_ACK || rx == UBX_ACK_NAK) {
                     ack_id = rx;
                     state = 4;
-                } else state = 0;
+                } else {
+                    state = 0;
+                }
                 break;
             case 4: state = 5; break; // Length LSB (skip check for brevity)
             case 5: state = 6; break; // Length MSB
@@ -228,11 +233,10 @@ void gnss_init(gnss_t *dev, enum ti_errc_t *errc) {
     }
 
     /* 1. Configure Navigation/Measurement Rate (UBX-CFG-RATE) */
-    ubx_cfg_rate_t rate_cfg = {
-        .measRate = dev->config.meas_rate_ms,
-        .navRate  = 1,
-        .timeRef  = 0 // 0 = UTC
-    };
+    ubx_cfg_rate_t rate_cfg = {0};
+    rate_cfg.measRate = dev->config.meas_rate_ms;
+    rate_cfg.navRate  = 1;
+    rate_cfg.timeRef  = 0; // 0 = UTC
     ubx_configure(dev, UBX_CLASS_CFG, UBX_CFG_RATE, &rate_cfg, sizeof(rate_cfg), errc);
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
 
@@ -308,9 +312,14 @@ void gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt, enum ti_errc_t *errc) {
     ubx_send_msg(dev, UBX_CLASS_NAV, UBX_NAV_PVT, NULL, 0, errc);
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
 
-    uint8_t rx, state = 0;
-    uint16_t len = 0, idx = 0;
-    uint8_t ck_a = 0, ck_b = 0, rcv_ck_a = 0, rcv_ck_b = 0;
+    uint8_t rx;
+    uint8_t state = 0;
+    uint16_t len = 0;
+    uint16_t idx = 0;
+    uint8_t ck_a = 0;
+    uint8_t ck_b = 0;
+    uint8_t rcv_ck_a = 0;
+    uint8_t rcv_ck_b = 0;
     
     ubx_nav_pvt_t pvt_raw;
     uint8_t *pvt_ptr = (uint8_t *)&pvt_raw;
@@ -329,15 +338,15 @@ void gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt, enum ti_errc_t *errc) {
                 break;
             case 1: 
                 if (rx == UBX_SYNC2) { state = 2; ck_a = 0; ck_b = 0; }
-                else state = 0; 
+                else { state = 0; }
                 break;
             case 2: // Class
                 if (rx == UBX_CLASS_NAV) { ck_a += rx; ck_b += ck_a; state = 3; }
-                else state = 0;
+                else { state = 0; }
                 break;
             case 3: // ID
                 if (rx == UBX_NAV_PVT) { ck_a += rx; ck_b += ck_a; state = 4; }
-                else state = 0;
+                else { state = 0; }
                 break;
             case 4: // Length LSB
                 len = rx; ck_a += rx; ck_b += ck_a; state = 5;
@@ -345,7 +354,7 @@ void gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt, enum ti_errc_t *errc) {
             case 5: // Length MSB
                 len |= ((uint16_t)rx << 8); ck_a += rx; ck_b += ck_a;
                 if (len == sizeof(ubx_nav_pvt_t)) { state = 6; idx = 0; }
-                else state = 0;
+                else { state = 0; }
                 break;
             case 6: // Payload
                 pvt_ptr[idx++] = rx; ck_a += rx; ck_b += ck_a;
@@ -382,5 +391,4 @@ void gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt, enum ti_errc_t *errc) {
     }
 
     TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "Timed out waiting for UBX-NAV-PVT response");
-    return;
 }

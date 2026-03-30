@@ -113,6 +113,8 @@ void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_
         case INST_SIX:
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOGEN);
             break;
+        default:
+            break;
     }
 
     // Enable clocks for all SS pins
@@ -234,6 +236,8 @@ void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_
             tal_set_speed(INST6_MISO, 3);
             tal_set_speed(INST6_MOSI, 3);
             break;
+        default:
+            break;
     }
 
     // High speed clock enable
@@ -268,6 +272,8 @@ void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_
         case INST_SIX:
             SET_FIELD(RCC_APB4ENR, RCC_APB4ENR_SPI6EN);
             break;
+        default:
+            break;
     }
     
     // Ensure SS lines are high
@@ -295,7 +301,7 @@ void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_
 
 }
 
-void spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc) {
+void spi_transfer_sync /* NOLINT(bugprone-easily-swappable-parameters) */(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
     if (size == 0) {
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Transfer size cannot be zero"); return; //

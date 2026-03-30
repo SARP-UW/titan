@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -34,13 +34,15 @@ extern "C" {
  * Doc Page 2047 for an overview
  * @return if enable succeeded.
  */
+// NOLINTNEXTLINE(readability-identifier-naming)
 bool ti_IWDG_enable();
 
 /**
  * Resets the countdown so the board doesn't reset
  */
+// NOLINTNEXTLINE(readability-identifier-naming)
 void ti_IWDG_reset_timer();
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif

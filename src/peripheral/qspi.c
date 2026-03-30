@@ -89,7 +89,10 @@ enum ti_errc_t qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *buf, bool is_read) {
         WRITE_FIELD(QUADSPI_DLR, QUADSPI_DLR_DL, cmd->data_size - 1);
     }
 
-    uint32_t fmode = is_read ? 0b01 : 0b00;             
+    uint32_t fmode = 0b00;
+    if (is_read) {
+        fmode = 0b01;
+    }
 
     uint32_t ccr_val = (fmode << 26)                |  // Combine all QUADSPI_CCR fields into one 32-bit value
                        (cmd->data_mode << 24)       |  // ----------------------------------------------------
@@ -144,7 +147,7 @@ enum ti_errc_t qspi_poll_status_blk() {
                        (0U << 18)               | // No dummy bytes
                        (QSPI_MODE_NONE << 10)   | // No address phase
                        (QSPI_MODE_SINGLE << 8)  | // Instruction over single qspi line
-                       (0x05);                    // Read status register instruction                   
+                       0x05;                    // Read status register instruction                   
 
     // Write to CCR
     WRITE_FIELD(QUADSPI_CCR, QUADSPI_CCR_REG, ccr_val); 
@@ -162,6 +165,7 @@ enum ti_errc_t qspi_poll_status_blk() {
 }
 
 enum ti_errc_t qspi_enter_memory_mapped(qspi_cmd_t *cmd) {
+    (void)cmd;
     // Ensure the QSPI is not busy
     while (READ_FIELD(QUADSPI_SR, QUADSPI_SR_BUSY));
 
@@ -173,7 +177,7 @@ enum ti_errc_t qspi_enter_memory_mapped(qspi_cmd_t *cmd) {
         (QSPI_MODE_SINGLE << 12)   | // ADSIZE: 24-bit address (0b10)
         (QSPI_MODE_SINGLE << 10)   | // ADMODE: Address on 1 line
         (QSPI_MODE_SINGLE << 8)    | // IMODE: Instruction on 1 line
-        (0x0B);                      // Instruction: Fast Read
+        0x0B;                      // Instruction: Fast Read
 
     WRITE_FIELD(QUADSPI_CCR, QUADSPI_CCR_REG, ccr_val);
 

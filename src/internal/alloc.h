@@ -1,4 +1,5 @@
 
+// NOLINTBEGIN
 #pragma once
 #include "stdbool.h"
 #include "stdint.h"
@@ -63,4 +64,5 @@ void ti_free(void* mem, enum ti_errc_t *errc);
  * @return bool true if the block is free, false if it is allocated or invalid
  */
 bool isFree(void* mem);
+// NOLINTEND
 

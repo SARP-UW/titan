@@ -63,7 +63,7 @@ enum ti_errc_t ti_log_init(void) {
     s_write_offset = 0;
     for (uint32_t i = 0; i < LOG_ENTRY_COUNT; i++) {
         uint32_t abs_addr = TI_LOG_FLASH_START + s_write_offset;
-        uint32_t magic = *(volatile uint32_t*)abs_addr;
+        uint32_t magic = *(volatile uint32_t*)abs_addr; // NOLINT(performance-no-int-to-ptr)
 
         if (magic == 0xFFFFFFFFU) { 
             s_initialized = true;

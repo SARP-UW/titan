@@ -33,7 +33,6 @@ extern void systick_delay(uint32_t ms);
 
 // NOTE: Prototype assumed for standard full-duplex SPI transfer in your peripheral/spi.h.
 // Adapt this prototype/wrapper if your actual SPI API parameters differ.
-extern void spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc);
 
 /* -------------------- Internal Helpers -------------------- */
 
@@ -128,9 +127,9 @@ void temperature_read_temp(temperature_t *dev, temperature_result_t* res, enum t
     // Extract actual temperature utilizing two's complement behavior
     if (dev->config.resolution == temperature_RES_16_BIT) {
         // 16-bit resolution format: 0.0078 °C/LSB (Entire value/128)
-        res->temperature = (float)((int16_t)raw_data) / 128.0f;
+        res->temperature = (float)((int16_t)raw_data) / 128.0F;
     } else {
         // 13-bit resolution format: mask out the 3 flag bits (Bits 2:0)
-        res->temperature = (float)((int16_t)(raw_data & 0xFFF8)) / 128.0f;
+        res->temperature = (float)((int16_t)(raw_data & 0xFFF8)) / 128.0F;
     }
 }

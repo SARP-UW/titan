@@ -53,7 +53,11 @@ static void flash_lock(uint32_t addr) {
 
 enum ti_errc_t ti_internal_flash_erase_sector(uint32_t addr) {
     bool is_bank2 = (addr >= 0x08100000U);
-    uint32_t sector = (addr - (is_bank2 ? 0x08100000U : 0x08000000U)) / 0x20000U;
+    uint32_t bank_base = 0x08000000U;
+    if (is_bank2) {
+        bank_base = 0x08100000U;
+    }
+    uint32_t sector = (addr - bank_base) / 0x20000U;
     
     if (sector > 7) return TI_ERRC_INVALID_ARG;
 
@@ -98,8 +102,8 @@ enum ti_errc_t ti_internal_flash_write(uint32_t addr, const void *data, uint32_t
 
     const uint32_t *p_data = (const uint32_t *)data;
     for (uint32_t i = 0; i < size / 32; i++) {
-        volatile uint32_t *p_flash = (uint32_t *)(addr + (i * 32));
-        for (int j = 0; j < 8; j++) p_flash[j] = p_data[i * 8 + j];
+        volatile uint32_t *p_flash = (uint32_t *)(addr + (i * 32U)); // NOLINT(performance-no-int-to-ptr)
+        for (int j = 0; j < 8; j++) p_flash[j] = p_data[(i * 8U) + (uint32_t)j];
         
         __asm volatile ("dsb sy");
         __asm volatile ("isb");
