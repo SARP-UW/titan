@@ -55,5 +55,14 @@ jobs:
 
       - name: Run clang-tidy
         run: |
+          ARM_GCC_INCLUDE_ARGS=$(echo '#include <string.h>' \
+            | arm-none-eabi-gcc -x c -E -v - 2>&1 \
+            | awk '/#include <...> search starts here:/{inlist=1;next} /End of search list./{inlist=0} inlist {gsub(/^ +/, "", $0); printf "--extra-arg=-isystem%s ", $0}')
+
+          if [ -z "$ARM_GCC_INCLUDE_ARGS" ]; then
+            echo "Failed to resolve arm-none-eabi-gcc include paths for clang-tidy"
+            exit 1
+          fi
+
           find src -name "*.c" ! -path "*/app/*" -print0 \
-            | xargs -0 clang-tidy -p build --quiet --warnings-as-errors='*'
+            | xargs -0 clang-tidy -p build --quiet --warnings-as-errors='*' $ARM_GCC_INCLUDE_ARGS
