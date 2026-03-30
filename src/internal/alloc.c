@@ -1,8 +1,24 @@
-//
-// Created by Joshua Beard on 9/27/25.
-//
+/**
+ * This file is part of the Titan Flight Computer Project
+ * Copyright (c) 2026 UW SARP
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @file internal/alloc.c
+ * @authors Joshua Beard
+ * @brief Internal memory allocator implementation.
+ */
 #include "alloc.h"
-#include "../peripheral/log.h"
 // #include "peripheral/gpio.h" // FOR TESTING < REMOVE
 
 void* HEAP_START = (void*)0x0;
@@ -49,7 +65,8 @@ struct block_t* build_pool(void* curr, uint32_t pool_size, uint32_t pool_count, 
  *
  * Gets the number of blocks before the given block (its index in is_free)
  */
-enum ti_errc_t get_index(void* block, uint32_t* ret_index){
+void get_index(void* block, uint32_t* ret_index, enum ti_errc_t *errc){
+    if (errc) *errc = TI_ERRC_NONE;
     /**
      * This function really annoyed me.  Basically we need the amount of total blocks before this pointer
      * (which is its index ofc), but I can not think of a way to do this in constant time.  Maybe some sort
@@ -61,9 +78,8 @@ enum ti_errc_t get_index(void* block, uint32_t* ret_index){
 
      // updated condition to >= because:
      // HEAP_START + TOTAL_HEAP_SIZE will be 1 out of range, so if block equals that, that's 1 OOB
-    if((uint8_t*)block < (uint8_t*)HEAP_START || (uint8_t*)block >= ((uint8_t*)HEAP_START) + TOTAL_HEAP_SIZE){ // out of range
-        TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "Block pointer is outside the heap address range");
-        return TI_ERRC_INVALID_ARG;
+    if((uint8_t*)block < (uint8_t*)HEAP_START || (uint8_t*)block >= ((uint8_t*)HEAP_START) + TOTAL_HEAP_SIZE){ // out of range //
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Block pointer is outside the heap address range"); return; //
     }
 
     uint8_t* blk = (uint8_t*) block;
@@ -84,7 +100,6 @@ enum ti_errc_t get_index(void* block, uint32_t* ret_index){
     }
 
     *ret_index = index;
-    return TI_ERRC_NONE;
 }
 
 /**
@@ -95,10 +110,11 @@ enum ti_errc_t get_index(void* block, uint32_t* ret_index){
  * 0; since the block at HEAP_START is always in the first pool
  *
  */
-enum ti_errc_t get_pool(void* block, uint32_t* res){
+void get_pool(void* block, uint32_t* res, enum ti_errc_t *errc){
+    if (errc) *errc = TI_ERRC_NONE;
     *res = -1U;
-    if((uint8_t*)block < (uint8_t*)HEAP_START || (uint8_t*)block > ((uint8_t*)HEAP_START) + TOTAL_HEAP_SIZE){ // out of range
-        return TI_ERRC_INVALID_ARG;
+    if((uint8_t*)block < (uint8_t*)HEAP_START || (uint8_t*)block > ((uint8_t*)HEAP_START) + TOTAL_HEAP_SIZE){ // out of range //
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "OOB pointer"); return; //
     }
 
     uint8_t* blk = (uint8_t*) block;
@@ -115,7 +131,6 @@ enum ti_errc_t get_pool(void* block, uint32_t* res){
     }
 
     *res = i;
-    return TI_ERRC_NONE;
 }
 
 
@@ -127,16 +142,15 @@ enum ti_errc_t get_pool(void* block, uint32_t* res){
  * @return 1 for success, -1 for failure
  */
 
-enum ti_errc_t init_heap() {
-
+void init_heap(enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     uint32_t s = 0;
     for(int i = 0; i < NUMBER_OF_POOLS; i++){
         s += POOL_BLOCK_SIZES[i] * POOL_SIZES[i];
     }
 
     if (s != TOTAL_HEAP_SIZE) {
-        TI_SET_ERRC(NULL, TI_ERRC_INTERNAL, "Heap configuration error: sum of pool sizes does not equal TOTAL_HEAP_SIZE");
-        return TI_ERRC_INTERNAL;
+        TI_SET_ERRC(errc, TI_ERRC_INTERNAL, "Heap configuration error"); return; //
     }
 
     void* start = HEAP_START;
@@ -156,23 +170,23 @@ enum ti_errc_t init_heap() {
         is_free[i] = 255;
     }
 
-    return TI_ERRC_NONE;
 }
 
 /**
- *
  * @param size
- * @return
+ * @param errc Output error code.
+ * @return Pointer to allocated block, or NULL on failure.
  */
-enum ti_errc_t alloc(uint32_t size, void** res) {
+void* alloc(uint32_t size, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     if (size == 0 || size > POOL_BLOCK_SIZES[NUMBER_OF_POOLS - 1]) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid alloc size"); return NULL; //
     }
     // find ideal i
     uint32_t i = 0;
     // i < NUMBER_OF_POOLS comes first so that it can terminate condition early
     for(; i < NUMBER_OF_POOLS && size > POOL_BLOCK_SIZES[i]; i++);
-    if (i >= NUMBER_OF_POOLS) return TI_ERRC_INVALID_ARG;
+    if (i >= NUMBER_OF_POOLS) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "No pool fits size"); return NULL; } //
     // if the pool for ideal i is already full (null head), keep going to next block until we find a free one
     struct block_t* block = pool_heads[i];
     while(block == ((void*)0) && i < NUMBER_OF_POOLS-1){ // subtracting 1 here because of ++i
@@ -180,12 +194,14 @@ enum ti_errc_t alloc(uint32_t size, void** res) {
     }
 
     if(block == ((void*)0)){
-        return TI_ERRC_INVALID_ARG; // no space for a new block of this size
+        TI_SET_ERRC(errc, TI_ERRC_OVERFLOW, "Heap full"); return NULL; //
     }
 
     // update free blocks
-    uint32_t index;
-    get_index(block, &index);
+    uint32_t index; //
+    get_index(block, &index, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return NULL; } //
+    
     uint32_t big_index = index / 8;
     uint32_t small_index = index % 8;
 
@@ -198,19 +214,19 @@ enum ti_errc_t alloc(uint32_t size, void** res) {
         *(((uint8_t*)block) + j) = 0; // changed this to j? not sure why this was i before.
     }
 
-    *res = block;
-    return TI_ERRC_NONE;
+    return block;
 }
 
 /**
- *
  * @param mem
+ * @param errc Output error code.
  */
-enum ti_errc_t ti_free(void* mem) {
+void ti_free(void* mem, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     uint32_t i;
-    get_pool(mem, &i);
-    if(i == -1U){
-        return TI_ERRC_INVALID_ARG; // bad call, already "free" since it's not in heap
+    get_pool(mem, &i, errc); //
+    if ((errc && *errc != TI_ERRC_NONE) || i == -1U){ //
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Memory block not in heap"); return; //
     }
 
     struct block_t new_head = (struct block_t){
@@ -221,12 +237,13 @@ enum ti_errc_t ti_free(void* mem) {
 
     pool_heads[i] = (struct block_t*)mem;
     uint32_t index;
-    get_index(mem, &index);
+    get_index(mem, &index, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
+
     uint32_t big_index = index / 8;
     uint32_t small_index = index % 8;
 
     is_free[big_index] |= (uint8_t)1 << small_index;
-    return TI_ERRC_NONE;
 }
 
 /**
@@ -235,10 +252,11 @@ enum ti_errc_t ti_free(void* mem) {
  * @return
  */
 bool isFree(void* mem) {
-    uint32_t index;
-    get_index(mem, &index);
+    uint32_t index; //
+    enum ti_errc_t local_errc = TI_ERRC_NONE; //
+    get_index(mem, &index, &local_errc); //
 
-    if(index == -1U){
+    if(local_errc != TI_ERRC_NONE || index == -1U){ //
         return false;
     }
     uint32_t big_index = index / 8;

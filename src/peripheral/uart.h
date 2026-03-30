@@ -81,10 +81,10 @@ typedef struct {
  * @param usart_config: Config struct
  * @param dma_tx: TX DMA stream config
  * @param dma_rx: RX DMA stream config
- * @return true if initialization is successful, false otherwise.
+ * @param errc Pointer to error status output.
  */
-enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
-                   periph_dma_config_t *tx_stream, periph_dma_config_t *rx_stream);
+void uart_init(uart_config_t *usart_config, dma_callback_t *callback,
+                   periph_dma_config_t *tx_stream, periph_dma_config_t *rx_stream, enum ti_errc_t *errc);
 
 /**
  * @brief Sends data over the specified UART channel. Asyncronous function.
@@ -93,9 +93,9 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
  * @param tx_buff Pointer to the data buffer to be transmitted.
  * @param size Number of bytes to transmit.
  *
- * @return true if data transmission is successful, false otherwise.
+ * @param errc Pointer to error status output.
  */
-enum ti_errc_t uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size);
+void uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size, enum ti_errc_t *errc);
 
 /**
  * @brief Receives data from the specified UART channel. Asyncronous function
@@ -103,8 +103,9 @@ enum ti_errc_t uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32
  * @param channel USART channel
  * @param rx_buff Pointer to the buffer where received data will be stored.
  * @param size Number of bytes to read.
+ * @param errc Pointer to error status output.
  */
-enum ti_errc_t uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size);
+void uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size, enum ti_errc_t *errc);
 
 /**
  * @brief Sends data over the specified UART channel. Blocking (syncronous)
@@ -113,11 +114,10 @@ enum ti_errc_t uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_
  * @param channel USART channel
  * @param tx_buff Pointer to the data buffer to be transmitted.
  * @param size Number of bytes to transmit.
- *
- * @return true if data transmission is successful, false otherwise.
+ * @param errc Pointer to error status output.
  */
-enum ti_errc_t uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
-                             uint32_t size);
+void uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
+                             uint32_t size, enum ti_errc_t *errc);
 
 /**
  * @brief Receives data from the specified UART channel. Blocking (syncronous)
@@ -126,9 +126,10 @@ enum ti_errc_t uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
  * @param channel USART channel
  * @param rx_buff Pointer to the buffer where received data will be stored.
  * @param size Number of bytes to read.
+ * @param errc Pointer to error status output.
  */
-enum ti_errc_t uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
-                            uint32_t size);
+void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
+                            uint32_t size, enum ti_errc_t *errc);
 
 static inline bool verify_transfer_parameters(uart_channel_t channel, uint8_t *buff,
                                        size_t size);

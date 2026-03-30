@@ -1,6 +1,6 @@
 /**
  * This file is part of the Titan Project.
- * Copyright (c) 2025 UW SARP
+ * Copyright (c) 2026 UW SARP
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -3261,7 +3261,7 @@ extern ro_reg32_t const FLASH_BOOT_CURR;  /** @brief FLASH register with boot ad
 extern ro_reg32_t const FLASH_BOOT_PRGR;  /** @brief FLASH register with boot address. */
 extern rw_reg32_t const FLASH_CRCDATAR;   /** @brief FLASH CRC data register. */
 extern ro_reg32_t const FLASH_ECC_FA1R;   /** @brief FLASH ECC fail address for bank 1. */
-extern ro_reg32_t const FLASH_KEYR2;      /** @brief FLASH key register for bank 2. */
+extern rw_reg32_t const FLASH_KEYR2;      /** @brief FLASH key register for bank 2. */
 extern rw_reg32_t const FLASH_CR2;        /** @brief FLASH control register for bank 2. */
 extern rw_reg32_t const FLASH_SR2;        /** @brief FLASH status register for bank 2. */
 extern rw_reg32_t const FLASH_CCR2;       /** @brief FLASH clear control register for bank 2. */

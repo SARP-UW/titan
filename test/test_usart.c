@@ -1,10 +1,6 @@
 #include "peripheral/gpio.h"
-#include "peripheral/watchdog.h"
-#include "internal/alloc.h"
 #include "peripheral/uart.h"
-#include "peripheral/pwm.h"
-#include "peripheral/spi.h"
-#include "peripheral/systick.h"
+#include "peripheral/errc.h"
 #include <stdio.h>
 
 void test_uart(){
@@ -17,14 +13,15 @@ void test_uart(){
 	config.data_length = data_length;
 	config.baud_rate = 9600;
 	config.clk_freq = 4000000;
+	enum ti_errc_t errc;
 
-	int n = uart_init(&config, (void*) (0), (void*) (0), (void*) (0));
+	uart_init(&config, (void*) (0), (void*) (0), (void*) (0), &errc);
 	asm("BKPT #0");
 
 	uint8_t tx = 0xAA;
 
 	while (1) {
-		uart_write_blocking(channel, &tx, 1);
+		uart_write_blocking(channel, &tx, 1, &errc);
 	}
 }
 

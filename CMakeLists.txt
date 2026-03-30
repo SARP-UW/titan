@@ -37,37 +37,38 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# Enable clang-tidy if the binary is found
+find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+if(CLANG_TIDY_EXE)
+    message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXE}")
+    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-config-file=${CMAKE_SOURCE_DIR}/.clang-tidy")
+else()
+    message(WARNING "clang-tidy not found. Static analysis will be skipped.")
+endif()
+
 project(titan C ASM)
 
 enable_testing()
 
-set(COMMON_SOURCES
-  ${CMAKE_SOURCE_DIR}/src/internal/startup.c
-  ${CMAKE_SOURCE_DIR}/src/internal/interrupt.c
-  ${CMAKE_SOURCE_DIR}/src/internal/vtable.c
-  ${CMAKE_SOURCE_DIR}/src/internal/mmio.c
-  ${CMAKE_SOURCE_DIR}/src/internal/alloc.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/gpio.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/watchdog.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/pwm.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/uart.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/dma.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/spi.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/qspi.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/systick.c
-  ${CMAKE_SOURCE_DIR}/src/devices/actuator.c
-  ${CMAKE_SOURCE_DIR}/src/devices/radio.c
-  ${CMAKE_SOURCE_DIR}/src/devices/barometer.c
-  ${CMAKE_SOURCE_DIR}/src/devices/temperature.c
-  ${CMAKE_SOURCE_DIR}/src/devices/gnss.c
-  ${CMAKE_SOURCE_DIR}/src/peripheral/log.c
+file(GLOB_RECURSE COMMON_SOURCES
+  ${CMAKE_SOURCE_DIR}/src/*.c
 )
+# Remove main.c from COMMON_SOURCES
+list(REMOVE_ITEM COMMON_SOURCES ${CMAKE_SOURCE_DIR}/src/main.c)
 
 function(add_firmware_target target_name entry_file)
-  add_executable(${target_name}.elf
-    ${entry_file}
-    ${COMMON_SOURCES}
-  )
+  if ("${entry_file}" STREQUAL "${CMAKE_SOURCE_DIR}/src/main.c")
+    add_executable(${target_name}.elf
+      ${entry_file}
+      ${COMMON_SOURCES}
+      ${CMAKE_SOURCE_DIR}/src/main.c
+    )
+  else()
+    add_executable(${target_name}.elf
+      ${entry_file}
+      ${COMMON_SOURCES}
+    )
+  endif()
 
   target_include_directories(${target_name}.elf PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -115,13 +116,11 @@ add_custom_command(
   COMMAND gcc -std=c18 -Wall -Wextra
     ${CMAKE_SOURCE_DIR}/src/internal/alloc.c
     ${CMAKE_SOURCE_DIR}/test/test_alloc.c
-    ${CMAKE_SOURCE_DIR}/test/log_stub.c
     -o ${CMAKE_BINARY_DIR}/test_alloc
   DEPENDS
     ${CMAKE_SOURCE_DIR}/src/internal/alloc.c
     ${CMAKE_SOURCE_DIR}/test/test_alloc.c
     ${CMAKE_SOURCE_DIR}/src/internal/alloc.h
-    ${CMAKE_SOURCE_DIR}/test/log_stub.c
   COMMENT "Building native host test: test_alloc"
 )
 add_custom_target(test_alloc_target ALL DEPENDS ${CMAKE_BINARY_DIR}/test_alloc)

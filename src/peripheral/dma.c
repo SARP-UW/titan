@@ -1,6 +1,7 @@
 #include "dma.h"
-
-tal_err_t *dma_init(void) {
+#include "errc.h"
+void* dma_init(enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     return (void*) (0);
 }
 

@@ -1,6 +1,6 @@
 /**
  * This file is part of the Titan Flight Computer Project
- * Copyright (c) 2025 UW SARP
+ * Copyright (c) 2026 UW SARP
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -198,56 +198,56 @@ typedef struct {
  * @param dev        Pointer to the actuator device handle.
  * @param spi_config Pointer to the SPI configuration (instance + SS pin).
  * @param config     Pointer to the actuator configuration (GPIO pins, PWM, CRC).
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
- */
-enum ti_errc_t actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config, const actuator_config_t *config);
+ * @param errc       Pointer to error status output.
+ */ //
+void actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config, const actuator_config_t *config, enum ti_errc_t *errc);
 
 /**
  * @brief Asserts or de-asserts the hardware enable pin.
  *
  * @param dev     Pointer to the actuator device handle.
  * @param enable  True to enable, false to disable.
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
- */
-enum ti_errc_t actuator_set_enable(actuator_t *dev, bool enable);
+ * @param errc    Pointer to error status output.
+ */ //
+void actuator_set_enable(actuator_t *dev, bool enable, enum ti_errc_t *errc);
 
 /**
  * @brief Sets the ACTIVE bit in the GLOBAL_CFG register.
  *
  * @param dev     Pointer to the actuator device handle.
  * @param active  True to activate, false to deactivate.
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
- */
-enum ti_errc_t actuator_set_active(actuator_t *dev, bool active);
+ * @param errc    Pointer to error status output.
+ */ //
+void actuator_set_active(actuator_t *dev, bool active, enum ti_errc_t *errc);
 
 /**
  * @brief Sets the master PWM frequency divider (F_PWM_M) in GLOBAL_CTRL.
  *
  * @param dev      Pointer to the actuator device handle.
  * @param f_pwm_m  Master PWM frequency selector (0–15).
- * @return TI_ERRC_NONE on success, TI_ERRC_INVALID_ARG if f_pwm_m > 15.
- */
-enum ti_errc_t actuator_set_pwm_master(actuator_t *dev, uint8_t f_pwm_m);
+ * @param errc     Pointer to error status output.
+ */ //
+void actuator_set_pwm_master(actuator_t *dev, uint8_t f_pwm_m, enum ti_errc_t *errc);
 
 /**
  * @brief Writes a full channel configuration to the MAX22216/MAX22217.
  *
  * @param dev      Pointer to the actuator device handle.
  * @param channel  Channel index (0–3).
- * @param cfg      Pointer to the channel configuration.
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
- */
-enum ti_errc_t actuator_configure_channel(actuator_t *dev, actuator_channel_t channel, const actuator_channel_config_t *cfg);
+ * @param cfg      Pointer to the channel configuration. //
+ * @param errc     Pointer to error status output.
+ */ //
+void actuator_configure_channel(actuator_t *dev, actuator_channel_t channel, const actuator_channel_config_t *cfg, enum ti_errc_t *errc);
 
 /**
  * @brief Enables or disables a single channel in GLOBAL_CTRL.
  *
  * @param dev      Pointer to the actuator device handle.
  * @param channel  Channel index (0–3).
- * @param enable   True to enable, false to disable.
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
- */
-enum ti_errc_t actuator_set_channel_enable(actuator_t *dev, actuator_channel_t channel, bool enable);
+ * @param enable   True to enable, false to disable. //
+ * @param errc     Pointer to error status output.
+ */ //
+void actuator_set_channel_enable(actuator_t *dev, actuator_channel_t channel, bool enable, enum ti_errc_t *errc);
 
 /**
  * @brief Reads the STATUS register.
@@ -255,9 +255,9 @@ enum ti_errc_t actuator_set_channel_enable(actuator_t *dev, actuator_channel_t c
  * @param dev         Pointer to the actuator device handle.
  * @param status      Pointer to store the 16-bit status value.
  * @param status_out  Optional pointer to store the SPI status byte (may be NULL).
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
- */
-enum ti_errc_t actuator_read_status(actuator_t *dev, uint16_t *status, uint8_t *status_out);
+ * @param errc        Pointer to error status output.
+ */ //
+void actuator_read_status(actuator_t *dev, uint16_t *status, uint8_t *status_out, enum ti_errc_t *errc);
 
 /**
  * @brief Reads both FAULT0 and FAULT1 registers.
@@ -265,10 +265,10 @@ enum ti_errc_t actuator_read_status(actuator_t *dev, uint16_t *status, uint8_t *
  * @param dev         Pointer to the actuator device handle.
  * @param fault0      Pointer to store the 16-bit FAULT0 value.
  * @param fault1      Pointer to store the 16-bit FAULT1 value.
- * @param status_out  Optional pointer to store the SPI status byte (may be NULL).
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
- */
-enum ti_errc_t actuator_read_fault(actuator_t *dev, uint16_t *fault0, uint16_t *fault1, uint8_t *status_out);
+ * @param status_out  Optional pointer to store the SPI status byte (may be NULL). //
+ * @param errc        Pointer to error status output.
+ */ //
+void actuator_read_fault(actuator_t *dev, uint16_t *fault0, uint16_t *fault1, uint8_t *status_out, enum ti_errc_t *errc);
 
 /**
  * @brief Reads the I-Monitor register for a given channel.
@@ -276,7 +276,7 @@ enum ti_errc_t actuator_read_fault(actuator_t *dev, uint16_t *fault0, uint16_t *
  * @param dev         Pointer to the actuator device handle.
  * @param channel     Channel index (0–3).
  * @param i_monitor   Pointer to store the 16-bit I-Monitor value.
- * @param status_out  Optional pointer to store the SPI status byte (may be NULL).
- * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
- */
-enum ti_errc_t actuator_read_i_monitor(actuator_t *dev, actuator_channel_t channel, uint16_t *i_monitor, uint8_t *status_out);
+ * @param status_out  Optional pointer to store the SPI status byte (may be NULL). //
+ * @param errc        Pointer to error status output.
+ */ //
+void actuator_read_i_monitor(actuator_t *dev, actuator_channel_t channel, uint16_t *i_monitor, uint8_t *status_out, enum ti_errc_t *errc);

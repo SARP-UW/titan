@@ -1,6 +1,6 @@
 /**
  * This file is part of the Titan Flight Computer Project
- * Copyright (c) 2024 UW SARP
+ * Copyright (c) 2026 UW SARP
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,8 @@
 #pragma once
 
 #include <stdint.h>
-#include "../util/error.h"
+#include <stdbool.h>
+#include "errc.h"
 
 /**************************************************************************************************
  * @section Type Definitions
@@ -154,7 +155,7 @@ typedef struct {
  * @brief Initializes the DMA subsystem (enables clocks for all DMA controllers).
  * Should be called once during system boot.
  */
-tal_err_t *dma_init(void);
+void* dma_init(enum ti_errc_t *errc);
 
 /**
  * @brief Configures a specific DMA stream to a specific request ID, and enables it.

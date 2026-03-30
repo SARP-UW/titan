@@ -20,7 +20,6 @@
  */
 
 #include "peripheral/spi.h"
-#include "peripheral/log.h"
 #include "internal/mmio.h"
 #include "peripheral/gpio.h"
 #include <stdint.h>
@@ -88,10 +87,10 @@ static inline void ss_high(uint8_t* ss_list, uint8_t slave_count) {
     }
 }
 
-enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
+void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     if (inst > 6 || inst < 1) {
-        TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "SPI instance must be in range [1, 6]");
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI instance range error"); return;
     }
 
     // Enable clocks for MOSI, MISO, and SCK
@@ -294,13 +293,12 @@ enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count) {
     // Set SPI as master
     SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_MASTER);
 
-    return TI_ERRC_NONE;
 }
 
-enum ti_errc_t spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size) {
+void spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     if (size == 0) {
-        TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "Transfer size cannot be zero");
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Transfer size cannot be zero"); return; //
     }
 
     CLR_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
@@ -332,6 +330,4 @@ enum ti_errc_t spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* 
 
     // Pull SS pin high to end transfer
     tal_set_pin(ss_pin, 1);
-
-    return TI_ERRC_NONE;
 }

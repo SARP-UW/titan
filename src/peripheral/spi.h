@@ -39,9 +39,9 @@
  * @param slave_count  The number of slave devices attached to the instance. This number must match the
  *                     number of elements in the ss_list array. 
  * 
- * @return ti_errc_t error code.
+ * @param errc Pointer to error status output.
  */
-enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count);
+void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_t *errc);
 
 /**
  * @brief Perform an SPI data transfer with blocking. 
@@ -68,6 +68,6 @@ enum ti_errc_t spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count);
  * @param size  Number of bytes to transfer.
  * @param ss_pin  The SS pin of the slave SPI will communicate with. 
  *
- * @return ti_errc_t error code.
- */
-enum ti_errc_t spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size);
+ * @param errc Pointer to error status output.
+ */ //
+void spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc); //

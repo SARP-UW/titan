@@ -125,12 +125,19 @@ fi
 
 if [ "$FW_TARGET" = "commit_check" ]; then
   echo "Running local pre-commit check:"
+  # The CMAKE_C_CLANG_TIDY set in CMakeLists will run during 'make'
   cmake -S "$SCRIPT_DIR" -B "$SCRIPT_DIR/build" || { echo "cmake configure failed"; exit 20; }
   cd "$SCRIPT_DIR/build" || exit 22
   for target in "${FW_TARGETS[@]}"; do
     echo "Building ${target}.elf"
     make "${target}.elf" || { echo "make failed for ${target}.elf"; exit 21; }
   done
+  if command -v clang-tidy &> /dev/null; then
+    echo "Running explicit static analysis (clang-tidy)..."
+    find "$SCRIPT_DIR/src" -name "*.c" | xargs clang-tidy -p . --quiet || { echo "Linter found issues"; exit 23; }
+  else
+    echo "Warning: clang-tidy not found, skipping explicit lint step."
+  fi
   make test_alloc_target || { echo "make test_alloc failed"; exit 21; }
   echo "Built target test_alloc"
   ctest --output-on-failure || { echo "Unit tests failed"; exit 21; }

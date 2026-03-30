@@ -1,6 +1,6 @@
 /**
  * This file is part of the Titan Flight Computer Project
- * Copyright (c) 2024 UW SARP
+ * Copyright (c) 2026 UW SARP
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #include "uart.h"
 #include "../internal/mmio.h"
 #include "gpio.h"
-#include "log.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -514,8 +513,8 @@ static inline bool verify_transfer_parameters(uart_channel_t channel, uint8_t *b
 /**************************************************************************************************
  * @section Public Function Implementations
  **************************************************************************************************/
-enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
-               periph_dma_config_t *tx_stream, periph_dma_config_t *rx_stream) {
+void uart_init(uart_config_t *usart_config, dma_callback_t *callback,
+               periph_dma_config_t *tx_stream, periph_dma_config_t *rx_stream, enum ti_errc_t *errc) {
   // De-reference struct members for readability
   uart_channel_t channel = usart_config->channel;
   uart_parity_t parity = usart_config->parity;
@@ -566,8 +565,8 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
       rx_pin = 138;
       break;
     default:
-      TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "Invalid UART channel number");
-      return TI_ERRC_INVALID_ARG;
+      TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART channel number");
+      return;
   }
   switch (channel) {
     UART_FIELD_GENERATOR(UART1, 4, RCC_APB2ENR)
@@ -579,8 +578,8 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     UART_FIELD_GENERATOR(UART7, 30, RCC_APB1LENR)
     UART_FIELD_GENERATOR(UART8, 31, RCC_APB1LENR)
     default:
-      TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "Invalid UART channel for clock enable");
-      return TI_ERRC_INVALID_ARG;
+      TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART channel for clock enable");
+      return;
   }
 
   tal_enable_clock(tx_pin);
@@ -597,9 +596,9 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
 
   bool test_set_alt = set_alternate_function(channel, tx_pin, rx_pin, ck_pin);
   if (!test_set_alt) {
-    TI_SET_ERRC(NULL, TI_ERRC_INTERNAL, "Failed to configure UART GPIO alternate function");
-    return TI_ERRC_INTERNAL;
-  }
+    TI_SET_ERRC(errc, TI_ERRC_INTERNAL, "Failed to configure UART GPIO alternate function");
+    return; //
+  } //
 
 
   // Ensure the clock pin is disabled for asynchronous mode
@@ -634,7 +633,7 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     case UART_DATALENGTH_7:
       if (!parity) {
         // tal_raise(flag, "Invalid parity datasize combo");
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return;
       }
       SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
       CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
@@ -646,7 +645,7 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     case UART_DATALENGTH_9:
       if (parity) {
         // tal_raise(flag, "Invalid parity datasize combo");
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return;
       }
       SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
       SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
@@ -663,15 +662,15 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
   switch (parity) {
     case UART_PARITY_DISABLED:
       CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
-      break;
+      break; //
     case UART_PARITY_EVEN:
       SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
       CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_PS);
-      break;
+      break; //
     case UART_PARITY_ODD:
       SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
       SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PS);
-      break;
+      break; //
   }
 
 
@@ -679,20 +678,20 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
   switch (data_length) {
     case UART_DATALENGTH_7:
       if (!parity) {
-        // tal_raise(flag, "Invalid parity datasize combo");
-        return TI_ERRC_INVALID_ARG;
+        // tal_raise(flag, "Invalid parity datasize combo"); //
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return; //
       }
       SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
       CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
-      break;
+      break; //
     case UART_DATALENGTH_8:
       CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
       CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
-      break;
+      break; //
     case UART_DATALENGTH_9:
       if (parity) {
-        // tal_raise(flag, "Invalid parity datasize combo");
-        return TI_ERRC_INVALID_ARG;
+        // tal_raise(flag, "Invalid parity datasize combo"); //
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return; //
       }
       SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
       SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
@@ -751,21 +750,20 @@ enum ti_errc_t uart_init(uart_config_t *usart_config, dma_callback_t *callback,
     SET_FIELD(UARTx_CR1[channel], UARTx_CR1_RE);
     SET_FIELD(UARTx_CR1[channel], UARTx_CR1_UE);
   }
-
-  return TI_ERRC_NONE;
 }
 
-enum ti_errc_t uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size) {
+void uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size, enum ti_errc_t *errc) {
+  if (errc) *errc = TI_ERRC_NONE;
   // Verify parameters
   bool test_params = verify_transfer_parameters(channel, tx_buff, size);
   if (!test_params) {
-    return TI_ERRC_INVALID_ARG;
+    TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid params"); return;
   }
 
   // Check if usart channel is busy
   if (uart_busy[channel]) {
     // tal_raise(flag, "USART channel is busy");
-    return TI_ERRC_BUSY;
+    TI_SET_ERRC(errc, TI_ERRC_BUSY, "Channel busy"); return;
   }
   uart_busy[channel] = true;
 
@@ -788,21 +786,20 @@ enum ti_errc_t uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32
 
   // Enable the dma requests
   SET_FIELD(UARTx_CR3[channel], UARTx_CR3_DMAT);
-
-  return TI_ERRC_NONE;
 }
 
-enum ti_errc_t uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size) {
+void uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size, enum ti_errc_t *errc) {
+  if (errc) *errc = TI_ERRC_NONE;
   // Verify parameters
   bool test_params = verify_transfer_parameters(channel, rx_buff, size);
   if (!test_params) {
-    return TI_ERRC_INVALID_ARG;
+    TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid params"); return; //
   }
 
   // Check if usart channel is busy
   if (uart_busy[channel]) {
     // tal_raise(flag, "USART channel is busy");
-    return TI_ERRC_BUSY;
+    TI_SET_ERRC(errc, TI_ERRC_BUSY, "Channel busy"); return; //
   }
   uart_busy[channel] = true;
 
@@ -825,16 +822,17 @@ enum ti_errc_t uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_
 
   // Enable the dma requests
   SET_FIELD(UARTx_CR3[channel], UARTx_CR3_DMAT);
-  return TI_ERRC_NONE;
+  // No explicit return needed for void function
 }
 
-enum ti_errc_t uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
-                         uint32_t size) {
+void uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
+                         uint32_t size, enum ti_errc_t *errc) {
+  if (errc) *errc = TI_ERRC_NONE;
   // Verify parameters
   bool test_params = verify_transfer_parameters(channel, tx_buff, size);
 
   if (!test_params) {
-    return TI_ERRC_INVALID_ARG;
+    TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid params"); return; //
   }
 
   // Check if usart channel is busy
@@ -847,21 +845,22 @@ enum ti_errc_t uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
   // Transmit the data byte by byte
   for (uint32_t i = 0; i < size; i++) {
     if (!uart_write_byte(channel, tx_buff[i])) {
-      TI_SET_ERRC(NULL, TI_ERRC_TIMEOUT, "UART write byte timed out");
-      return TI_ERRC_TIMEOUT;
+      TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "UART write byte timed out"); //
+      return; //
     }
   }
 
   // uart_busy[channel] = false;
-  return TI_ERRC_NONE;
+  // No explicit return needed for void function
 }
 
-enum ti_errc_t uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
-                        uint32_t size) {
+void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
+                        uint32_t size, enum ti_errc_t *errc) {
+  if (errc) *errc = TI_ERRC_NONE;
   // Verify parameters
   bool test_params = verify_transfer_parameters(channel, rx_buff, size);
   if (!test_params) {
-    return TI_ERRC_INVALID_ARG;
+    TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid params"); return; //
   }
 
   // Check if usart channel is bus
@@ -882,11 +881,8 @@ enum ti_errc_t uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
   // Receive the data byte by byte
   for (uint32_t i = 0; i < size; i++) {
     if (!uart_read_byte(channel, rx_buff+i)) {
-      TI_SET_ERRC(NULL, TI_ERRC_TIMEOUT, "UART read byte timed out");
-      return TI_ERRC_TIMEOUT;
+      TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "UART read byte timed out"); //
+      return; //
     }
   }
-
-  // uart_busy[channel] = false;
-  return TI_ERRC_NONE;
 }

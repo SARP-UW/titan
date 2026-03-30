@@ -1,5 +1,6 @@
 #include "peripheral/gpio.h"
 #include "peripheral/pwm.h"
+#include "peripheral/errc.h"
 #include <stdio.h>
 
 #define USR_BUTTON 9
@@ -33,7 +34,7 @@ void _start() {
     enum ti_errc_t* errc = &my_err;
     asm("BKPT #0");
     while (true) {
-        ti_set_pwm(pwm_config);
+        ti_set_pwm(pwm_config, errc);
         // asm("BKPT #0");
         pwm_config.duty += dir;
         if (pwm_config.duty == 1000 || pwm_config.duty == 0) {

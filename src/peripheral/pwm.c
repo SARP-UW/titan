@@ -1,6 +1,6 @@
 /**
 * This file is part of the Titan Flight Computer Project
-* Copyright (c) 2025 UW SARP
+* Copyright (c) 2026 UW SARP
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -38,33 +38,32 @@
 * @section Private Function Implementations
 **************************************************************************************************/
 
-static enum ti_errc_t check_pwm_config_validity(struct ti_pwm_config_t pwm_config) {
+static void check_pwm_config_validity(struct ti_pwm_config_t pwm_config, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     if (pwm_config.freq <= 0) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM frequency must be positive"); return; //
     }
 
     if (pwm_config.clock_freq <= 0) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM clock frequency must be positive"); return; //
     }
 
     uint32_t freq_prescaler = pwm_config.clock_freq / pwm_config.freq;
     if (freq_prescaler == 0 || freq_prescaler > UINT16_MAX) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM prescaler calculation invalid"); return; //
     }
 
     if (pwm_config.duty > MAX_DUTY_CYCLE) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM duty cycle out of range"); return; //
     }
 
     if (pwm_config.channel < 1 || pwm_config.channel > 4) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM channel out of range"); return; //
     }
 
     if (pwm_config.instance < 2 || pwm_config.instance > 5) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM instance out of range"); return; //
     }
-
-    return TI_ERRC_NONE;
 }
 
 
@@ -162,17 +161,15 @@ void pwm_set_pin_vals(int* pin, int* alt_mode, int32_t instance, int32_t channel
 * @section Public Function Implementations
 **************************************************************************************************/
 
-enum ti_errc_t ti_set_pwm(struct ti_pwm_config_t pwm_config) {
-
-
+void ti_set_pwm(struct ti_pwm_config_t pwm_config, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     if (pwm_config.instance > INSTANCE_COUNT) {
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM instance out of range"); return; //
     }
 
-    enum ti_errc_t validation = check_pwm_config_validity(pwm_config);
-
-    if (validation != TI_ERRC_NONE) {
-        return validation;
+    check_pwm_config_validity(pwm_config, errc); //
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Propagated"); return; //
     }
 
     // Enable PWM clock
@@ -218,7 +215,7 @@ enum ti_errc_t ti_set_pwm(struct ti_pwm_config_t pwm_config) {
             WRITE_FIELD(G_TIMx_CCR4[pwm_config.instance], ccr_field_4, ccr_value);
             break;
         default:
-            return TI_ERRC_INVALID_ARG;
+            TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid PWM channel for CCR"); return; //
     }
 
     // Set to output compare
@@ -236,5 +233,4 @@ enum ti_errc_t ti_set_pwm(struct ti_pwm_config_t pwm_config) {
     SET_FIELD(G_TIMx_CR1[pwm_config.instance], G_TIMx_CR1_CEN);
     // Enable PWM output
     SET_FIELD(G_TIMx_CR1[pwm_config.instance], G_TIMx_CR1_ARPE);
-    return TI_ERRC_NONE;
 }

@@ -9,7 +9,6 @@
 
 #include "devices/gnss.h"
 #include "peripheral/errc.h"
-#include "peripheral/log.h"
 #include <stddef.h>
 
 /* UBX Protocol Synchronization and Class IDs */
@@ -34,8 +33,8 @@
  * Assuming standard SPI transmit/receive function signatures from peripheral/spi.h.
  * Adjust these externs if your spi.h uses slightly different naming conventions. 
  */
-extern enum ti_errc_t spi_tx(uint8_t spi_inst, uint8_t ss_pin, const uint8_t *tx_data, uint32_t len);
-extern enum ti_errc_t spi_rx(uint8_t spi_inst, uint8_t ss_pin, uint8_t *rx_data, uint32_t len);
+extern void spi_tx(uint8_t spi_inst, uint8_t ss_pin, const uint8_t *tx_data, uint32_t len, enum ti_errc_t *errc);
+extern void spi_rx(uint8_t spi_inst, uint8_t ss_pin, uint8_t *rx_data, uint32_t len, enum ti_errc_t *errc);
 
 /**************************************************************************************************
  * @section UBX Payload Structures
@@ -151,7 +150,7 @@ static void ubx_calc_checksum(uint8_t class_id, uint8_t msg_id, uint16_t len, co
 /**
  * @brief Transmits a UBX frame over SPI
  */
-static enum ti_errc_t ubx_send_msg(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const void *payload, uint16_t len) {
+static void ubx_send_msg(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const void *payload, uint16_t len, enum ti_errc_t *errc) {
     uint8_t header[6] = {
         UBX_SYNC1, UBX_SYNC2, class_id, msg_id, 
         (uint8_t)(len & 0xFF), (uint8_t)((len >> 8) & 0xFF)
@@ -160,33 +159,33 @@ static enum ti_errc_t ubx_send_msg(gnss_t *dev, uint8_t class_id, uint8_t msg_id
     uint8_t ck_a, ck_b;
     ubx_calc_checksum(class_id, msg_id, len, (const uint8_t *)payload, &ck_a, &ck_b);
     uint8_t checksum[2] = {ck_a, ck_b};
-    
-    enum ti_errc_t err = spi_tx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, header, 6);
-    if (err != TI_ERRC_NONE) return err;
-    
+    if (errc) *errc = TI_ERRC_NONE;
+
+    spi_tx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, header, 6, errc);
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
     if (len > 0) {
-        err = spi_tx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, (const uint8_t*)payload, len);
-        if (err != TI_ERRC_NONE) return err;
+        spi_tx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, (const uint8_t*)payload, len, errc);
+        if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
     }
     
-    return spi_tx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, checksum, 2);
+    spi_tx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, checksum, 2, errc);
 }
 
 /**
  * @brief Sends a configuration message and blocks until ACK/NAK is received
  */
-static enum ti_errc_t ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const void *payload, uint16_t len) {
-    enum ti_errc_t err = ubx_send_msg(dev, class_id, msg_id, payload, len);
-    if (err != TI_ERRC_NONE) return err;
+static void ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const void *payload, uint16_t len, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    ubx_send_msg(dev, class_id, msg_id, payload, len, errc);
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
     
     uint8_t rx, state = 0, ack_id = 0;
     uint32_t attempts = 15000; // Safeguard against infinite loops
     
     while (attempts--) {
-        err = spi_rx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, &rx, 1);
-        if (err != TI_ERRC_NONE) return err;
-        
-        if (rx == 0xFF) continue; // Idle byte from u-blox M8
+        spi_rx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, &rx, 1, errc);
+        if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
+        if (rx == 0xFF) continue; // Idle byte from u-blox M8 
         
         switch(state) {
             case 0: if (rx == UBX_SYNC1) state = 1; break;
@@ -206,16 +205,15 @@ static enum ti_errc_t ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_i
                 break;
             case 7: // Acknowledged Message ID
                 if (rx == msg_id) {
-                    if (ack_id == UBX_ACK_ACK) return TI_ERRC_NONE;
-                    TI_SET_ERRC(NULL, TI_ERRC_DEVICE, "GNSS module returned NAK for configuration command");
-                    return TI_ERRC_DEVICE;
+                    if (ack_id == UBX_ACK_ACK) return;
+                    TI_SET_ERRC(errc, TI_ERRC_DEVICE, "GNSS module returned NAK for configuration command");
+                    return;
                 }
                 state = 0;
                 break;
         }
     }
-    TI_SET_ERRC(NULL, TI_ERRC_TIMEOUT, "Timed out waiting for UBX ACK/NAK response");
-    return TI_ERRC_TIMEOUT;
+    TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "Timed out waiting for UBX ACK/NAK response");
 }
 
 
@@ -223,12 +221,11 @@ static enum ti_errc_t ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_i
  * @section Public API Implementation
  **************************************************************************************************/
 
-enum ti_errc_t gnss_init(gnss_t *dev) {
+void gnss_init(gnss_t *dev, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
     if (!dev) {
-        TI_SET_ERRC(NULL, TI_ERRC_INVALID_ARG, "dev pointer is NULL");
-        return TI_ERRC_INVALID_ARG;
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "dev pointer is NULL"); return;
     }
-    enum ti_errc_t err;
 
     /* 1. Configure Navigation/Measurement Rate (UBX-CFG-RATE) */
     ubx_cfg_rate_t rate_cfg = {
@@ -236,24 +233,24 @@ enum ti_errc_t gnss_init(gnss_t *dev) {
         .navRate  = 1,
         .timeRef  = 0 // 0 = UTC
     };
-    err = ubx_configure(dev, UBX_CLASS_CFG, UBX_CFG_RATE, &rate_cfg, sizeof(rate_cfg));
-    if (err != TI_ERRC_NONE) return err;
+    ubx_configure(dev, UBX_CLASS_CFG, UBX_CFG_RATE, &rate_cfg, sizeof(rate_cfg), errc);
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
 
     /* 2. Configure Dynamic Model (UBX-CFG-NAV5) */
     ubx_cfg_nav5_t nav5_cfg = {0};
     nav5_cfg.mask = 0x0001; // Bit 0: apply dynModel parameter
     nav5_cfg.dynModel = (uint8_t)dev->config.dyn_model;
-    err = ubx_configure(dev, UBX_CLASS_CFG, UBX_CFG_NAV5, &nav5_cfg, sizeof(nav5_cfg));
-    if (err != TI_ERRC_NONE) return err;
-
+    ubx_configure(dev, UBX_CLASS_CFG, UBX_CFG_NAV5, &nav5_cfg, sizeof(nav5_cfg), errc);
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
+    
     /* 3. Configure Power Mode (UBX-CFG-PMS) */
     ubx_cfg_pms_t pms_cfg = {0};
     pms_cfg.version = 0;
     pms_cfg.powerSetupValue = (uint8_t)dev->config.power_mode; // Matches GNSS_POWER_CONTINUOUS / SAVE
-    err = ubx_configure(dev, UBX_CLASS_CFG, UBX_CFG_PMS, &pms_cfg, sizeof(pms_cfg));
-    if (err != TI_ERRC_NONE) return err;
+    ubx_configure(dev, UBX_CLASS_CFG, UBX_CFG_PMS, &pms_cfg, sizeof(pms_cfg), errc);
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
 
-    /* 4. Configure Constellations (UBX-CFG-GNSS) */
+    /* 4. Configure Constellations (UBX-CFG-GNSS) */ 
     ubx_cfg_gnss_t gnss_cfg = {0};
     gnss_cfg.msgVer = 0;
     gnss_cfg.numTrkChHw = 32;
@@ -296,19 +293,20 @@ enum ti_errc_t gnss_init(gnss_t *dev) {
     gnss_cfg.blocks[5].maxTrkCh = 14;
     gnss_cfg.blocks[5].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_GLONASS) ? 0x01010001 : 0x01010000;
 
-    err = ubx_configure(dev, UBX_CLASS_CFG, UBX_CFG_GNSS, &gnss_cfg, sizeof(gnss_cfg));
-    if (err != TI_ERRC_NONE) return err;
+    ubx_configure(dev, UBX_CLASS_CFG, UBX_CFG_GNSS, &gnss_cfg, sizeof(gnss_cfg), errc);
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
 
     dev->initialized = 1;
-    return TI_ERRC_NONE;
 }
 
-enum ti_errc_t gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt) {
-    if (!dev || !dev->initialized || !pvt) return TI_ERRC_INVALID_ARG;
+void gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (!dev || !dev->initialized || !pvt) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid arguments"); return; }
+
 
     /* To poll a UBX message, send its class and ID with a zero-length payload */
-    enum ti_errc_t err = ubx_send_msg(dev, UBX_CLASS_NAV, UBX_NAV_PVT, NULL, 0);
-    if (err != TI_ERRC_NONE) return err;
+    ubx_send_msg(dev, UBX_CLASS_NAV, UBX_NAV_PVT, NULL, 0, errc);
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
 
     uint8_t rx, state = 0;
     uint16_t len = 0, idx = 0;
@@ -320,8 +318,8 @@ enum ti_errc_t gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt) {
     uint32_t attempts = 15000;
     
     while (attempts--) {
-        err = spi_rx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, &rx, 1);
-        if (err != TI_ERRC_NONE) return err;
+        spi_rx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, &rx, 1, errc);
+        if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
         
         if (state == 0 && rx == 0xFF) continue; 
         
@@ -376,13 +374,13 @@ enum ti_errc_t gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt) {
                     pvt->vel_e  = pvt_raw.velE;
                     pvt->vel_d  = pvt_raw.velD;
                     pvt->p_dop  = pvt_raw.pDOP;
-                    return TI_ERRC_NONE;
+                    return;
                 }
                 state = 0; // Checksum invalid
                 break;
         }
     }
 
-    TI_SET_ERRC(NULL, TI_ERRC_TIMEOUT, "Timed out waiting for UBX-NAV-PVT response");
-    return TI_ERRC_TIMEOUT;
+    TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "Timed out waiting for UBX-NAV-PVT response");
+    return;
 }

@@ -2,7 +2,6 @@
 // Created by Joshua Beard on 1/17/26.
 //
 
-#pragma once
 #include <stdint.h>
 #include "app/state.h"
 #include "init_state.h"
@@ -10,7 +9,6 @@
 #include "peripheral/gpio.h"
 #include "peripheral/qspi.h"
 #include "peripheral/errc.h"
-#include "peripheral/log.h"
 
 
 //     ~~~ ( ) Look in flash mem to see if we are recovering from a crash

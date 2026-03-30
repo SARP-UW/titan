@@ -1,6 +1,6 @@
 /**
  * This file is part of the Titan Flight Computer Project
- * Copyright (c) 2025 UW SARP
+ * Copyright (c) 2026 UW SARP
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 #include "actuator.h"
 #include "peripheral/gpio.h"
 #include "peripheral/spi.h"
-#include "peripheral/log.h"
 
 /**************************************************************************************************
  * @section Private Helper Functions
@@ -57,9 +56,10 @@ static inline uint8_t actuator_channel_base(actuator_channel_t channel) {
  * @param data_out    Pointer to store the 16-bit received data (may be NULL).
  * @param status_out  Pointer to store the SPI status byte (may be NULL).
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
- */
-static enum ti_errc_t actuator_spi_transfer(actuator_t *dev, uint8_t addr, bool write, uint16_t data_in, uint16_t *data_out, uint8_t *status_out) {
-    if (!dev) return TI_ERRC_INVALID_ARG;
+ */ //
+static void actuator_spi_transfer(actuator_t *dev, uint8_t addr, bool write, uint16_t data_in, uint16_t *data_out, uint8_t *status_out, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
+    if (!dev) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "dev pointer is NULL"); return; } //
     
     /*
      * MAX22216 SPI frame format (3 bytes total):
@@ -82,17 +82,15 @@ static enum ti_errc_t actuator_spi_transfer(actuator_t *dev, uint8_t addr, bool 
     tx[2] = data_in & 0xFF;
 
     // Perform the SPI transaction — uses the SPI instance and SS pin from our spi_config
-    if (spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, 3) != TI_ERRC_NONE) {
-        TI_SET_ERRC(NULL, TI_ERRC_BUS, "SPI transfer failed during actuator register access");
-        return TI_ERRC_BUS;
+    spi_transfer_sync(dev->spi_config.spi_inst, dev->spi_config.ss_pin, tx, rx, 3, errc); //
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Propagated: SPI transfer failed during actuator register access"); return; //
     }
 
     // rx[0] always contains the MAX22216 status byte (sent back on first clock byte)
     if (status_out) *status_out = rx[0];
     // rx[1:2] contain the 16-bit register data (reassemble from big-endian)
     if (data_out) *data_out = ((uint16_t)rx[1] << 8) | rx[2];
-
-    return TI_ERRC_NONE;
 }
 
 /**
@@ -104,8 +102,9 @@ static enum ti_errc_t actuator_spi_transfer(actuator_t *dev, uint8_t addr, bool 
  * @param status_out  Optional pointer to store the SPI status byte (may be NULL).
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
  */
-static enum ti_errc_t actuator_write_reg(actuator_t *dev, uint8_t addr, uint16_t value, uint8_t *status_out) {
-    return actuator_spi_transfer(dev, addr, true, value, NULL, status_out);
+static void actuator_write_reg(actuator_t *dev, uint8_t addr, uint16_t value, uint8_t *status_out, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
+    actuator_spi_transfer(dev, addr, true, value, NULL, status_out, errc); //
 }
 
 /**
@@ -125,12 +124,13 @@ static enum ti_errc_t actuator_write_reg(actuator_t *dev, uint8_t addr, uint16_t
  * @param status_out  Optional pointer to store the SPI status byte (may be NULL).
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
  */
-static enum ti_errc_t actuator_read_reg(actuator_t *dev, uint8_t addr, uint16_t *value, uint8_t *status_out) {
+static void actuator_read_reg(actuator_t *dev, uint8_t addr, uint16_t *value, uint8_t *status_out, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
     // Cycle 1: Send address, discard response (it's stale data)
-    enum ti_errc_t err = actuator_spi_transfer(dev, addr, false, ACTUATOR_SPI_DUMMY_DATA, NULL, NULL);
-    if (err != TI_ERRC_NONE) return err;
+    actuator_spi_transfer(dev, addr, false, ACTUATOR_SPI_DUMMY_DATA, NULL, NULL, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
     // Cycle 2: Send same address again, NOW we get the real data back
-    return actuator_spi_transfer(dev, addr, false, ACTUATOR_SPI_DUMMY_DATA, value, status_out);
+    actuator_spi_transfer(dev, addr, false, ACTUATOR_SPI_DUMMY_DATA, value, status_out, errc); //
 }
 
 /**
@@ -151,35 +151,37 @@ static enum ti_errc_t actuator_read_reg(actuator_t *dev, uint8_t addr, uint16_t 
  * @param value  New value (pre-shifted to align with mask).
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
  */
-static enum ti_errc_t actuator_update_reg(actuator_t *dev, uint8_t addr, uint16_t mask, uint16_t value) {
+static void actuator_update_reg(actuator_t *dev, uint8_t addr, uint16_t mask, uint16_t value, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
     uint16_t reg_val = 0;
     // Step 1: Read the current register contents
-    enum ti_errc_t err = actuator_read_reg(dev, addr, &reg_val, NULL);
-    if (err != TI_ERRC_NONE) return err;
+    actuator_read_reg(dev, addr, &reg_val, NULL, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
     
     // Step 2+3: Clear masked bits, then set new value within those bits
     //   Example: reg_val=0xFF00, mask=0x00F0, value=0x0030
     //   -> (0xFF00 & ~0x00F0) | (0x0030 & 0x00F0) = 0xFF00 | 0x0030 = 0xFF30
-    reg_val = (reg_val & ~mask) | (value & mask);
+    reg_val = (reg_val & ~mask) | (value & mask); //
     // Step 4: Write back
-    return actuator_write_reg(dev, addr, reg_val, NULL);
+    actuator_write_reg(dev, addr, reg_val, NULL, errc); //
 }
 
 /**************************************************************************************************
  * @section Public Function Implementations
  **************************************************************************************************/
 
-enum ti_errc_t actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config, const actuator_config_t *config) {
-    if (!dev || !spi_config || !config) return TI_ERRC_INVALID_ARG;
+void actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config, const actuator_config_t *config, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
+    if (!dev || !spi_config || !config) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Params NULL"); return; } //
     // Copy both configs into the device handle so all future calls can reference them
     dev->spi_config = *spi_config;
     dev->config = *config;
 
     // Initialize the SPI peripheral with our slave-select pin.
-    uint8_t ss_list[1] = { dev->spi_config.ss_pin };
-    if (spi_init(dev->spi_config.spi_inst, ss_list, 1) != TI_ERRC_NONE) {
-        TI_SET_ERRC(NULL, TI_ERRC_BUS, "Failed to initialize SPI peripheral for actuator");
-        return TI_ERRC_BUS;
+    uint8_t ss_list[1] = { dev->spi_config.ss_pin }; //
+    spi_init(dev->spi_config.spi_inst, ss_list, 1, errc); //
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Propagated: Failed to initialize SPI peripheral for actuator"); return; //
     }
 
     // Configure the hardware ENABLE pin as a GPIO output.
@@ -199,47 +201,50 @@ enum ti_errc_t actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config
         tal_pull_pin(dev->config.fault_pin, 1);    // Enable internal pull-up
     }
 
-    return TI_ERRC_NONE;
+    // No explicit return needed for void function
 }
 
-enum ti_errc_t actuator_set_enable(actuator_t *dev, bool enable) {
-    if (!dev || dev->config.enable_pin == 0) return TI_ERRC_INVALID_ARG;
+void actuator_set_enable(actuator_t *dev, bool enable, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
+    if (!dev || dev->config.enable_pin == 0) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "dev or enable_pin invalid"); return; } //
     // This is the HARDWARE enable — a GPIO pin connected to the MAX22216 EN pin.
     // It's separate from the SOFTWARE active bit (set_active). Both must be true
     // for the actuator to drive outputs. This is a defense-in-depth safety pattern:
     //   - Software crash? Hardware enable is still off by default.
     //   - SPI bus stuck? Pull the GPIO to kill outputs.
-    tal_set_pin(dev->config.enable_pin, enable ? 1 : 0);
-    return TI_ERRC_NONE;
+    tal_set_pin(dev->config.enable_pin, enable ? 1 : 0); //
 }
 
-enum ti_errc_t actuator_set_active(actuator_t *dev, bool active) {
+void actuator_set_active(actuator_t *dev, bool active, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
     // This is the SOFTWARE active bit — bit 15 of the GLOBAL_CFG register.
     // Even if hardware enable is high, the chip won't drive outputs unless
     // this bit is also set. Two independent safety layers.
-    uint16_t mask = (1U << ACTUATOR_GLOBAL_CFG_ACTIVE_POS);
-    uint16_t val = (active ? 1U : 0U) << ACTUATOR_GLOBAL_CFG_ACTIVE_POS;
-    return actuator_update_reg(dev, ACTUATOR_REG_GLOBAL_CFG, mask, val);
+    uint16_t mask = (1U << ACTUATOR_GLOBAL_CFG_ACTIVE_POS); //
+    uint16_t val = (active ? 1U : 0U) << ACTUATOR_GLOBAL_CFG_ACTIVE_POS; //
+    actuator_update_reg(dev, ACTUATOR_REG_GLOBAL_CFG, mask, val, errc); //
 }
 
-enum ti_errc_t actuator_set_pwm_master(actuator_t *dev, uint8_t f_pwm_m) {
+void actuator_set_pwm_master(actuator_t *dev, uint8_t f_pwm_m, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
     // F_PWM_M is the master PWM frequency selector (bits [7:4] of GLOBAL_CTRL).
     // This sets the base frequency that all 4 channels derive from.
     // Each channel can further divide this with its own pwm_div setting.
     // Valid range: 0–15 (4-bit field).
-    if (f_pwm_m > 0x0F) return TI_ERRC_INVALID_ARG;
-    uint16_t mask = ACTUATOR_GLOBAL_CTRL_FPWMM_MSK; 
-    uint16_t val = (uint16_t)f_pwm_m << ACTUATOR_GLOBAL_CTRL_FPWMM_POS;
-    return actuator_update_reg(dev, ACTUATOR_REG_GLOBAL_CTRL, mask, val);
+    if (f_pwm_m > 0x0F) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "f_pwm_m out of range"); return; } //
+    uint16_t mask = ACTUATOR_GLOBAL_CTRL_FPWMM_MSK; //
+    uint16_t val = (uint16_t)f_pwm_m << ACTUATOR_GLOBAL_CTRL_FPWMM_POS; //
+    actuator_update_reg(dev, ACTUATOR_REG_GLOBAL_CTRL, mask, val, errc); //
 }
 
-enum ti_errc_t actuator_configure_channel(actuator_t *dev, actuator_channel_t channel, const actuator_channel_config_t *cfg) {
-    if (!dev || !cfg || !actuator_channel_valid(channel)) return TI_ERRC_INVALID_ARG;
+void actuator_configure_channel(actuator_t *dev, actuator_channel_t channel, const actuator_channel_config_t *cfg, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
+    if (!dev || !cfg || !actuator_channel_valid(channel)) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Params invalid"); return; } //
     
     // Each channel owns a contiguous block of registers starting at:
     //   base = 0x09 + (0x0E * channel)
     // Channel 0: 0x09–0x16, Channel 1: 0x17–0x24, Channel 2: 0x25–0x32, Channel 3: 0x33–0x40
-    uint8_t base = actuator_channel_base(channel);
+    uint8_t base = actuator_channel_base(channel); //
     
     // Write the 4 duty-cycle / timing registers.
     // These define the solenoid's "hit-and-hold" current waveform:
@@ -247,10 +252,11 @@ enum ti_errc_t actuator_configure_channel(actuator_t *dev, actuator_channel_t ch
     //   DCH    = duty cycle during the high (hold) phase (reduced current to hold open without overheating)
     //   DCL    = duty cycle during the low phase (off or very low current)
     //   TIMEL2H = how long the L2H phase lasts before switching to the hold phase
-    actuator_write_reg(dev, base + ACTUATOR_CH_REG_DCL2H, cfg->dc_l2h, NULL);   
-    actuator_write_reg(dev, base + ACTUATOR_CH_REG_DCH, cfg->dc_h, NULL);     
-    actuator_write_reg(dev, base + ACTUATOR_CH_REG_DCL, cfg->dc_l, NULL);     
-    actuator_write_reg(dev, base + ACTUATOR_CH_REG_TIMEL2H, cfg->time_l2h, NULL); 
+    actuator_write_reg(dev, base + ACTUATOR_CH_REG_DCL2H, cfg->dc_l2h, NULL, errc);   
+    actuator_write_reg(dev, base + ACTUATOR_CH_REG_DCH, cfg->dc_h, NULL, errc);     //
+    actuator_write_reg(dev, base + ACTUATOR_CH_REG_DCL, cfg->dc_l, NULL, errc);     //
+    actuator_write_reg(dev, base + ACTUATOR_CH_REG_TIMEL2H, cfg->time_l2h, NULL, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
     
     // Pack CTRL0 register — a 16-bit bitfield with control loop settings:
     //   [15:14] ctrl_mode   — VDR/CDR selection (voltage vs current drive mode)
@@ -261,7 +267,7 @@ enum ti_errc_t actuator_configure_channel(actuator_t *dev, actuator_channel_t ch
     //   [9]     ramp_mid    — Gradual mid-phase ramping
     //   [8]     ramp_up     — Gradual current increase when turning on (prevents inrush spikes)
     //   [7:0]   ramp        — Ramp rate value (how fast the gradual changes happen)
-    uint16_t ctrl0_val = 
+    uint16_t ctrl0_val = //
         ((cfg->ctrl_mode & 0x3) << 14) |
         ((cfg->hhf_enable ? 1 : 0) << 13) |
         ((cfg->open_load_enable ? 1 : 0) << 12) |
@@ -272,7 +278,7 @@ enum ti_errc_t actuator_configure_channel(actuator_t *dev, actuator_channel_t ch
         (cfg->ramp & 0xFF);
 
     // Pack CTRL1 register — a 16-bit bitfield with output stage settings:
-    //   [10]   high_side  — 1=high-side drive, 0=low-side drive (depends on PCB wiring to solenoid)
+    //   [10]   high_side  — 1=high-side drive, 0=low-side drive (depends on PCB wiring to solenoid) //
     //   [9:8]  pwm_div    — Per-channel PWM frequency divider (applied on top of master F_PWM_M)
     //   [7:6]  t_blank    — Blanking time after switching edges before current sensing
     //                        (prevents false overcurrent triggers from switching transients)
@@ -280,7 +286,7 @@ enum ti_errc_t actuator_configure_channel(actuator_t *dev, actuator_channel_t ch
     //                        Slower = less EMI noise, faster = more responsive valve actuation
     //   [3:2]  gain       — Current sense amplifier gain (higher gain = more sensitive monitoring)
     //   [1:0]  snsf       — Sense filtering (smooths current measurements, reduces noise)
-    uint16_t ctrl1_val = 
+    uint16_t ctrl1_val = //
         ((cfg->high_side ? 1 : 0) << 10) |
         ((cfg->pwm_div & 0x3) << 8) |
         ((cfg->t_blank & 0x3) << 6) |
@@ -288,49 +294,53 @@ enum ti_errc_t actuator_configure_channel(actuator_t *dev, actuator_channel_t ch
         ((cfg->gain & 0x3) << 2) |
         (cfg->snsf & 0x3);
     
-    actuator_write_reg(dev, base + ACTUATOR_CH_REG_CTRL0, ctrl0_val, NULL);
-    actuator_write_reg(dev, base + ACTUATOR_CH_REG_CTRL1, ctrl1_val, NULL);
-
-    return TI_ERRC_NONE;
+    actuator_write_reg(dev, base + ACTUATOR_CH_REG_CTRL0, ctrl0_val, NULL, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
+    actuator_write_reg(dev, base + ACTUATOR_CH_REG_CTRL1, ctrl1_val, NULL, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
 }
 
-enum ti_errc_t actuator_set_channel_enable(actuator_t *dev, actuator_channel_t channel, bool enable) {
-    if (!dev || !actuator_channel_valid(channel)) return TI_ERRC_INVALID_ARG;
+void actuator_set_channel_enable(actuator_t *dev, actuator_channel_t channel, bool enable, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
+    if (!dev || !actuator_channel_valid(channel)) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Params invalid"); return; } //
     // Each channel has a dedicated enable bit in GLOBAL_CTRL (bits [3:0]).
     // Bit 0 = channel 0, bit 1 = channel 1, etc.
     // Uses read-modify-write so enabling one channel doesn't disable the others.
-    uint16_t mask = (1U << channel); 
-    uint16_t val = (enable ? 1U : 0U) << channel;
-    return actuator_update_reg(dev, ACTUATOR_REG_GLOBAL_CTRL, mask, val);
+    uint16_t mask = (1U << channel); //
+    uint16_t val = (enable ? 1U : 0U) << channel; //
+    actuator_update_reg(dev, ACTUATOR_REG_GLOBAL_CTRL, mask, val, errc); //
 }
 
-enum ti_errc_t actuator_read_status(actuator_t *dev, uint16_t *status, uint8_t *status_out) {
-    if (!status) return TI_ERRC_INVALID_ARG;
+void actuator_read_status(actuator_t *dev, uint16_t *status, uint8_t *status_out, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
+    if (!status) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "status pointer is NULL"); return; } //
     // STATUS register (0x02) contains per-channel and global status flags.
     // The caller interprets the bitfield based on the MAX22216 datasheet.
-    return actuator_read_reg(dev, ACTUATOR_REG_STATUS, status, status_out);
+    actuator_read_reg(dev, ACTUATOR_REG_STATUS, status, status_out, errc); //
 }
 
-enum ti_errc_t actuator_read_fault(actuator_t *dev, uint16_t *fault0, uint16_t *fault1, uint8_t *status_out) {
-    if (!fault0 || !fault1) return TI_ERRC_INVALID_ARG;
+void actuator_read_fault(actuator_t *dev, uint16_t *fault0, uint16_t *fault1, uint8_t *status_out, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
+    if (!fault0 || !fault1) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "fault0 or fault1 pointer is NULL"); return; } //
     // Two separate fault registers capture different failure modes:
     //   FAULT0 (0x65) — overcurrent, thermal shutdown, supply undervoltage
     //   FAULT1 (0x66) — open-load detection, watchdog timeout
     // Reading them acknowledges and resets the fault flags.
-    enum ti_errc_t err = actuator_read_reg(dev, ACTUATOR_REG_FAULT0, fault0, status_out);
-    if (err != TI_ERRC_NONE) return err;
-    return actuator_read_reg(dev, ACTUATOR_REG_FAULT1, fault1, status_out);
+    actuator_read_reg(dev, ACTUATOR_REG_FAULT0, fault0, status_out, errc); //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
+    actuator_read_reg(dev, ACTUATOR_REG_FAULT1, fault1, status_out, errc); //
 }
 
-enum ti_errc_t actuator_read_i_monitor(actuator_t *dev, actuator_channel_t channel, uint16_t *i_monitor, uint8_t *status_out) {
-    if (!i_monitor || !actuator_channel_valid(channel)) return TI_ERRC_INVALID_ARG;
+void actuator_read_i_monitor(actuator_t *dev, actuator_channel_t channel, uint16_t *i_monitor, uint8_t *status_out, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE; //
+    if (!i_monitor || !actuator_channel_valid(channel)) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Params invalid"); return; } //
     
     // I-Monitor registers are NOT contiguous with the channel config registers.
     // They live at addresses: CH0=0x45, CH1=0x4D, CH2=0x55, CH3=0x5D
     // Stride between them is 8 (not 0x0E like the config registers).
     // Returns a raw 16-bit ADC value proportional to the solenoid coil current.
     // Used to verify the valve actually moved — a current spike = solenoid energized.
-    uint8_t imon_reg = ACTUATOR_IMONITOR_CH0 + (channel * 8); 
+    uint8_t imon_reg = ACTUATOR_IMONITOR_CH0 + (channel * 8); //
     
-    return actuator_read_reg(dev, imon_reg, i_monitor, status_out);
+    actuator_read_reg(dev, imon_reg, i_monitor, status_out, errc); //
 }

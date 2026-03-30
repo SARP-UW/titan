@@ -1,6 +1,6 @@
 /**
- * This file is part of the Titan Project.
- * Copyright (c) 2024 UW SARP
+ * This file is part of the Titan Flight Computer Project
+ * Copyright (c) 2026 UW SARP
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,3 +41,63 @@ enum ti_errc_t {
   TI_ERRC_CHECKSUM,     /** @brief Data integrity check failed (checksum or CRC mismatch). */
   TI_ERRC_PROTOCOL,     /** @brief Protocol violation or unexpected data received from a peer. */
 };
+
+/**************************************************************************************************
+ * @section Log Configuration & Data Structures
+ **************************************************************************************************/
+
+/** @brief Base address (in flash) of the log region (Bank 2, Sector 7). */
+#define TI_LOG_FLASH_START   0x081E0000U
+/** @brief Total size of the log region in bytes. */
+#define TI_LOG_FLASH_SIZE    0x00020000U
+/** @brief Erase granularity of the internal flash (128 KB sector). */
+#define TI_LOG_SECTOR_SIZE   0x00020000U
+/** @brief Magic word written in every valid log entry. */
+#define TI_LOG_MAGIC         0xD1A60001U
+/** @brief Size of each log entry in bytes (must be a multiple of flash word size, 32 B). */
+#define TI_LOG_ENTRY_SIZE    128U
+
+/** @brief A single log entry stored in flash. */
+typedef struct __attribute__((packed)) {
+  uint32_t magic;    /**< TI_LOG_MAGIC when valid, 0xFFFFFFFF when slot is empty. */
+  uint8_t  errc;     /**< The error code (cast to uint8_t). */
+  uint8_t  _pad[3];  /**< Reserved / alignment. */
+  uint32_t line;     /**< Source line number (__LINE__). */
+  char     func[28]; /**< Function name (__func__, truncated). */
+  char     file[40]; /**< Source file path (__FILE__, truncated). */
+  char     msg[48];  /**< Human-readable description (truncated). */
+} ti_log_entry_t;
+
+/**************************************************************************************************
+ * @section Public API
+ **************************************************************************************************/
+
+/**
+ * @brief Initialises the internal flash log subsystem.
+ */
+enum ti_errc_t ti_log_init(void);
+
+/**
+ * @brief Low-level write to the flash log. Use macros instead.
+ */
+void ti_log_write(enum ti_errc_t errc, const char *msg,
+                  const char *func, const char *file, uint32_t line);
+
+/**************************************************************************************************
+ * @section Error Macros (Stack Trace Emulation)
+ **************************************************************************************************/
+
+/**
+ * @brief Sets the output error code and writes to the flash log.
+ * 
+ * Use this for both initial errors and for "Propagated" entries to build a trace.
+ *
+ * @param errc_ptr  Pointer to an enum ti_errc_t to set, or NULL.
+ * @param code      The TI_ERRC_* code.
+ * @param msg       String literal description.
+ */
+#define TI_SET_ERRC(errc_ptr, code, msg)                                        \
+  do {                                                                          \
+    if ((errc_ptr) != ((void*)0)) *(enum ti_errc_t *)(errc_ptr) = (code);      \
+    ti_log_write((code), (msg), __func__, __FILE__, __LINE__);                  \
+  } while (0)

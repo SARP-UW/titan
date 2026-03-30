@@ -62,14 +62,14 @@ typedef struct {
  * @brief Initializes the Si4468 radio and applies power-up configuration.
  *
  * Configures SPI and GPIO pins, performs a hardware reset, sends the power-up
- * command sequence, and optionally applies the errata 12 workaround.
+ * command sequence, and optionally applies the errata 12 workaround. 
  *
  * @param dev        Pointer to the radio device handle.
  * @param spi_config Pointer to the SPI configuration (instance + SS pin).
  * @param config     Pointer to the radio configuration (reset/nirq pins, channel).
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
  */
-enum ti_errc_t radio_init(radio_t *dev, const radio_spi_dev *spi_config, const radio_config_t *config);
+void radio_init(radio_t *dev, const radio_spi_dev *spi_config, const radio_config_t *config, enum ti_errc_t *errc);
 
 /**
  * @brief Performs a hardware reset of the Si4468.
@@ -77,7 +77,7 @@ enum ti_errc_t radio_init(radio_t *dev, const radio_spi_dev *spi_config, const r
  * @param dev  Pointer to the radio device handle.
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
  */
-enum ti_errc_t radio_reset(radio_t *dev);
+void radio_reset(radio_t *dev, enum ti_errc_t *errc);
 
 /**
  * @brief Transmits a packet over the configured RF channel.
@@ -90,7 +90,7 @@ enum ti_errc_t radio_reset(radio_t *dev);
  * @return TI_ERRC_NONE on success, TI_ERRC_INVALID_ARG if len exceeds the
  *         maximum packet size.
  */
-enum ti_errc_t radio_transmit(radio_t *dev, const uint8_t *data, size_t len);
+void radio_transmit(radio_t *dev, const uint8_t *data, size_t len, enum ti_errc_t *errc);
 
 /**
  * @brief Receives a packet from the RX FIFO.
@@ -104,7 +104,7 @@ enum ti_errc_t radio_transmit(radio_t *dev, const uint8_t *data, size_t len);
  * @param actual_len  Pointer to store the actual number of bytes received.
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
  */
-enum ti_errc_t radio_receive(radio_t *dev, uint8_t *data, size_t max_len, size_t *actual_len);
+void radio_receive(radio_t *dev, uint8_t *data, size_t max_len, size_t *actual_len, enum ti_errc_t *errc);
 
 /**
  * @brief Reads the pending interrupt status from the Si4468.
@@ -115,7 +115,7 @@ enum ti_errc_t radio_receive(radio_t *dev, uint8_t *data, size_t max_len, size_t
  * @param chip_status    Pointer to store the chip interrupt status (may be NULL).
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
  */
-enum ti_errc_t radio_get_int_status(radio_t *dev, uint8_t *ph_status, uint8_t *modem_status, uint8_t *chip_status);
+void radio_get_int_status(radio_t *dev, uint8_t *ph_status, uint8_t *modem_status, uint8_t *chip_status, enum ti_errc_t *errc);
 
 /**
  * @brief Checks whether the nIRQ pin is asserted (active-low).
