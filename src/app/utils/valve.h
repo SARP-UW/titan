@@ -29,6 +29,7 @@ struct valve_t {
     int32_t pin_2; // nothing if PWM, MISO if spi
     int32_t pin_3; // CS if SPI, nothing if PWM
     bool is_spi; // boolean if spi or pwm
+    uint8_t channel; // actuator channel if SPI
 };
 
 /**

@@ -70,7 +70,7 @@ void set_valve(struct valve_t* valve, bool actuated, enum ti_errc_t* errc) {
         }
 
         // TODO: channel config hardcoded? valve might need it
-        actuator_set_channel_enable(&dev, ACTUATOR_CHANNEL_0, actuated, errc);
+        actuator_set_channel_enable(&dev, (actuator_channel_t)valve->channel, actuated, errc);
         if (errc && *errc != TI_ERRC_NONE) {
             TI_SET_ERRC(errc, *errc, "Propagated actuator error");
         }
