@@ -20,10 +20,29 @@
  */
 
 
-#include "src/util/error.h"
+#include "src/peripheral/errc.h"
+#include <stdbool.h>
 
-enum Valve {
-    
+
+/**
+ * @param pin_1 PWM pin number OR SPI MOSI
+ * @param pin_2 None OR SPI MISO
+ * @param pin_3 None OR SPI CS
+ * @param is_spi True of actual is SPI controlled.  If False, pin_2 and pin_3 values are undefined and useless
+ */
+struct Valve {
+    uint32_t pin_1;
+    uint32_t pin_2;
+    uint32_t pin_3;
+    bool is_spi;
+};
+
+// Example
+const struct Valve OTVV = {
+    1,
+    -1,
+    -1,
+    false
 };
 
 /**
@@ -34,6 +53,6 @@ enum Valve {
  * valves may have a different default state and it would become confusing in software
  * to need to track which ones need power or a lack of power to reach a commanded state
  */
-tal_err_t set_valve(enum Valve valve, bool actuated){
-
+ti_errc_t set_valve(struct Valve* valve, bool actuated){
+    
 }
