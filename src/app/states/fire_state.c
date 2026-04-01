@@ -121,6 +121,8 @@ static char adc_packet[13]; // 5B
 static char valve_packet[13];
 static char comm_packet[22];
 
+static const uint32_t flash_addr = 0x08040000; // Start of 2nd 256KB sector
+
 
 static void build_gnss_packet(gnss_pvt_t* pvt, char* buffer);
 
@@ -128,12 +130,19 @@ static void build_sensor_data_packet(struct imu_result* imu1, struct imu_result*
 
 bool fire_state_init(){
     enum ti_errc_t errc;
+    ti_internal_flash_erase_sector(flash_addr);
     radio_init(&radio_dev, &radio_spi_config, &radio_config, &errc);
     if (errc && errc != TI_ERRC_NONE) {
         TI_SET_ERRC(&errc, errc, "Failed to initialize radio");
     }
-    imu_init(&imu_dev1);
-    imu_init(&imu_dev2);
+    errc = imu_init(&imu_dev1);
+    if (errc && errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(&errc, errc, "Failed to initialize IMU 1");
+    }
+    errc = imu_init(&imu_dev2);
+    if (errc && errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(&errc, errc, "Failed to initialize IMU 2");
+    }
     gnss_init(&gnss_dev, &errc);
     if (errc && errc != TI_ERRC_NONE) {
         TI_SET_ERRC(&errc, errc, "Failed to initialize GNSS");
@@ -175,7 +184,7 @@ int fire_state_run(){
     }
     // read gnss into buffer, write to flash + radio
     build_gnss_packet(&gnss_pvt, gnss_packet);
-    flash_write(gnss_packet, sizeof(gnss_packet), &errc);
+    errc = ti_internal_flash_write(flash_addr, gnss_packet, sizeof(gnss_packet));
 
     radio_transmit(&radio_dev, gnss_packet, sizeof(gnss_packet), &errc);
     if (errc && errc != TI_ERRC_NONE) {
@@ -225,13 +234,13 @@ int fire_state_run(){
     }
 
     build_sensor_data_packet(&imu_result1, &imu_result2, &barometer_result1, &barometer_result2, &magnetometer_result1, &magnetometer_result2, &temperature_result1, &temperature_result2, sensor_packet);
-    flash_write(sensor_packet, sizeof(sensor_packet), &errc);
+    errc = ti_internal_flash_write(flash_addr, sensor_packet, sizeof(sensor_packet));
     radio_transmit(&radio_dev, sensor_packet, sizeof(sensor_packet), &errc);
 
     if (errc && errc != TI_ERRC_NONE) {
         TI_SET_ERRC(&errc, errc, "Failed to transmit sensor data packet");
     }
-    
+
     // read/send adc/state packets
 
     return 6;
