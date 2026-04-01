@@ -101,6 +101,7 @@ add_firmware_target(test_pwm ${CMAKE_SOURCE_DIR}/test/test_pwm.c)
 add_firmware_target(test_spi ${CMAKE_SOURCE_DIR}/test/test_spi.c)
 add_firmware_target(test_usart ${CMAKE_SOURCE_DIR}/test/test_usart.c)
 add_firmware_target(test_oscilloscope ${CMAKE_SOURCE_DIR}/test/test_oscilloscope.c)
+add_firmware_target(test_errc ${CMAKE_SOURCE_DIR}/test/test_errc.c)
 
 # Native host unit test: test_alloc (compiled with system gcc, not the ARM cross-compiler)
 add_custom_command(
