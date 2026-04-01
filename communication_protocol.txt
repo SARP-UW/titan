@@ -1,0 +1,160 @@
+# Data from flight comptuer:
+    # Flight computer sensor data
+    # Flight computer status
+    # Flight computer valve/servo states
+
+# Data from CC:
+    # CC passthrough sensor data
+    # CC passthrough valve states
+    # CC status data
+
+# Loggers:
+    # Status Logger
+    # Flight computer sensor logger
+    # Flight computer valve/servo state logger
+
+# Flight Computer Sensors
+    # 2x IMU - [accel x (2 bytes), accel y (2 bytes), accel z (2 bytes), gyro x (2 bytes), gyro y (2 bytes), gyro z (2 bytes)] - 12 bytes each
+    # 2x Magnetometer - [mag x (2 bytes), mag y (2 bytes), mag z (2 bytes)] - 6 bytes each
+    # 2x barometer - 3 bytes each (reads pressure)
+    # 2x Temperature sensor - temperature (2 bytes) (one is on power board, one is on sensor board)
+    # GPS - [latitude (4 bytes), longitude (4 bytes), altitude (4 bytes), velocity x (2 bytes), velocity y (2 bytes), velocity z (2 bytes), time (4 bytes)] - 22 bytes
+    # ADC - 3 bytes per data point (max of 24 pressure sensors, 24 RTDs, 3 strain guages)
+    
+    # 3x current sensors - 2 bytes each
+
+# Flight computer valves/servos
+    # 12 actuator outputs
+    # 8 servo outputs
+    
+# Downlink Packets (from FC to CC):
+
+    # Sensor data packet:
+        # 0x01
+        # <IMU 1 accel x (2 bytes)>
+        # <IMU 1 accel y (2 bytes)>
+        # <IMU 1 accel z (2 bytes)>
+        # <IMU 1 gyro x (2 bytes)>
+        # <IMU 1 gyro y (2 bytes)>
+        # <IMU 1 gyro z (2 bytes)>
+        # <IMU 2 accel x (2 bytes)>
+        # <IMU 2 accel y (2 bytes)>
+        # <IMU 2 accel z (2 bytes)>
+        # <IMU 2 gyro x (2 bytes)>
+        # <IMU 2 gyro y (2 bytes)>
+        # <IMU 2 gyro z (2 bytes)>
+        # <Magnetometer 1 mag x (2 bytes)>
+        # <Magnetometer 1 mag y (2 bytes)>
+        # <Magnetometer 1 mag z (2 bytes)>
+        # <Magnetometer 2 mag x (2 bytes)>
+        # <Magnetometer 2 mag y (2 bytes)>
+        # <Magnetometer 2 mag z (2 bytes)>
+        # <Barometer 1 pressure (3 bytes)>
+        # <Barometer 2 pressure (3 bytes)>
+        # <Temperature sensor 1 temperature (2 bytes)>
+        # <Temperature sensor 2 temperature (2 bytes)>
+        # <Current sensor 1 current (2 bytes)>
+        # <Current sensor 2 current (2 bytes)>
+        # <Current sensor 3 current (2 bytes)>
+
+    # GPS data packet
+        # 0x02
+        # <Latitude (4 bytes)>
+        # <Longitude (4 bytes)>
+        # <Altitude (4 bytes)>
+        # <Velocity x (2 bytes)>
+        # <Velocity y (2 bytes)>
+        # <Velocity z (2 bytes)>
+        # <Time (4 bytes)>
+            
+    # ADC data packet
+        # 0x03
+        # <packet index (1 byte)>
+        # <data point (3 bytes)> (repeat for each sensor in adc config for this packet index)
+            
+    # State packet
+        # 0x04
+        # <valve state (1 bit)> (repeat for each valve in status protocol, pad to byte boundary)
+        # <servo state (2 bytes)> (repeat for each servo in status protocol)
+
+    # comm packet:
+        # 0x05
+        # <ping id (2 bytes)>
+        # <system mode (1 byte)>
+        # <processor time (4 bytes)> (ms since startup)
+        # <last command id (2 bytes)>
+        # <last command status (1 byte)>
+        # <message count (1 byte)>
+        # <message 1 tag (1 byte)> (optional) (repeat for each desired message)
+        
+        # NOTE: After comm packet is sent over radio, FC is expected
+        # The comm packet is expected every 100 ms, with 10 ms given for a response.         
+        
+        # Command status values
+            # 0x00 Command waiting
+            # 0x01 Command in progress
+            # 0x02 Command completed successfully
+            # 0x03 Command failed due to invalid tag
+            # 0x04 Command failed due to invalid arguments
+            # 0x05 Command failed due to out of range arguments
+            # 0x06 Command failed due to hardware error
+            # 0x07 Command failed due to timeout
+            # 0x08 Command failed due to invalid system state
+            # 0x09 Command aborted by flight computer
+            # 0x0A Command awaiting confirmation
+
+# Uplink Packets (from CC to FC):
+
+    # comm packet:
+        # 0x01
+        # <ping id (2 bytes)>
+        # <system time (4 bytes)> (unix timestamp)
+        # <command valid (1 byte)> (0 = invalid, 1 = valid)
+        # <command id (2 bytes)> (optional, only if command valid = 1)
+        # <command type (1 byte)> (optional, only if command valid = 1)
+        # <command tag (1 byte)> (optional, only if command valid = 1)
+        # <command arguments (pre-determined variable length)> (optional, only if command valid = 1)
+
+        # Command types
+            # 0x00 Static command
+            # 0x01 Custom command
+            
+        # Static command tags and args
+            
+            # Change valve state
+                # 0x00
+                # <valve id (1 byte)>
+                # <new state (1 byte)> (0 = closed, 1 = open)
+                
+            # Pulse valve
+                # 0x01
+                # <valve id (1 byte)>
+                # <pulse duration (2 bytes)> (in milliseconds)
+                
+            # Change servo state
+                # 0x02
+                # <servo id (1 byte)>
+                # <new position (2 bytes)>
+                
+            # Pulse servo
+                #0x03
+                # <servo id (1 byte)>
+                # <new position (2 bytes)>
+                # <pulse duration (2 bytes)> (in milliseconds)
+                
+            # Set sys mode
+                # 0x04
+                # <new mode (1 byte)>
+                
+            # Set comm link
+                # 0x05
+                # <new link (1 byte)> (0 = RS485, 1 = radio)
+                            
+            # Sleep
+                #0x04
+                
+            # Wake
+                # 0x05
+                 
+            # Restart (2 commands to confirm)
+                #0x06
