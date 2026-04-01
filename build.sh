@@ -12,7 +12,7 @@ LOG_FILE="$LOG_DIR/build_$(date +%Y%m%d_%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 FW_TARGET="${1:-${FW_TARGET:-titan}}"
-FW_TARGETS=(titan test_pwm test_spi test_usart test_oscilloscope)
+FW_TARGETS=(titan test_pwm test_spi test_usart test_oscilloscope test_errc)
 MAX_ATTEMPTS=3
 UPDATE_DEBUG_TARGET=false
 
@@ -24,11 +24,11 @@ done
 
 # ── Target validation ──────────────────────────────────────────────────────────
 case "$FW_TARGET" in
-  titan|test_pwm|test_spi|test_usart|test_oscilloscope|commit_check|all|clean|docs)
+  titan|test_pwm|test_spi|test_usart|test_oscilloscope|test_errc|commit_check|all|clean|docs)
     ;;
   *)
     echo "Unknown target: $FW_TARGET"
-    echo "Valid targets: titan, test_pwm, test_spi, test_usart, test_oscilloscope, commit_check, all, clean, docs"
+    echo "Valid targets: titan, test_pwm, test_spi, test_usart, test_oscilloscope, test_errc, commit_check, all, clean, docs"
     exit 4
     ;;
 esac

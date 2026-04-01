@@ -4,7 +4,7 @@
     {
       "name": "openocd dev debug CM7",
       "cwd": "${workspaceRoot}",
-      "executable": "/Users/mahiremran/Desktop/GitHub/titan/build/test_spi.elf",
+      "executable": "/Users/mahiremran/Desktop/GitHub/titan/build/test_errc.elf",
       "armToolchainPath": "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin",
       "request": "launch",
       "type": "cortex-debug",
@@ -21,7 +21,7 @@
     {
       "name": "openocd test debug CM7",
       "cwd": "${workspaceRoot}",
-      "executable": "/Users/mahiremran/Desktop/GitHub/titan/build/test_spi.elf",
+      "executable": "/Users/mahiremran/Desktop/GitHub/titan/build/test_errc.elf",
       "armToolchainPath": "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin",
       "request": "attach",
       "type": "cortex-debug",
@@ -42,5 +42,5 @@
       ]
     }
   ],
-  "project.debugTarget": "/Users/mahiremran/Desktop/GitHub/titan/build/test_pwm.elf"
+  "project.debugTarget": "/Users/mahiremran/Desktop/GitHub/titan/build/test_errc.elf"
 }
