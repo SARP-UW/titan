@@ -16,7 +16,7 @@
 //     ~~~ ( ) Send and record telemetry
 
 /** Radio configs */
-static const uint64_t MAGIC_HEADER = 5569068490166454580;
+static const uint64_t MAGIC_HEADER = 5566810094155542836;
 static const radio_t radio_dev;
 
 static const radio_spi_dev radio_spi_config = {
