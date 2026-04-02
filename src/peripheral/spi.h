@@ -24,6 +24,13 @@
 #include <stdint.h>
 #include "peripheral/errc.h"
 
+enum spi_mode {
+    MODE_0,
+    MODE_1,
+    MODE_2,
+    MODE_3
+};
+
 /**************************************************************************************************
  * @section Function Definitions
  **************************************************************************************************/
@@ -35,13 +42,15 @@
  * before attempting any SPI transfers.
  *
  * @param inst  Identifier of the SPI instance to initialize.
+ * @param mode  SPI mode (0-3) which determines clock polarity and phase. Mode 0: CPOL=0, CPHA=0; 
+ *              Mode 1: CPOL=0, CPHA=1; Mode 2: CPOL=1, CPHA=0; Mode 3: CPOL=1, CPHA=1.
  * @param ss_list  An array of SS (slave select) pin numbers. Each SS pin represents one slave device. 
  * @param slave_count  The number of slave devices attached to the instance. This number must match the
  *                     number of elements in the ss_list array. 
  * 
  * @param errc Pointer to error status output.
  */
-void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_t *errc);
+void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_t *errc);
 
 /**
  * @brief Perform an SPI data transfer with blocking. 

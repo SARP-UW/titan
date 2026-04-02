@@ -270,7 +270,5 @@ char* adc_get_channel_name(struct adc_channel channel) {
  * 1. Start and reset pins are perminently tied to high, clk is tied to low, and data ready is left hanging. 
  * Only standard spi pins are used.
  * 
- * 2. TODO: Reduce magic numbers. For example STATUS_REG & 0x40 is RDY_FLAG.
- * 
- * 4. If errc is not TI_ERRC_NONE the return value has no meaning **
+ * 2. If errc is not TI_ERRC_NONE the return value has no meaning **
  */

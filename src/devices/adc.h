@@ -31,7 +31,6 @@
 struct adc_spi_dev {
     uint8_t inst;
     uint8_t ss_pin;
-    // TODO: Include SPI mode in SPI (as it relates to Rising/falling edge & default high/low)
 };
 
 /**
