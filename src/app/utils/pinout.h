@@ -69,12 +69,15 @@ const uint32_t RST = 27;
 
 const uint32_t ACTUATOR_SPI_MOSI = 5;
 const uint32_t ACTUATOR_SPI_MISO = 4;
-const uint32_t ACTUATOR_CS_1 = 63;
-const uint32_t ACTUATOR_CS_2 = 62;
-const uint32_t ACTUATOR_CS_3 = 61;
+
+// For reference, all valvue and PT names: https://docs.google.com/document/d/1aHiSNhke8H2l8NKYezfDgkhBJBR_zAWUDkQf7POzs2M/edit?tab=t.0
+const uint32_t ACTUATOR_CS_1 = 63; // each controls 4 valves 
+const uint32_t ACTUATOR_CS_2 = 62; // ...
+const uint32_t ACTUATOR_CS_3 = 61; // ... thus 12 valves total here
+
 const uint32_t POWER_TMP_CS = 58; // power board temperature 
 
-const uint32_t PWM_1 = 38;
+const uint32_t PWM_1 = 38; 
 const uint32_t PWM_2 = 93;
 const uint32_t PWM_3 = 82;
 const uint32_t PWM_4 = 37;
@@ -98,8 +101,8 @@ const uint32_t SENSOR_SPI_MISO = 110;
 const uint32_t SENSOR_SPI_SCLK = 109;
 
 // ADC CS
-const uint32_t SENSOR_CS_1 = 76;
-const uint32_t SENSOR_CS_2 = 77;
+const uint32_t SENSOR_CS_1 = 76; // CCPT, OMPT, FMPT, OTPT are all connected to this ADC
+const uint32_t SENSOR_CS_2 = 77; // All others are unused 
 const uint32_t SENSOR_CS_3 = 114;
 const uint32_t SENSOR_CS_4 = 115;
 const uint32_t SENSOR_CS_5 = 116;
