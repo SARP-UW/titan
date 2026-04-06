@@ -138,9 +138,9 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
             tal_set_mode(INST1_MISO, 2);
             tal_set_mode(INST1_MOSI, 2);
             // Set alternate mode
-            tal_alternate_mode(INST1_SCK, 0101);
-            tal_alternate_mode(INST1_MISO, 0101);
-            tal_alternate_mode(INST1_MOSI, 0101);
+            tal_alternate_mode(INST1_SCK, 0b0101);
+            tal_alternate_mode(INST1_MISO, 0b0101);
+            tal_alternate_mode(INST1_MOSI, 0b0101);
             // Set very high speed
             tal_set_speed(INST1_SCK, 3);
             tal_set_speed(INST1_MISO, 3);
@@ -157,9 +157,9 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
             tal_set_mode(INST2_MISO, 2);
             tal_set_mode(INST2_MOSI, 2);
             // Set alternate mode
-            tal_alternate_mode(INST2_SCK, 0101);
-            tal_alternate_mode(INST2_MISO, 0101);
-            tal_alternate_mode(INST2_MOSI, 0101);
+            tal_alternate_mode(INST2_SCK, 0b0101);
+            tal_alternate_mode(INST2_MISO, 0b0101);
+            tal_alternate_mode(INST2_MOSI, 0b0101);
             // Set very high speed
             tal_set_speed(INST2_SCK, 3);
             tal_set_speed(INST2_MISO, 3);
@@ -176,9 +176,9 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
             tal_set_mode(INST3_MISO, 2);
             tal_set_mode(INST3_MOSI, 2);
             // Set alternate mode
-            tal_alternate_mode(INST3_SCK, 0110);
-            tal_alternate_mode(INST3_MISO, 0110);
-            tal_alternate_mode(INST3_MOSI, 0110);
+            tal_alternate_mode(INST3_SCK, 0b0110);
+            tal_alternate_mode(INST3_MISO, 0b0110);
+            tal_alternate_mode(INST3_MOSI, 0b0110);
             // Set very high speed
             tal_set_speed(INST3_SCK, 3);
             tal_set_speed(INST3_MISO, 3);
@@ -195,9 +195,9 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
             tal_set_mode(INST4_MISO, 2);
             tal_set_mode(INST4_MOSI, 2);
             // Set alternate mode
-            tal_alternate_mode(INST4_SCK, 0101);
-            tal_alternate_mode(INST4_MISO, 0101);
-            tal_alternate_mode(INST4_MOSI, 0101);
+            tal_alternate_mode(INST4_SCK, 0b0101);
+            tal_alternate_mode(INST4_MISO, 0b0101);
+            tal_alternate_mode(INST4_MOSI, 0b0101);
             // Set very high speed
             tal_set_speed(INST4_SCK, 3);
             tal_set_speed(INST4_MISO, 3);
@@ -214,9 +214,9 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
             tal_set_mode(INST5_MISO, 2);
             tal_set_mode(INST5_MOSI, 2);
             // Set alternate mode
-            tal_alternate_mode(INST5_SCK, 0101);
-            tal_alternate_mode(INST5_MISO, 0101);
-            tal_alternate_mode(INST5_MOSI, 0101);
+            tal_alternate_mode(INST5_SCK, 0b0101);
+            tal_alternate_mode(INST5_MISO, 0b0101);
+            tal_alternate_mode(INST5_MOSI, 0b0101);
             // Set very high speed
             tal_set_speed(INST5_SCK, 3);
             tal_set_speed(INST5_MISO, 3);
@@ -233,9 +233,9 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
             tal_set_mode(INST6_MISO, 2);
             tal_set_mode(INST6_MOSI, 2);
             // Set alternate mode
-            tal_alternate_mode(INST6_SCK, 0101);
-            tal_alternate_mode(INST6_MISO, 0101);
-            tal_alternate_mode(INST6_MOSI, 0101);
+            tal_alternate_mode(INST6_SCK, 0b0101);
+            tal_alternate_mode(INST6_MISO, 0b0101);
+            tal_alternate_mode(INST6_MOSI, 0b0101);
             // Set very high speed
             tal_set_speed(INST6_SCK, 3);
             tal_set_speed(INST6_MISO, 3);
@@ -351,14 +351,15 @@ void spi_transfer_sync (uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint
             SET_FIELD(SPIx_CR1[inst], SPIx_CR1_CSTART);
         }
 
-        while (!READ_FIELD(SPIx_SR[inst], SPIx_SR_RXP) && !READ_FIELD(SPIx_SR[inst], SPIx_SR_EOT));
+        while (!READ_FIELD(SPIx_SR[inst], SPIx_SR_RXP));
 
         ((uint8_t *)dst)[i] = *(volatile uint8_t *)SPIx_RXDR[inst];
     }
 
     // Wait for end of tranfer
     while (!READ_FIELD(SPIx_SR[inst], SPIx_SR_EOT));
-    SET_FIELD(SPIx_IFCR[inst], SPIx_IFCR_EOTC);
+    SET_WO_FIELD(SPIx_IFCR[inst], SPIx_IFCR_EOTC);
+    SET_WO_FIELD(SPIx_IFCR[inst], SPIx_IFCR_TXTFC);
 
     // Pull SS pin high to end transfer
     tal_set_pin(ss_pin, 1);
