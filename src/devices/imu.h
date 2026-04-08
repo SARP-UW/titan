@@ -27,12 +27,6 @@
 
 #pragma once
 
-// IMU device struct
-struct imu_spi_dev {
-    uint8_t inst;   // SPI Instance
-    uint8_t ss_pin; // Slave Select Pin
-};
-
 struct result { 
     int16_t accel_x; 
     int16_t accel_y;

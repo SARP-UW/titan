@@ -19,36 +19,31 @@
  * @brief Utility functions to actuate valves by name
  */
 #include "valve.h"
+#include "app/utils/pinout.h"
 #include "devices/actuator.h"
 #include "peripheral/gpio.h"
 #include "peripheral/pwm.h"
 #include "peripheral/errc.h"
 
 static uint8_t get_spi_inst(int32_t mosi, int32_t miso) {
-    // TODO: update based on later stuff
-    if (mosi == 46 && miso == 45) return 1;
-    if (mosi == 75 && miso == 74) return 2;
-    if (mosi == 111 && miso == 110) return 3;
-    if (mosi == 5 && miso == 4) return 4;
-    if (mosi == 23 && miso == 22) return 5;
-    if (mosi == 127 && miso == 126) return 6;
+    if (mosi == RADIO_SPI_MOSI && miso == RADIO_SPI_MISO) return (uint8_t)RADIO_SPI_INST;
+    if (mosi == GNSS_SPI_MOSI && miso == GNSS_SPI_MISO) return (uint8_t)GNSS_SPI_INST;
+    if (mosi == SENSOR_SPI_MOSI && miso == SENSOR_SPI_MISO) return (uint8_t)SENSOR_SPI_INST;
+    // Actuator SPI is on a dedicated bus not currently enumerated in pinout.h SPI instance constants.
+    if (mosi == ACTUATOR_SPI_MOSI && miso == ACTUATOR_SPI_MISO) return 4;
     return 0;
 }
 
 static bool get_pwm_inst_chan(int32_t pin, uint8_t *inst, uint8_t *chan) {
-    // TODO - update based on later stuff
-    if (pin == 37) { *inst = 2; *chan = 1; return true; }
-    if (pin == 38) { *inst = 2; *chan = 2; return true; }
-    if (pin == 39) { *inst = 2; *chan = 3; return true; }
-    if (pin == 40) { *inst = 2; *chan = 4; return true; }
-    if (pin == 45) { *inst = 3; *chan = 1; return true; }
-    if (pin == 46) { *inst = 3; *chan = 2; return true; }
-    if (pin == 49) { *inst = 3; *chan = 3; return true; }
-    if (pin == 50) { *inst = 3; *chan = 4; return true; }
-    if (pin == 133) { *inst = 4; *chan = 1; return true; }
-    if (pin == 134) { *inst = 4; *chan = 2; return true; }
-    if (pin == 136) { *inst = 4; *chan = 3; return true; }
-    if (pin == 137) { *inst = 4; *chan = 4; return true; }
+    if (pin == PWM_4) { *inst = 2; *chan = 1; return true; }
+    if (pin == PWM_1) { *inst = 2; *chan = 2; return true; }
+    if (pin == RS485_UART_TX) { *inst = 2; *chan = 3; return true; }
+    if (pin == RS485_UART_RX) { *inst = 2; *chan = 4; return true; }
+    if (pin == PWM_5) { *inst = 3; *chan = 1; return true; }
+    if (pin == PWM_6) { *inst = 3; *chan = 2; return true; }
+    if (pin == RADIO_SHDN) { *inst = 3; *chan = 3; return true; }
+    if (pin == PWM_7) { *inst = 4; *chan = 3; return true; }
+    if (pin == PWM_8) { *inst = 4; *chan = 4; return true; }
     return false;
 }
 
