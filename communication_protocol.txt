@@ -79,13 +79,13 @@
 
     # comm packet:
         # 0x05
-        # <ping id (2 bytes)>
-        # <system mode (1 byte)>
-        # <processor time (4 bytes)> (ms since startup)
-        # <last command id (2 bytes)>
-        # <last command status (1 byte)>
-        # <message count (1 byte)>
-        # <message 1 tag (1 byte)> (optional) (repeat for each desired message)
+        # <ping id (2 bytes)> // incremented with each comm packet (ie. count)
+        # <system mode (1 byte)> // index of current state in state machine
+        # <processor time (4 bytes)> (ms since startup) 
+        # <last command id (2 bytes)> // sent to match command id sent up by comm controller
+        # <last command status (1 byte)> // as defined in the table below
+        # <message count (1 byte)> // number of messages to send down
+        # <message 1 tag (1 byte)> (optional) // one for each message TODO define (could be errors, odd status, etc)
         
         # NOTE: After comm packet is sent over radio, FC is expected
         # The comm packet is expected every 100 ms, with 10 ms given for a response.         
@@ -102,15 +102,16 @@
             # 0x08 Command failed due to invalid system state
             # 0x09 Command aborted by flight computer
             # 0x0A Command awaiting confirmation
+            # 0xFF Null
 
 # Uplink Packets (from CC to FC):
 
     # comm packet:
         # 0x01
-        # <ping id (2 bytes)>
-        # <system time (4 bytes)> (unix timestamp)
-        # <command valid (1 byte)> (0 = invalid, 1 = valid)
-        # <command id (2 bytes)> (optional, only if command valid = 1)
+        # <ping id (2 bytes)> // sent to match ping id as comm packet sent down by FC
+        # <system time (4 bytes)> (unix timestamp) // actual UTC time
+        # <command valid (1 byte)> (0 = invalid, 1 = valid) // is the following four bytes a command
+        # <command id (2 bytes)> (optional, only if command valid = 1) // incremented by comm controller for each command
         # <command type (1 byte)> (optional, only if command valid = 1)
         # <command tag (1 byte)> (optional, only if command valid = 1)
         # <command arguments (pre-determined variable length)> (optional, only if command valid = 1)

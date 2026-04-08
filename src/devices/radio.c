@@ -237,11 +237,6 @@ void radio_init(radio_t *dev, const radio_spi_dev *spi_config, const radio_confi
     // PLL lock failures. The workaround is safe to apply unconditionally.
     dev->apply_errata_12 = true;
 
-    // Initialize SPI peripheral with our slave-select pin
-    uint8_t ss_list[1] = { dev->spi_config.ss_pin }; //
-    spi_init(dev->spi_config.spi_inst, ss_list, 1, errc); //
-    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
-
     // Configure reset pin as GPIO output (drives the Si4468 SDN/shutdown pin)
     if (dev->config.reset_pin) {
         tal_enable_clock(dev->config.reset_pin);  // Enable GPIO port clock

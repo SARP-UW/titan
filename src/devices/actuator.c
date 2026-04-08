@@ -178,13 +178,6 @@ void actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config, const ac
     dev->spi_config = *spi_config;
     dev->config = *config;
 
-    // Initialize the SPI peripheral with our slave-select pin.
-    uint8_t ss_list[1] = { dev->spi_config.ss_pin }; //
-    spi_init(dev->spi_config.spi_inst, ss_list, 1, errc); //
-    if (errc && *errc != TI_ERRC_NONE) {
-        TI_SET_ERRC(errc, *errc, "Propagated: Failed to initialize SPI peripheral for actuator"); return; //
-    }
-
     // Configure the hardware ENABLE pin as a GPIO output.
     // Default to OFF (0) for safety — valves should not actuate until explicitly commanded.
     if (dev->config.enable_pin) {

@@ -88,10 +88,14 @@ static inline void ss_high(uint8_t* ss_list, uint8_t slave_count) {
     }
 }
 
-void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_t *errc) {
+void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
     if (inst > 6 || inst < 1) {
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI instance range error"); return;
+    }
+
+    if (mode > 3 || mode < 0) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI mode range error"); return;
     }
 
     // Enable clocks for MOSI, MISO, and SCK
@@ -291,9 +295,29 @@ void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_
     WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_MBR, 0b111); 
     // Set data size
     WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_DSIZE, 0b00111); // TODO: Ensure that this is lower than the slowest device's baudrate
+    
     // Set clock polarities
-    CLR_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL);
-    CLR_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA);
+    switch (mode) {
+        case MODE_0:
+            CLR_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL);
+            CLR_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA);
+            break;
+        case MODE_1:
+            CLR_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL);
+            SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA);
+            break;
+        case MODE_2:
+            SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL);
+            CLR_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA);
+            break;
+        case MODE_3:
+            SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL);
+            SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA);
+            break;
+        default:
+            return;
+    }
+
     // Slave management
     SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_SSM);
     SET_FIELD(SPIx_CR1[inst], SPIx_CR1_SSI);
@@ -302,10 +326,11 @@ void spi_init(uint8_t inst, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_
 
 }
 
-void spi_transfer_sync /* NOLINT(bugprone-easily-swappable-parameters) */(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc) {
+void spi_transfer_sync (uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
     if (size == 0) {
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Transfer size cannot be zero"); return; //
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Transfer size cannot be zero"); 
+        return; 
     }
 
     CLR_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
