@@ -63,8 +63,8 @@ typedef struct {
  * @brief Pressure and temperature results
  */
 typedef struct {
-    float pressure;    // Temperature compensated pressure from 10 mbar to 1200 mbar with 0.01 mbar resolution
-    float temperature; // Temperature from -40 C to 85 C with 0.01 C resulution
+    uint32_t pressure;    // Temperature compensated pressure from 10 mbar to 1200 mbar with 0.01 mbar resolution
+    uint32_t temperature; // Temperature from -40 C to 85 C with 0.01 C resulution
 }barometer_result_t;
 
 /**

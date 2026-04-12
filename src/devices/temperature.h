@@ -41,7 +41,7 @@ typedef enum {
  */
 typedef struct {
     int16_t raw_value;      /**< Raw ADC LSB output */
-    float   temperature;    /**< Calculated temperature in °C */
+    uint16_t   temperature;    /**< Calculated temperature in °C */
 } temperature_result_t;
 
 /**

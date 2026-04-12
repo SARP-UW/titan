@@ -27,12 +27,6 @@
 
 #pragma once
 
-// IMU device struct
-struct imu_spi_dev {
-    uint8_t inst;   // SPI Instance
-    uint8_t ss_pin; // Slave Select Pin
-};
-
 struct result { 
     int16_t accel_x; 
     int16_t accel_y;
@@ -53,7 +47,7 @@ struct imu_spi_dev {
 /**
  * @brief IMU sensor result struct
  */
-struct result {
+struct imu_result {
     int16_t accel_x;   /**< X-axis acceleration */
     int16_t accel_y;   /**< Y-axis acceleration */
     int16_t accel_z;   /**< Z-axis acceleration */
@@ -76,7 +70,7 @@ enum ti_errc_t imu_init(struct imu_spi_dev* dev);
  *        instance has been initialized before calling this function. 
  * 
  * @param dev  pointer to the imu_spi_dev structure. 
- * @param result  pointer to the result structure. 
+ * @param result  pointer to the imu_result structure. 
  * @return ti_errc_t error code.
  */
-enum ti_errc_t imu_transfer(struct imu_spi_dev* dev, struct result* result);
+enum ti_errc_t imu_transfer(struct imu_spi_dev* dev, struct imu_result* result);

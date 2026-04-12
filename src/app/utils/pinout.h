@@ -22,97 +22,100 @@
  #include <stdint.h>
 
 
-const uint32_t GNSS_SPI_CS = 126;
+static const uint32_t GNSS_SPI_CS = 126;
 // SPI 3, same as sensor board SPI
-const uint32_t GNSS_SPI_MOSI = 111;
-const uint32_t GNSS_SPI_MISO = 110;
-const uint32_t GNSS_SPI_SCLK = 109;
+static const uint32_t GNSS_SPI_INST = 3;
+static const uint32_t GNSS_SPI_MOSI = 111;
+static const uint32_t GNSS_SPI_MISO = 110;
+static const uint32_t GNSS_SPI_SCLK = 109;
 //-------------------------------
 
-const uint32_t EXT_FLASH_QSPI_CS = 66;
-const uint32_t EXT_FLASH_QSPI_SCLK = 24;
-const uint32_t EXT_FLASH_QSPI_IO_0 = 22;
-const uint32_t EXT_FLASH_QSPI_IO_1 = 23;
-const uint32_t EXT_FLASH_QSPI_IO_2 = 21;
-const uint32_t EXT_FLASH_QSPI_IO_3 = 20;
+static const uint32_t EXT_FLASH_QSPI_CS = 66;
+static const uint32_t EXT_FLASH_QSPI_SCLK = 24;
+static const uint32_t EXT_FLASH_QSPI_IO_0 = 22;
+static const uint32_t EXT_FLASH_QSPI_IO_1 = 23;
+static const uint32_t EXT_FLASH_QSPI_IO_2 = 21;
+static const uint32_t EXT_FLASH_QSPI_IO_3 = 20;
 //-------------------------------
 
-const uint32_t RADIO_SPI_CS = 84;
+static const uint32_t RADIO_SPI_CS = 84;
 // SPI 2
-const uint32_t RADIO_SPI_MOSI = 75;
-const uint32_t RADIO_SPI_MISO = 74;
-const uint32_t RADIO_SPI_SCLK = 73;
+static const uint32_t RADIO_SPI_INST = 2;
+static const uint32_t RADIO_SPI_MOSI = 75;
+static const uint32_t RADIO_SPI_MISO = 74;
+static const uint32_t RADIO_SPI_SCLK = 73;
 
-const uint32_t RADIO_IRQ = 85;
-const uint32_t RADIO_SHDN = 49;
+static const uint32_t RADIO_IRQ = 85;
+static const uint32_t RADIO_SHDN = 49;
 //-------------------------------
 
 // UART 2
-const uint32_t RS485_UART_TX = 39;
-const uint32_t RS485_UART_RX = 40;
+static const uint32_t RS485_UART_TX = 39;
+static const uint32_t RS485_UART_RX = 40;
 
-const uint32_t RS485_RE = 44;
-const uint32_t RS485_DE = 43;
+static const uint32_t RS485_RE = 44;
+static const uint32_t RS485_DE = 43;
 //-------------------------------
 //CAN could be here, but I omit since we are not using it in the minimal version
 
-const uint32_t USB_DATA_plus = 101;
-const uint32_t USB_DATA_minus = 100;
-const uint32_t USB_ID = 99;
+static const uint32_t USB_DATA_plus = 101;
+static const uint32_t USB_DATA_minus = 100;
+static const uint32_t USB_ID = 99;
 //-------------------------------
 
-const uint32_t SWD_CLK = 107;
-const uint32_t SWD_IO = 102;
-const uint32_t SWD_OUT = 130;
-const uint32_t RST = 27;
+static const uint32_t SWD_CLK = 107;
+static const uint32_t SWD_IO = 102;
+static const uint32_t SWD_OUT = 130;
+static const uint32_t RST = 27;
 //-------------------------------
 
-const uint32_t ACTUATOR_SPI_MOSI = 5;
-const uint32_t ACTUATOR_SPI_MISO = 4;
+static const uint32_t ACTUATOR_SPI_MOSI = 5;
+static const uint32_t ACTUATOR_SPI_MISO = 4;
 
 // For reference, all valvue and PT names: https://docs.google.com/document/d/1aHiSNhke8H2l8NKYezfDgkhBJBR_zAWUDkQf7POzs2M/edit?tab=t.0
-const uint32_t ACTUATOR_CS_1 = 63; // each controls 4 valves 
-const uint32_t ACTUATOR_CS_2 = 62; // ...
-const uint32_t ACTUATOR_CS_3 = 61; // ... thus 12 valves total here
+static const uint32_t ACTUATOR_CS_1 = 63; // each controls 4 valves 
+static const uint32_t ACTUATOR_CS_2 = 62; // ...
+static const uint32_t ACTUATOR_CS_3 = 61; // ... thus 12 valves total here
 
-const uint32_t POWER_TMP_CS = 58; // power board temperature 
+static const uint32_t POWER_TMP_CS = 58; // power board temperature 
 
-const uint32_t PWM_1 = 38; 
-const uint32_t PWM_2 = 93;
-const uint32_t PWM_3 = 82;
-const uint32_t PWM_4 = 37;
-const uint32_t PWM_5 = 45;
-const uint32_t PWM_6 = 46;
-const uint32_t PWM_7 = 136;
-const uint32_t PWM_8 = 137;
+static const uint32_t PWM_1 = 38; 
+static const uint32_t PWM_2 = 93;
+static const uint32_t PWM_3 = 82;
+static const uint32_t PWM_4 = 37;
+static const uint32_t PWM_5 = 45;
+static const uint32_t PWM_6 = 46;
+static const uint32_t PWM_7 = 136;
+static const uint32_t PWM_8 = 137;
 
 //-------------------------------
 
-const uint32_t IGNITE_IO = 51;
-const uint32_t IGNITE_CONT = 52; // ADC in
-const uint32_t BATT_EN = 60;
+static const uint32_t IGNITE_IO = 51;
+static const uint32_t IGNITE_CONT = 52; // ADC in
+static const uint32_t BATT_EN = 60;
 
 //-------------------------------
 
 // SPI 3, same as GNSS spi 
 // NOTE: EVERYTHING IN THIS BLOCK IS ON SPI 3
-const uint32_t SENSOR_SPI_MOSI = 111; // ANA_SPI on diagram
-const uint32_t SENSOR_SPI_MISO = 110;
-const uint32_t SENSOR_SPI_SCLK = 109;
+static const uint32_t SENSOR_SPI_INST = 3;
+static const uint32_t SENSOR_SPI_MOSI = 111; // ANA_SPI on diagram
+static const uint32_t SENSOR_SPI_MISO = 110;
+static const uint32_t SENSOR_SPI_SCLK = 109;
 
 // ADC CS
-const uint32_t SENSOR_CS_1 = 76; // CCPT, OMPT, FMPT, OTPT are all connected to this ADC
-const uint32_t SENSOR_CS_2 = 77; // All others are unused 
-const uint32_t SENSOR_CS_3 = 114;
-const uint32_t SENSOR_CS_4 = 115;
-const uint32_t SENSOR_CS_5 = 116;
-const uint32_t SENSOR_CS_6 = 117;
+static const uint32_t SENSOR_CS_1 = 76; // CCPT, OMPT, FMPT, OTPT are all connected to this ADC
+static const uint32_t SENSOR_CS_2 = 77; // All others are unused 
+static const uint32_t SENSOR_CS_3 = 114;
+static const uint32_t SENSOR_CS_4 = 115;
+static const uint32_t SENSOR_CS_5 = 116;
+static const uint32_t SENSOR_CS_6 = 117;
 
 // Regular sensor CS
-const uint32_t IMU_1_CS = 120;
-const uint32_t IMU_2_CS = 121;
-const uint32_t BARO_1_CS = 122;
-const uint32_t BARO_2_CS = 123;
-const uint32_t ANALOG_TMP_CS = 124; // analog (sensor) board temperature
-const uint32_t MAGNOTOMETER_CS = 125;
+static const uint32_t IMU_1_CS = 120;
+static const uint32_t IMU_2_CS = 121;
+static const uint32_t BARO_1_CS = 122;
+static const uint32_t BARO_2_CS = 123;
+static const uint32_t ANALOG_TMP_CS = 124; // analog (sensor) board temperature
+static const uint32_t MAGNOTOMETER_CS = 125;
 //-------------------------------

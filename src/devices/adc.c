@@ -43,7 +43,7 @@
 #define WRITE_BIT 0x40
 #define MAX_RREG_SIZE 6
 
-struct adc_spi_dev DEV;
+static struct adc_spi_dev dev_ctx;
 
 static int spi_rreg(uint8_t reg_addr, uint8_t data_size, enum ti_errc_t* errc) {
     if (data_size > (MAX_RREG_SIZE - 2) || data_size == 0) {
@@ -59,7 +59,7 @@ static int spi_rreg(uint8_t reg_addr, uint8_t data_size, enum ti_errc_t* errc) {
 
     // Two command bytes + the number of registers to read
     uint8_t tot_size = 2 + data_size;
-    spi_transfer_sync(DEV.inst, DEV.ss_pin, src, dst, tot_size, errc); // TODO: Make sure that SPI is returning an actual error code
+    spi_transfer_sync(dev_ctx.inst, dev_ctx.ss_pin, src, dst, tot_size, errc); // TODO: Make sure that SPI is returning an actual error code
 
     if (*errc != TI_ERRC_NONE) {
         return -1;
@@ -91,7 +91,7 @@ static void spi_wreg(uint8_t reg_addr, uint16_t data_size, uint32_t data, enum t
     }
 
     uint8_t tot_size = 2 + data_size;
-    spi_transfer_sync(DEV.inst, DEV.ss_pin, src, dst, tot_size, errc);
+    spi_transfer_sync(dev_ctx.inst, dev_ctx.ss_pin, src, dst, tot_size, errc);
 }
 
 static int32_t spi_single_command(uint8_t cmd, uint8_t transfer_size, enum ti_errc_t* errc) {
@@ -104,7 +104,7 @@ static int32_t spi_single_command(uint8_t cmd, uint8_t transfer_size, enum ti_er
     uint8_t src[4] = {cmd, 0, 0, 0};
     uint8_t dst[4] = {0, 0, 0, 0};
 
-    spi_transfer_sync(DEV.inst, DEV.ss_pin, src, dst, transfer_size, errc);
+    spi_transfer_sync(dev_ctx.inst, dev_ctx.ss_pin, src, dst, transfer_size, errc);
 
     if (*errc != TI_ERRC_NONE) {
         return -1;
@@ -112,10 +112,10 @@ static int32_t spi_single_command(uint8_t cmd, uint8_t transfer_size, enum ti_er
 
     if (transfer_size == 1) {
         return dst[0];
-    } else {
-        int32_t result = (dst[1] << 16) | (dst[2] << 8) | dst[3];
-        return result;
-    } 
+    }
+
+    int32_t result = (dst[1] << 16) | (dst[2] << 8) | dst[3];
+    return result;
 }
 
 void adc_init(struct adc_spi_dev *dev, enum ti_errc_t* errc) {
@@ -125,7 +125,7 @@ void adc_init(struct adc_spi_dev *dev, enum ti_errc_t* errc) {
     }
 
     *errc = TI_ERRC_NONE;
-    DEV  = *dev;
+    dev_ctx = *dev;
 
     // Reset ADC
     uint8_t err = spi_single_command(RESET, 1, errc);
@@ -157,7 +157,7 @@ void adc_init(struct adc_spi_dev *dev, enum ti_errc_t* errc) {
 }
 
 int adc_read_voltage(const struct adc_channel* channel, enum ti_errc_t* errc) {
-    if (DEV.inst < 1 || DEV.inst > 6 || !channel) {
+    if (dev_ctx.inst < 1 || dev_ctx.inst > 6 || !channel) {
         *errc = TI_ERRC_INVALID_ARG;
         return -1;
     }
@@ -214,7 +214,7 @@ int adc_read_voltage_diff(struct adc_channel channel1, struct adc_channel channe
 
 // You don't need to disconnect a pin to change the idac pins
 void adc_set_idac(enum idac_mag magnitude, enum adc_pin pin1, enum adc_pin pin2, enum ti_errc_t* errc) {
-    if (DEV.inst < 1 || DEV.inst > 6) {
+    if (dev_ctx.inst < 1 || dev_ctx.inst > 6) {
         *errc = TI_ERRC_INVALID_ARG;
         return;
     }
@@ -231,7 +231,7 @@ void adc_set_idac(enum idac_mag magnitude, enum adc_pin pin1, enum adc_pin pin2,
 }
 
 void adc_set_gpio(enum adc_pin pin, bool default_high, bool input, enum ti_errc_t* errc) {
-    if (DEV.inst < 1 || DEV.inst > 6) {
+    if (dev_ctx.inst < 1 || dev_ctx.inst > 6) {
         *errc = TI_ERRC_INVALID_ARG;
         return;
     }

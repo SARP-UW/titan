@@ -19,8 +19,7 @@
  * @brief Utility functions to actuate valves by name
  */
 
-
-#include "src/peripheral/errc.h"
+#include "peripheral/errc.h"
 #include <stdbool.h>
 #include <stdint.h>
 

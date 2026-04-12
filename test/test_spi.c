@@ -7,7 +7,7 @@ void test_spi() {
 	uint8_t ss_pins[1] = {43};
 	enum ti_errc_t errc;
 
-	spi_init(inst, ss_pins, 1, &errc);
+	spi_init(inst, MODE_0, ss_pins, 1, &errc);
 
 	uint8_t src[1] = {0xAA};
 	uint8_t dst[1] = {0x00};
