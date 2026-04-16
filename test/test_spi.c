@@ -22,15 +22,17 @@ void test_spi() {
 
 void test_spi_read_write() {
 	enum ti_errc_t errc;
+	asm("BKPT #0");
 	spi_init(1, 1, (uint8_t[]){43}, 1, &errc);
+	adc_init(&(struct adc_spi_dev){.inst = 1, .ss_pin = 43}, &errc);
 
 	uint8_t src[1] = {};
 	uint8_t dst[1] = {};
-	int result = 0;
+	int status_reg = 0;
 
 	asm("BKPT #0");
 
-	result = spi_rreg(0x01, 1, &errc);
+	status_reg = adc_read_manufacturer_id(&errc);
 
 	asm("BKPT #0");
 }
