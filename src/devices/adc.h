@@ -117,7 +117,7 @@ struct adc_channel {
  * @param dev SPI specifications
  * @param errc TI_ERRC_NONE if no errors occur, otherwise an error code
  */
-void adc_init(struct adc_spi_dev* dev, enum ti_errc_t* errc);
+void adc_init(struct adc_spi_dev* device, enum ti_errc_t* errc);
 
 /**
  * @brief Configures the multiplexer/gain/ref based on the struct, waits, and reads the voltage of a channel.
@@ -166,3 +166,5 @@ void adc_set_gpio(enum adc_pin pin, bool default_high, bool input, enum ti_errc_
  * @return a String representing the name of hte channel
  */
 char* adc_get_channel_name(struct adc_channel channel);
+
+uint8_t adc_read_manufacturer_id(enum ti_errc_t* errc);

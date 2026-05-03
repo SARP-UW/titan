@@ -69,22 +69,24 @@ void qspi_init();
  * treated as internal memory in this mode (indirect mode). To treat memory as internal
  * you must enter memory mapped mode.
  *
- * @param cmd pointer to the qspi_cmd_t structure
- * @param buf pointer to an array of eight bit integer data in memory
+ * @param cmd pointer to the qspi_cmd_t structure.
+ * @param data pointer to an array of eight bit integer data in memory. Either read or write 
+ * data depending on the value of is_read. If is_read is true, data will be used to store the 
+ * data read from external flash memory. If is_read is false, data will be used to specify the 
+ * data to be written to external flash memory. You should know the size of the data that you're 
+ * expecting if you're reading. 
  * @param is_read specifies whether you want to read or write. If you want to read, set
  * is_read to true.
- * @return an error code -- TI_ERRC_NONE if no error occurs 
+ * @param errc pointer to an error code, TI_ERRC_NONE if no error occurs. 
  */
-enum ti_errc_t qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *buf, bool is_read);
+void qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *data, bool is_read, enum ti_errc_t *errc);
 
 /**
  * @brief status polling mode ensures that the flash memory chip is not busy.
  * This function should be used in junction with qspi_command(). If qspi_command is
  * being called repeatedly, qspi_poll_status_blk() should be called in between each command.
- *
- * @return an error code -- TI_ERRC_NONE if no error occurs 
  */
-enum ti_errc_t qspi_poll_status_blk();
+void qspi_poll_status_blk();
 
 /**
  * @brief entering memory mapped mode enables the CPU to treat flash memory as if it were
@@ -92,15 +94,12 @@ enum ti_errc_t qspi_poll_status_blk();
  * wish to do so, exit memory mapped mode first.
  *
  * @param cmd pointer to the qspi_cmd_t structure
- * @return an error code -- TI_ERRC_NONE if no error occurs 
  */
-enum ti_errc_t qspi_enter_memory_mapped(qspi_cmd_t *cmd);
+void qspi_enter_memory_mapped(qspi_cmd_t *cmd);
 
 /**
  * @brief exiting memory mapped mode will disallow the CPU from using flash memory
  * as if it were internal memory. However, it enables the user to use qspi in indirect mode --
  * giving them the ability to read and write to external memory through qspi_command().
- *
- * @return an error code -- TI_ERRC_NONE if no error occurs 
  */
-enum ti_errc_t qspi_exit_memory_mapped();
+void qspi_exit_memory_mapped();

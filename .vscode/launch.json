@@ -4,8 +4,9 @@
     {
       "name": "openocd dev debug CM7",
       "cwd": "${workspaceRoot}",
-      "executable": "/Users/mahiremran/Desktop/GitHub/titan/build/test_errc.elf",
+      "executable": "${workspaceFolder}/build/test_spi.elf",
       "armToolchainPath": "/Applications/ArmGNUToolchain/14.3.rel1/arm-none-eabi/bin",
+      "serverpath": "/opt/homebrew/bin/openocd",
       "request": "launch",
       "type": "cortex-debug",
       "servertype": "openocd",

@@ -82,8 +82,31 @@ void qspi_init() {
     SET_FIELD(QUADSPI_CR, QUADSPI_CR_EN);               // Enable quadspi
 }
 
-enum ti_errc_t qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *buf, bool is_read) {
-    if (READ_FIELD(QUADSPI_SR, QUADSPI_SR_BUSY)) return TI_ERRC_BUSY;
+void send_wren_cmd(enum ti_errc_t *errc) {
+    qspi_cmd_t cmd;
+    cmd.instruction = 0x06; // Write enable instruction
+    cmd.instruction_mode = QSPI_MODE_SINGLE;
+    cmd.address_mode = QSPI_MODE_NONE;
+    cmd.address_size = 0;
+    cmd.dummy_cycles = 0;
+    cmd.data_mode = QSPI_MODE_NONE; 
+    cmd.data_size = 0;
+
+    qspi_send_cmd(&cmd, NULL, false, errc);
+}
+
+void qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *data, bool is_read, enum ti_errc_t *errc) {
+    if (READ_FIELD(QUADSPI_SR, QUADSPI_SR_BUSY)) {
+        *errc = TI_ERRC_BUSY;
+        return;
+    }
+
+    *errc = TI_ERRC_NONE;
+
+    send_wren_cmd(errc);
+    if (*errc != TI_ERRC_NONE) {
+        return;
+    }
 
     if (cmd->data_size > 0) {
         WRITE_FIELD(QUADSPI_DLR, QUADSPI_DLR_DL, cmd->data_size - 1);
@@ -115,11 +138,11 @@ enum ti_errc_t qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *buf, bool is_read) {
         if (is_read) {
             while (READ_FIELD(QUADSPI_SR, QUADSPI_SR_FLEVEL) == 0);
             
-            buf[i] = (uint8_t)READ_FIELD(QUADSPI_DR, QUADSPI_DR_REG); 
+            data[i] = (uint8_t)READ_FIELD(QUADSPI_DR, QUADSPI_DR_REG); 
         } else { // (is_write)
             while (READ_FIELD(QUADSPI_SR, QUADSPI_SR_FLEVEL) >= 32);  
             
-            WRITE_FIELD(QUADSPI_DR, QUADSPI_DR_REG, buf[i]);          
+            WRITE_FIELD(QUADSPI_DR, QUADSPI_DR_REG, data[i]);          
         }
     }
 
@@ -129,11 +152,9 @@ enum ti_errc_t qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *buf, bool is_read) {
     
     WRITE_WO_FIELD(QUADSPI_FCR, QUADSPI_FCR_CTCF, 1U); 
     WRITE_WO_FIELD(QUADSPI_FCR, QUADSPI_FCR_CTEF, 1U); 
-
-    return TI_ERRC_NONE;
 }
 
-enum ti_errc_t qspi_poll_status_blk() {
+void qspi_poll_status_blk() {
     // Stop automatic polling mode after a match
     SET_FIELD(QUADSPI_CR, QUADSPI_CR_APMS);
 
@@ -160,11 +181,9 @@ enum ti_errc_t qspi_poll_status_blk() {
     while (READ_FIELD(QUADSPI_SR, QUADSPI_SR_BUSY)); 
     
     CLR_FIELD(QUADSPI_CR, QUADSPI_CR_APMS);
-
-    return TI_ERRC_NONE;
 }
 
-enum ti_errc_t qspi_enter_memory_mapped(qspi_cmd_t *cmd) {
+void qspi_enter_memory_mapped(qspi_cmd_t *cmd) {
     (void)cmd;
     // Ensure the QSPI is not busy
     while (READ_FIELD(QUADSPI_SR, QUADSPI_SR_BUSY));
@@ -180,17 +199,13 @@ enum ti_errc_t qspi_enter_memory_mapped(qspi_cmd_t *cmd) {
         0x0B;                      // Instruction: Fast Read
 
     WRITE_FIELD(QUADSPI_CCR, QUADSPI_CCR_REG, ccr_val);
-
-    return TI_ERRC_NONE;
 }
 
-enum ti_errc_t qspi_exit_memory_mapped() {
+void qspi_exit_memory_mapped() {
     // Abort any ongoing memory-mapped access
     SET_FIELD(QUADSPI_CR, QUADSPI_CR_ABORT);
 
     // Wait for busy and abort flags
     while (READ_FIELD(QUADSPI_CR, QUADSPI_CR_ABORT)); 
     while (READ_FIELD(QUADSPI_SR, QUADSPI_SR_BUSY)); 
-
-    return TI_ERRC_NONE;
 }
