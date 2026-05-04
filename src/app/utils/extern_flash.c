@@ -3,6 +3,10 @@
 #include "peripheral/errc.h"
 #include "extern_flash.h"
 
+volatile uint32_t* const state_addr_ptr = (volatile uint32_t*)0x38800000; // Address of current state
+volatile uint32_t* const data_addr_ptr = (volatile uint32_t*)0x38800004; // Address of current data log
+volatile uint32_t* const curr_page_space_ptr = (volatile uint32_t*)0x38800008; // Remaining space in current page
+
 // ONLY INITIALIZE ONCE AT THE START OF THE PROGRAM. 
 // DO NOT CALL MORE THAN ONCE OR YOU WILL LOSE ALL DATA IN EXTERNAL FLASH MEMORY
 void init_extern_flash() {

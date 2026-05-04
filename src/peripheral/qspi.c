@@ -82,17 +82,39 @@ void qspi_init() {
     SET_FIELD(QUADSPI_CR, QUADSPI_CR_EN);               // Enable quadspi
 }
 
-void send_wren_cmd(enum ti_errc_t *errc) {
+static void send_wren_cmd(enum ti_errc_t *errc) {
     qspi_cmd_t cmd;
     cmd.instruction = 0x06; // Write enable instruction
     cmd.instruction_mode = QSPI_MODE_SINGLE;
     cmd.address_mode = QSPI_MODE_NONE;
     cmd.address_size = 0;
     cmd.dummy_cycles = 0;
-    cmd.data_mode = QSPI_MODE_NONE; 
+    cmd.data_mode = QSPI_MODE_NONE;
     cmd.data_size = 0;
 
-    qspi_send_cmd(&cmd, NULL, false, errc);
+    // Directly write the command without going through qspi_send_cmd to avoid recursion
+    if (READ_FIELD(QUADSPI_SR, QUADSPI_SR_BUSY)) {
+        *errc = TI_ERRC_BUSY;
+        return;
+    }
+
+    *errc = TI_ERRC_NONE;
+
+    uint32_t ccr_val = (0b00 << 26)                |  // FMODE = 0b00 (indirect write mode)
+                       (QSPI_MODE_NONE << 24)       |  // Data mode
+                       (0U << 18)                    |  // No dummy cycles
+                       (QSPI_MODE_NONE << 10)        |  // No address phase
+                       (QSPI_MODE_SINGLE << 8)       |  // Instruction over single qspi line
+                       0x06;                         // Write enable instruction
+
+    WRITE_FIELD(QUADSPI_CCR, QUADSPI_CCR_REG, ccr_val);
+
+    // Wait for the busy flag and transfer complete flag
+    while (!READ_FIELD(QUADSPI_SR, QUADSPI_SR_TCF));
+    while (READ_FIELD(QUADSPI_SR, QUADSPI_SR_BUSY));
+
+    WRITE_WO_FIELD(QUADSPI_FCR, QUADSPI_FCR_CTCF, 1U);
+    WRITE_WO_FIELD(QUADSPI_FCR, QUADSPI_FCR_CTEF, 1U);
 }
 
 void qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *data, bool is_read, enum ti_errc_t *errc) {
@@ -102,11 +124,6 @@ void qspi_send_cmd(qspi_cmd_t *cmd, uint8_t *data, bool is_read, enum ti_errc_t 
     }
 
     *errc = TI_ERRC_NONE;
-
-    send_wren_cmd(errc);
-    if (*errc != TI_ERRC_NONE) {
-        return;
-    }
 
     if (cmd->data_size > 0) {
         WRITE_FIELD(QUADSPI_DLR, QUADSPI_DLR_DL, cmd->data_size - 1);

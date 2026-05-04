@@ -260,6 +260,8 @@ void adc_set_gpio(enum adc_pin pin, bool default_high, bool input, enum ti_errc_
         gpiodat_val = 1 << gpio_idx;
     } else if (!default_high && input) {
         gpiodat_val = 1 << (gpio_idx + 4);
+    } else {
+        gpiodat_val = 0;
     } 
 
     // Set as output/input and default high/low

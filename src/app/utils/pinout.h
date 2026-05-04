@@ -19,7 +19,9 @@
  * @brief Physical pinout of flight computer board
  */
 
- #include <stdint.h>
+#pragma once
+
+#include <stdint.h>
 
 
 static const uint32_t GNSS_SPI_CS = 126;
