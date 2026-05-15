@@ -62,7 +62,7 @@ struct imu_result {
  * 
  * @param dev  pointer to the imu_spi_dev structure. 
  */
-enum ti_errc_t imu_init(struct imu_spi_dev* dev);
+enum ti_errc_t imu_init(struct imu_spi_dev* dev, enum ti_errc_t* errc);
 
 /**
  * @brief Performs a burst read of the sensor registers and returns them 

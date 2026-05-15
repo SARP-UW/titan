@@ -61,61 +61,70 @@ void build_gnss_packet(const gnss_pvt_t *pvt, uint8_t *buffer, size_t buffer_len
     buffer[30] = pvt->sec;
 }
 
-void build_sensor_packet(const struct imu_result *imu1,
-                         const struct imu_result *imu2,
+void build_sensor_packet(
+    // const struct imu_result *imu1,
+                        //  const struct imu_result *imu2,
                          const barometer_result_t *baro1,
                          const barometer_result_t *baro2,
-                         const struct magnetometer_result_t *mag1,
-                         const struct magnetometer_result_t *mag2,
+                         // const struct magnetometer_result_t *mag1,
+                         // const struct magnetometer_result_t *mag2,
                          const temperature_result_t *temp1,
                          const temperature_result_t *temp2,
                          uint8_t *buffer,
                          size_t buffer_len,
                          enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
-    if (!imu1 || !imu2 || !baro1 || !baro2 || !mag1 || !mag2 || !temp1 || !temp2 || !buffer || buffer_len < PACKET_SENSOR_SIZE) {
+    if ( !baro1 || !baro2 || !temp1 || !temp2 || !buffer || buffer_len < PACKET_SENSOR_SIZE) {
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid sensor packet args");
         return;
     }
 
     write_magic_header(buffer);
     buffer[8] = PACKET_SENSOR_TYPE;
-    buffer[9] = (uint8_t)(imu1->accel_x >> 8);
-    buffer[10] = (uint8_t)imu1->accel_x;
-    buffer[11] = (uint8_t)(imu1->accel_y >> 8);
-    buffer[12] = (uint8_t)imu1->accel_y;
-    buffer[13] = (uint8_t)(imu1->accel_z >> 8);
-    buffer[14] = (uint8_t)imu1->accel_z;
-    buffer[15] = (uint8_t)(imu1->gyro_x >> 8);
-    buffer[16] = (uint8_t)imu1->gyro_x;
-    buffer[17] = (uint8_t)(imu1->gyro_y >> 8);
-    buffer[18] = (uint8_t)imu1->gyro_y;
-    buffer[19] = (uint8_t)(imu1->gyro_z >> 8);
-    buffer[20] = (uint8_t)imu1->gyro_z;
-    buffer[21] = (uint8_t)(imu2->accel_x >> 8);
-    buffer[22] = (uint8_t)imu2->accel_x;
-    buffer[23] = (uint8_t)(imu2->accel_y >> 8);
-    buffer[24] = (uint8_t)imu2->accel_y;
-    buffer[25] = (uint8_t)(imu2->accel_z >> 8);
-    buffer[26] = (uint8_t)imu2->accel_z;
-    buffer[27] = (uint8_t)(imu2->gyro_x >> 8);
-    buffer[28] = (uint8_t)imu2->gyro_x;
-    buffer[29] = (uint8_t)(imu2->gyro_y >> 8);
-    buffer[30] = (uint8_t)imu2->gyro_y;
-    buffer[31] = (uint8_t)(imu2->gyro_z >> 8);
-    buffer[32] = (uint8_t)imu2->gyro_z;
-    buffer[33] = (uint8_t)(mag1->mag_x >> 8);
-    buffer[34] = (uint8_t)mag1->mag_x;
-    buffer[35] = (uint8_t)(mag1->mag_y >> 8);
-    buffer[36] = (uint8_t)mag1->mag_y;
-    buffer[37] = (uint8_t)(mag1->mag_z >> 8);
-    buffer[38] = (uint8_t)mag1->mag_z;
-    buffer[39] = (uint8_t)(mag2->mag_x >> 8);
-    buffer[40] = (uint8_t)mag2->mag_x;
-    buffer[41] = (uint8_t)(mag2->mag_y >> 8);
-    buffer[42] = (uint8_t)mag2->mag_y;
-    buffer[43] = (uint8_t)(mag2->mag_z >> 8);
-    buffer[44] = (uint8_t)mag2->mag_z;
+    // buffer[9] = (uint8_t)(imu1->accel_x >> 8);
+    // buffer[10] = (uint8_t)imu1->accel_x;
+    // buffer[11] = (uint8_t)(imu1->accel_y >> 8);
+    // buffer[12] = (uint8_t)imu1->accel_y;
+    // buffer[13] = (uint8_t)(imu1->accel_z >> 8);
+    // buffer[14] = (uint8_t)imu1->accel_z;
+    // buffer[15] = (uint8_t)(imu1->gyro_x >> 8);
+    // buffer[16] = (uint8_t)imu1->gyro_x;
+    // buffer[17] = (uint8_t)(imu1->gyro_y >> 8);
+    // buffer[18] = (uint8_t)imu1->gyro_y;
+    // buffer[19] = (uint8_t)(imu1->gyro_z >> 8);
+    // buffer[20] = (uint8_t)imu1->gyro_z;
+    // buffer[21] = (uint8_t)(imu2->accel_x >> 8);
+    // buffer[22] = (uint8_t)imu2->accel_x;
+    // buffer[23] = (uint8_t)(imu2->accel_y >> 8);
+    // buffer[24] = (uint8_t)imu2->accel_y;
+    // buffer[25] = (uint8_t)(imu2->accel_z >> 8);
+    // buffer[26] = (uint8_t)imu2->accel_z;
+    // buffer[27] = (uint8_t)(imu2->gyro_x >> 8);
+    // buffer[28] = (uint8_t)imu2->gyro_x;
+    // buffer[29] = (uint8_t)(imu2->gyro_y >> 8);
+    // buffer[30] = (uint8_t)imu2->gyro_y;
+    // buffer[31] = (uint8_t)(imu2->gyro_z >> 8);
+    // buffer[32] = (uint8_t)imu2->gyro_z;
+    for (int i = 9; i <= 32; i++) {
+        buffer[i] = 0x02;
+    }
+
+    // buffer[33] = (uint8_t)(mag1->mag_x >> 8);
+    // buffer[34] = (uint8_t)mag1->mag_x;
+    // buffer[35] = (uint8_t)(mag1->mag_y >> 8);
+    // buffer[36] = (uint8_t)mag1->mag_y;
+    // buffer[37] = (uint8_t)(mag1->mag_z >> 8);
+    // buffer[38] = (uint8_t)mag1->mag_z;
+    // buffer[39] = (uint8_t)(mag2->mag_x >> 8);
+    // buffer[40] = (uint8_t)mag2->mag_x;
+    // buffer[41] = (uint8_t)(mag2->mag_y >> 8);
+    // buffer[42] = (uint8_t)mag2->mag_y;
+    // buffer[43] = (uint8_t)(mag2->mag_z >> 8);
+    // buffer[44] = (uint8_t)mag2->mag_z;
+    for (int i = 33; i <= 44; i++) {
+        buffer[i] = 0x03;
+    }
+
     buffer[45] = (uint8_t)(baro1->pressure >> 16);
     buffer[46] = (uint8_t)(baro1->pressure >> 8);
     buffer[47] = (uint8_t)baro1->pressure;
@@ -258,6 +267,22 @@ void send_packet_radio_flash(radio_t *radio,
     }
 }
 
+void send_packet_umbilical(umbilical_t *umbilical,
+                            const uint8_t *packet,
+                            size_t packet_len,
+                            enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (!umbilical || !packet || packet_len == 0U) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid umbilical packet send args");
+        return;
+    }
+
+    umbilical_transmit(umbilical, packet, packet_len, errc);
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Failed to transmit umbilical packet");
+    }
+}
+
 void parse_uplink_comm_packet(const uint8_t *buffer,
                               size_t buffer_len,
                               comm_packet_t *out,
@@ -340,6 +365,28 @@ void receive_uplink_comm_packet(radio_t *radio,
     radio_receive(radio, rx_buffer, rx_buffer_len, &actual_len, errc);
     if (errc && *errc != TI_ERRC_NONE) {
         TI_SET_ERRC(errc, *errc, "Failed to receive comm packet");
+        return;
+    }
+
+    parse_uplink_comm_packet(rx_buffer, actual_len, out, errc);
+}
+
+void receive_uplink_comm_packet_umbilical(umbilical_t *umbilical,
+                                          uint8_t *rx_buffer,
+                                          size_t rx_buffer_len,
+                                          comm_packet_t *out,
+                                          enum ti_errc_t *errc) {
+    size_t actual_len = 0;
+
+    if (errc) *errc = TI_ERRC_NONE;
+    if (!umbilical || !rx_buffer || !out || rx_buffer_len == 0U) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid umbilical comm receive args");
+        return;
+    }
+
+    umbilical_receive(umbilical, rx_buffer, rx_buffer_len, &actual_len, errc);
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Failed to receive umbilical comm packet");
         return;
     }
 

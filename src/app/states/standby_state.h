@@ -2,7 +2,10 @@
 // Created by Joshua Beard on 3/1/26.
 //
 
+
 #pragma once
+#include "app/state_machine.h"
+#include "app/state.h"
 
 bool standby_state_init();
 

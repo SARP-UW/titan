@@ -20,11 +20,10 @@
  */
 
 #include "sensor_status.h"
-#include "devices/imu.h"
+// #include "devices/imu.h"
 #include "devices/gnss.h"
 #include "devices/barometer.h"
 #include "devices/adc.h"
-#include "devices/magnetometer.h"
 #include "devices/temperature.h"
 #include "peripheral/errc.h"
 
@@ -54,24 +53,24 @@ void gnss_start_read(gnss_t *dev, gnss_pvt_t *result, bool *done_flag, bool *err
  * @section IMU Non-blocking Implementation
  **************************************************************************************************/
 
-void imu_start_read(struct imu_spi_dev *dev, struct imu_result *result, bool *done_flag, bool *error_flag, enum ti_errc_t *errc) {
-    if (!dev || !result || !done_flag || !error_flag) {
-        if (errc) *errc = TI_ERRC_INVALID_ARG;
-        *done_flag = true;
-        *error_flag = true;
-        return;
-    }
+// void imu_start_read(struct imu_spi_dev *dev, struct imu_result *result, bool *done_flag, bool *error_flag, enum ti_errc_t *errc) {
+//     if (!dev || !result || !done_flag || !error_flag) {
+//         if (errc) *errc = TI_ERRC_INVALID_ARG;
+//         *done_flag = true;
+//         *error_flag = true;
+//         return;
+//     }
 
-    *done_flag = false;
-    *error_flag = false;
-    if (errc) *errc = TI_ERRC_NONE;
+//     *done_flag = false;
+//     *error_flag = false;
+//     if (errc) *errc = TI_ERRC_NONE;
 
-    // For now, use blocking call but set flags appropriately
-    enum ti_errc_t result_errc = imu_transfer(dev, result);
-    if (errc) *errc = result_errc;
-    *done_flag = true;
-    *error_flag = (result_errc != TI_ERRC_NONE);
-}
+//     // For now, use blocking call but set flags appropriately
+//     enum ti_errc_t result_errc = imu_transfer(dev, result);
+//     if (errc) *errc = result_errc;
+//     *done_flag = true;
+//     *error_flag = (result_errc != TI_ERRC_NONE);
+// }
 
 /**************************************************************************************************
  * @section Barometer Non-blocking Implementation
@@ -115,29 +114,6 @@ void temperature_start_read(temperature_t *dev, temperature_result_t *result, bo
     temperature_read_temp(dev, result, errc);
     *done_flag = true;
     *error_flag = (errc && *errc != TI_ERRC_NONE);
-}
-
-/**************************************************************************************************
- * @section Magnetometer Non-blocking Implementation
- **************************************************************************************************/
-
-void magnetometer_start_read(struct magnetometer_spi_dev *dev, struct magnetometer_result_t *result, bool *done_flag, bool *error_flag, enum ti_errc_t *errc) {
-    if (!dev || !result || !done_flag || !error_flag) {
-        if (errc) *errc = TI_ERRC_INVALID_ARG;
-        *done_flag = true;
-        *error_flag = true;
-        return;
-    }
-
-    *done_flag = false;
-    *error_flag = false;
-    if (errc) *errc = TI_ERRC_NONE;
-
-    // For now, use blocking call but set flags appropriately
-    enum ti_errc_t result_errc = magnetometer_read(dev, result);
-    if (errc) *errc = result_errc;
-    *done_flag = true;
-    *error_flag = (result_errc != TI_ERRC_NONE);
 }
 
 /**************************************************************************************************

@@ -7,10 +7,10 @@
 #include "devices/actuator.h"
 #include "devices/barometer.h"
 #include "devices/gnss.h"
-#include "devices/imu.h"
-#include "devices/magnetometer.h"
+// #include "devices/imu.h"
 #include "devices/radio.h"
 #include "devices/temperature.h"
+#include "devices/umbilical.h"
 
 #define VALVE_COUNT 12U
 #define SERVO_COUNT 8U
@@ -28,6 +28,12 @@ static radio_config_t radio_config = {
 	.channel = 0
 };
 
+static umbilical_t umbilical_dev;
+static umbilical_uart_dev umbilical_uart_config = {
+	.uart_channel = 2,  // UART2 for RS485
+	.baud_rate = 115200
+};
+
 static gnss_t gnss_dev = {
 	.spi_config = {
 		.spi_inst = (uint8_t)GNSS_SPI_INST,
@@ -42,15 +48,15 @@ static gnss_t gnss_dev = {
 	.initialized = 0
 };
 
-static struct imu_spi_dev imu_dev1 = {
-	.inst = (uint8_t)SENSOR_SPI_INST,
-	.ss_pin = (uint8_t)IMU_1_CS
-};
+// static struct imu_spi_dev imu_dev1 = {
+// 	.inst = (uint8_t)SENSOR_SPI_INST,
+// 	.ss_pin = (uint8_t)IMU_1_CS
+// };
 
-static struct imu_spi_dev imu_dev2 = {
-	.inst = (uint8_t)SENSOR_SPI_INST,
-	.ss_pin = (uint8_t)IMU_2_CS
-};
+// static struct imu_spi_dev imu_dev2 = {
+// 	.inst = (uint8_t)SENSOR_SPI_INST,
+// 	.ss_pin = (uint8_t)IMU_2_CS
+// };
 
 static barometer_t barometer_dev1 = {
 	.spi_dev = {
@@ -70,16 +76,6 @@ static barometer_t barometer_dev2 = {
 	.osr = OSR_4096,
 	.calibration_data = {0},
 	.result = {0}
-};
-
-static struct magnetometer_spi_dev magnetometer_dev1 = {
-	.inst = (uint8_t)SENSOR_SPI_INST,
-	.ss_pin = (uint8_t)MAGNOTOMETER_CS
-};
-
-static struct magnetometer_spi_dev magnetometer_dev2 = {
-	.inst = (uint8_t)SENSOR_SPI_INST,
-	.ss_pin = (uint8_t)MAGNOTOMETER_CS
 };
 
 static temperature_t temperature_dev1 = {

@@ -7,10 +7,11 @@
 #include "devices/adc.h"
 #include "devices/barometer.h"
 #include "devices/gnss.h"
-#include "devices/imu.h"
-#include "devices/magnetometer.h"
+// #include "devices/imu.h"
+// #include "devices/magnetometer.h"
 #include "devices/radio.h"
 #include "devices/temperature.h"
+#include "devices/umbilical.h"
 #include "peripheral/errc.h"
 
 #define PACKET_MAGIC_HEADER 5350924267264234322ULL
@@ -41,12 +42,13 @@ typedef struct {
 
 void build_gnss_packet(const gnss_pvt_t *pvt, uint8_t *buffer, size_t buffer_len, enum ti_errc_t *errc);
 
-void build_sensor_packet(const struct imu_result *imu1,
-                         const struct imu_result *imu2,
+void build_sensor_packet(
+    // const struct imu_result *imu1,
+                        //  const struct imu_result *imu2,
                          const barometer_result_t *baro1,
                          const barometer_result_t *baro2,
-                         const struct magnetometer_result_t *mag1,
-                         const struct magnetometer_result_t *mag2,
+                         // const struct magnetometer_result_t *mag1,
+                         // const struct magnetometer_result_t *mag2,
                          const temperature_result_t *temp1,
                          const temperature_result_t *temp2,
                          uint8_t *buffer,
@@ -85,6 +87,11 @@ void send_packet_radio_flash(radio_t *radio,
                              size_t packet_len,
                              enum ti_errc_t *errc);
 
+void send_packet_umbilical(umbilical_t *umbilical,
+                            const uint8_t *packet,
+                            size_t packet_len,
+                            enum ti_errc_t *errc);
+
 void parse_uplink_comm_packet(const uint8_t *buffer,
                               size_t buffer_len,
                               comm_packet_t *out,
@@ -95,3 +102,9 @@ void receive_uplink_comm_packet(radio_t *radio,
                                 size_t rx_buffer_len,
                                 comm_packet_t *out,
                                 enum ti_errc_t *errc);
+
+void receive_uplink_comm_packet_umbilical(umbilical_t *umbilical,
+                                          uint8_t *rx_buffer,
+                                          size_t rx_buffer_len,
+                                          comm_packet_t *out,
+                                          enum ti_errc_t *errc);

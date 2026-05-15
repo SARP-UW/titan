@@ -46,7 +46,9 @@ file(GLOB_RECURSE COMMON_SOURCES
   ${CMAKE_SOURCE_DIR}/src/*.c
 )
 # Remove main.c from COMMON_SOURCES
-list(REMOVE_ITEM COMMON_SOURCES ${CMAKE_SOURCE_DIR}/src/main.c)
+list(REMOVE_ITEM COMMON_SOURCES
+  ${CMAKE_SOURCE_DIR}/src/main.c
+)
 
 function(add_firmware_target target_name entry_file)
   if ("${entry_file}" STREQUAL "${CMAKE_SOURCE_DIR}/src/main.c")

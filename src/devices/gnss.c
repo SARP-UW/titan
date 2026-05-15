@@ -9,7 +9,9 @@
 
 #include "devices/gnss.h"
 #include "peripheral/errc.h"
+#include "peripheral/spi.h"
 #include <stddef.h>
+#include <string.h>
 
 /* UBX Protocol Synchronization and Class IDs */
 #define UBX_SYNC1 0xB5
@@ -29,12 +31,45 @@
 #define UBX_ACK_ACK   0x01
 
 
-/* 
- * Assuming standard SPI transmit/receive function signatures from peripheral/spi.h.
- * Adjust these externs if your spi.h uses slightly different naming conventions. 
+/**************************************************************************************************
+ * @section SPI Wrapper Functions
+ **************************************************************************************************/
+
+/**
+ * @brief Wrapper for SPI transmit-only operation
  */
-extern void spi_tx(uint8_t spi_inst, uint8_t ss_pin, const uint8_t *tx_data, uint32_t len, enum ti_errc_t *errc);
-extern void spi_rx(uint8_t spi_inst, uint8_t ss_pin, uint8_t *rx_data, uint32_t len, enum ti_errc_t *errc);
+static void spi_tx(uint8_t spi_inst, uint8_t ss_pin, const uint8_t *tx_data, uint32_t len, enum ti_errc_t *errc) {
+    uint8_t dummy_rx[256];
+    uint8_t *rx_ptr = dummy_rx;
+
+    if (errc) *errc = TI_ERRC_NONE;
+
+    while (len > 0) {
+        uint8_t chunk_len = (len > 256) ? 256 : (uint8_t)len;
+        spi_transfer_sync(spi_inst, ss_pin, (void*)tx_data, rx_ptr, chunk_len, errc);
+        if (errc && *errc != TI_ERRC_NONE) return;
+        tx_data += chunk_len;
+        len -= chunk_len;
+    }
+}
+
+/**
+ * @brief Wrapper for SPI receive-only operation
+ */
+static void spi_rx(uint8_t spi_inst, uint8_t ss_pin, uint8_t *rx_data, uint32_t len, enum ti_errc_t *errc) {
+    uint8_t dummy_tx[256];
+    memset(dummy_tx, 0xFF, sizeof(dummy_tx));
+
+    if (errc) *errc = TI_ERRC_NONE;
+
+    while (len > 0) {
+        uint8_t chunk_len = (len > 256) ? 256 : (uint8_t)len;
+        spi_transfer_sync(spi_inst, ss_pin, dummy_tx, rx_data, chunk_len, errc);
+        if (errc && *errc != TI_ERRC_NONE) return;
+        rx_data += chunk_len;
+        len -= chunk_len;
+    }
+}
 
 /**************************************************************************************************
  * @section UBX Payload Structures

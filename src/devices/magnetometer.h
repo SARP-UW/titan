@@ -50,7 +50,7 @@ struct magnetometer_result_t {
  * 
  * @param dev  pointer to the magnetometer_spi_dev structure. 
  */
-enum ti_errc_t magnetometer_init(struct magnetometer_spi_dev* dev);
+void magnetometer_init(struct magnetometer_spi_dev* dev, enum ti_errc_t* errc);
 
 /**
  * @brief Performs a burst read of the sensor registers and returns them 
