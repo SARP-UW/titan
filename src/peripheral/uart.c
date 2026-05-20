@@ -864,17 +864,17 @@ void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
   }
 
   // Check if usart channel is bus
-  if(IS_USART_CHANNEL(channel)) {
-  while (!READ_FIELD(USARTx_ISR[channel], USARTx_ISR_BUSY)) {
-    asm("nop");
-    // tal_raise(flag, "USART channel is busy");
-  }
-} else {
-  while (!READ_FIELD(UARTx_ISR[channel], UARTx_ISR_BUSY)) {
-    asm("nop");
-    // tal_raise(flag, "USART channel is busy");
-  }
-}
+//   if(IS_USART_CHANNEL(channel)) {
+//   while (!READ_FIELD(USARTx_ISR[channel], USARTx_ISR_BUSY)) {
+//     asm("nop");
+//     // tal_raise(flag, "USART channel is busy");
+//   }
+// } else {
+//   while (!READ_FIELD(UARTx_ISR[channel], UARTx_ISR_BUSY)) {
+//     asm("nop");
+//     // tal_raise(flag, "USART channel is busy");
+//   }
+// }
   // uart_busy[channel] = true;
 
 
