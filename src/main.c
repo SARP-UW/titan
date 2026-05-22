@@ -10,173 +10,68 @@
 #include "peripheral/qspi.h"
 #include "peripheral/systick.h"
 #include "peripheral/uart.h"
+#include "peripheral/pwm.h"
 
-#define LOOP_PERIOD_MS 100U
-#define SYSTEM_MODE_STANDBY 1U
+#define CLOCK_FREQ 64000000
+#define PWM_FREQ 200
+#define OPEN 700
+#define CLOSED 300
 
-static const int uart_txpin = 37;
-static const int uart_rxpin = 38;
+#define OMV_INPUT_PIN 43
+#define FMV_INPUT_PIN 40
 
-static umbilical_t umbilical_dev;
-static umbilical_uart_dev umbilical_uart_config = {
-    .uart_channel = 4,
-    .baud_rate = 115200
+struct ti_pwm_config_t OMV_open_config = {
+    2, 1, PWM_FREQ, OPEN, CLOCK_FREQ
 };
 
-typedef struct __attribute__((packed)) {
-    uint16_t buffer_len;
-    uint16_t ping_id;
-    uint32_t system_time;
-    uint16_t command_id;
-    uint8_t command_type;
-    uint8_t command_tag;
-    uint8_t command_valid;
-    uint8_t reserved;
-    uint16_t args_len;
-} rx_log_header_t;
+struct ti_pwm_config_t OMV_closed_config = {
+    2, 1, PWM_FREQ, CLOSED, CLOCK_FREQ
+};
 
-static void log_rx_packet(const uint8_t *buffer,
-                          size_t buffer_len,
-                          const comm_packet_t *packet,
-                          enum ti_errc_t *errc) {
-    if (!buffer || !packet || !errc) {
-        return;
-    }
+struct ti_pwm_config_t FMV_open_config = {
+    5, 3, PWM_FREQ, OPEN, CLOCK_FREQ
+};
 
-    rx_log_header_t header = {
-        .buffer_len = (uint16_t)buffer_len,
-        .ping_id = packet->ping_id,
-        .system_time = packet->system_time,
-        .command_id = packet->command_id,
-        .command_type = packet->command_type,
-        .command_tag = packet->command_tag,
-        .command_valid = (uint8_t)(packet->command_valid ? 1U : 0U),
-        .reserved = 0U,
-        .args_len = (uint16_t)packet->command_args_len
-    };
+struct ti_pwm_config_t FMV_closed_config = {
+    5, 3, PWM_FREQ, CLOSED, CLOCK_FREQ
+};
 
-    uint8_t header_bytes[sizeof(header)] = {0};
-    memcpy(header_bytes, &header, sizeof(header_bytes));
-    log_data(header_bytes, (uint16_t)sizeof(header_bytes), errc);
-    if (*errc != TI_ERRC_NONE) {
-        return;
-    }
+// MAIN PROGRAM
 
-    if (buffer_len > 0U) {
-        log_data((uint8_t *)buffer, (uint16_t)buffer_len, errc);
-    }
-}
+void set_servos() {
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-void _start() { // NOLINT(misc-use-internal-linkage)
-    enum ti_errc_t errc;
-    static const uint8_t comm_tags[] = {0};
-    size_t comm_packet_len = 0U;
+    tal_enable_clock(OMV_INPUT_PIN);
+    tal_enable_clock(FMV_INPUT_PIN);
+    tal_set_mode(OMV_INPUT_PIN, 0);
+    tal_set_mode(FMV_INPUT_PIN, 0);
+    tal_pull_pin(OMV_INPUT_PIN, -1);
+    tal_pull_pin(FMV_INPUT_PIN, -1);
 
-    systick_init();
-    qspi_init();
-    ti_log_init();
-    init_extern_flash();
+    tal_enable_clock(45);
+    tal_set_mode(45, 1);
+    tal_set_pin(45, 0);
 
-    tal_set_mode(uart_txpin, 1);
-    tal_set_mode(uart_rxpin, 1);
-    tal_set_pin(uart_txpin, 1);
-    tal_set_pin(uart_rxpin, 0);
-
-    state_comm_shared.last_command_status = COMMAND_STATUS_WAITING;
-    asm("BKPT #0");
-
-    umbilical_init(&umbilical_dev, &umbilical_uart_config, &errc);
-    asm("BKPT #0");
-    // if (errc && errc != TI_ERRC_NONE) {
-    //     TI_SET_ERRC(&errc, errc, "Failed to initialize umbilical");
-    // }
-    //  asm("BKPT #0");
-
-    //     if (state_comm_shared.uplink_comm.command_valid) {
-    //         state_comm_shared.last_command_id = state_comm_shared.uplink_comm.command_id;
-    //         state_comm_shared.last_command_status = COMMAND_STATUS_SUCCESS;
-    //     } else {
-    //         state_comm_shared.last_command_status = COMMAND_STATUS_WAITING;
-    //     }
-        
-
-    //     build_comm_packet(state_comm_shared.ping_id,
-    //                       SYSTEM_MODE_STANDBY,
-    //                       state_comm_shared.processor_time_ms,
-    //                       state_comm_shared.last_command_id,
-    //                       state_comm_shared.last_command_status,
-    //                       comm_tags,
-    //                       1,
-    //                       state_comm_shared.comm_packet,
-    //                       sizeof(state_comm_shared.comm_packet),
-    //                       &comm_packet_len,
-    //                       &errc);
-    //      asm("BKPT #0");
-    //     if (errc && errc != TI_ERRC_NONE) {
-    //         TI_SET_ERRC(&errc, errc, "Failed to build reply comm packet");
-    //     }
-
-    //     uint8_t n[10];
-    //     for (uint8_t i = 0; i < 10; i++) {
-    //         n[i] = 0x55;
-    //     }
-
-    //     uart_write_blocking(umbilical_dev.uart_config.uart_channel, (uint8_t *)n, (uint32_t)10, &errc);
-
-    //     // send_packet_umbilical(&umbilical_dev,
-    //     //                       state_comm_shared.comm_packet,
-    //     //                       comm_packet_len,
-    //     //                       &errc);
-    //     asm("BKPT #0");
-    //     if (errc && errc != TI_ERRC_NONE) {
-    //         TI_SET_ERRC(&errc, errc, "Failed to send reply comm packet");
- 
-    //     }
-
-    //     state_comm_shared.ping_id++;
-    //     state_comm_shared.processor_time_ms += LOOP_PERIOD_MS;
 
 
     while (1) {
-        size_t rx_len = 0U;
+        // Set OMV servo
 
-        uint8_t* zeroing_ptr =  (uint8_t*)&state_comm_shared.rx_packet;
-        for(int i = 0; i < sizeof(state_comm_shared.rx_packet); i++){
-            *zeroing_ptr = 0;
-            zeroing_ptr++;
+        if (tal_read_pin(OMV_INPUT_PIN)) {
+            ti_set_pwm(OMV_open_config, (void*)0);
+        } else {
+            ti_set_pwm(OMV_closed_config, (void*)0);
         }
 
-        umbilical_receive(&umbilical_dev,
-                          state_comm_shared.rx_packet,
-                          sizeof(state_comm_shared.rx_packet),
-                          &rx_len,
-                          &errc);
-        if (errc && errc != TI_ERRC_NONE) {
-            TI_SET_ERRC(&errc, errc, "Failed to receive umbilical packet");
-            continue;
+        // Set FMV servo
+        if (tal_read_pin(FMV_INPUT_PIN)) {
+            ti_set_pwm(FMV_open_config, (void*)0);
+        } else {
+            ti_set_pwm(FMV_closed_config, (void*)0);
         }
-        asm("BKPT #0");
-
-        
-
-        // // parse_uplink_comm_packet(state_comm_shared.rx_packet,
-        // //                          rx_len,
-        // //                          &state_comm_shared.uplink_comm,
-        // //                          &errc);
-        // if (errc && errc != TI_ERRC_NONE) {
-        //     TI_SET_ERRC(&errc, errc, "Failed to parse umbilical packet");
-        //     continue;
-        // }
-
-        // log_rx_packet(state_comm_shared.rx_packet,
-        //               rx_len,
-        //               &state_comm_shared.uplink_comm,
-        //               &errc);
-        // if (errc && errc != TI_ERRC_NONE) {
-        //     TI_SET_ERRC(&errc, errc, "Failed to log umbilical packet");
-        //     continue;
-        // }
-         systick_delay(LOOP_PERIOD_MS);
     }
 }
+
+void _start() {
+    set_servos();
+}
+
