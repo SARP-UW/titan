@@ -609,53 +609,53 @@ void uart_init(uart_config_t *usart_config, dma_callback_t *callback,
 
   // TODO: maybe calculate via using ints for mantissa/exponent field?
   uint32_t brr_value = clk_freq / baud_rate;
-  if (IS_USART_CHANNEL(channel)) {
-  WRITE_FIELD(USARTx_BRR[channel], USARTx_BRR_BRR_4_15, brr_value);
+  // if (IS_USART_CHANNEL(channel)) {
+  // WRITE_FIELD(USARTx_BRR[channel], USARTx_BRR_BRR_4_15, brr_value);
 
-  // Set parity
-  switch (parity) {
-    case UART_PARITY_DISABLED:
-      CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
-      break;
-    case UART_PARITY_EVEN:
-      SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
-      CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_PS);
-      break;
-    case UART_PARITY_ODD:
-      SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
-      SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PS);
-      break;
-  }
-
-
-  // Set data length
-  switch (data_length) {
-    case UART_DATALENGTH_7:
-      if (!parity) {
-        // tal_raise(flag, "Invalid parity datasize combo");
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return;
-      }
-      SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-      CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-      break;
-    case UART_DATALENGTH_8:
-      CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-      CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-      break;
-    case UART_DATALENGTH_9:
-      if (parity) {
-        // tal_raise(flag, "Invalid parity datasize combo");
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return;
-      }
-      SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-      SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-      break;
-  }
+  // // Set parity
+  // switch (parity) {
+  //   case UART_PARITY_DISABLED:
+  //     CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
+  //     break;
+  //   case UART_PARITY_EVEN:
+  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
+  //     CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_PS);
+  //     break;
+  //   case UART_PARITY_ODD:
+  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
+  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PS);
+  //     break;
+  // }
 
 
-  // Enable FIFOs
-  SET_FIELD(USARTx_CR1[channel], USARTx_CR1_FIFOEN);
-} else {
+  // // Set data length
+  // switch (data_length) {
+  //   case UART_DATALENGTH_7:
+  //     if (!parity) {
+  //       // tal_raise(flag, "Invalid parity datasize combo");
+  //       TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return;
+  //     }
+  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
+  //     CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
+  //     break;
+  //   case UART_DATALENGTH_8:
+  //     CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
+  //     CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
+  //     break;
+  //   case UART_DATALENGTH_9:
+  //     if (parity) {
+  //       // tal_raise(flag, "Invalid parity datasize combo");
+  //       TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return;
+  //     }
+  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
+  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
+  //     break;
+  // }
+
+
+  // // Enable FIFOs
+  // SET_FIELD(USARTx_CR1[channel], USARTx_CR1_FIFOEN);
+// } else {
   WRITE_FIELD(UARTx_BRR[channel], UARTx_BRR_BRR_4_15, brr_value);
 
   // Set parity
@@ -702,7 +702,7 @@ void uart_init(uart_config_t *usart_config, dma_callback_t *callback,
   // Enable FIFOs
   SET_FIELD(UARTx_CR1[channel], UARTx_CR1_FIFOEN);
 
-}
+// }
 
   dma_config_t dma_tx_stream = {
       .instance = tx_stream->instance,
