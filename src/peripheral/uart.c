@@ -601,108 +601,99 @@ void uart_init(uart_config_t *usart_config, dma_callback_t *callback,
   } //
 
 
-  // Ensure the clock pin is disabled for asynchronous mode
-  // TODO: check on this
-  if (!IS_USART_CHANNEL(channel)) {
+  // Ensure the clock pin is disabled for asynchronous mode.
+  if (IS_USART_CHANNEL(channel)) {
+    CLR_FIELD(USARTx_CR2[channel], USARTx_CR2_CLKEN);
+  } else {
     CLR_FIELD(UARTx_CR2[channel], UARTx_CR2_CLKEN);
   }
 
   // TODO: maybe calculate via using ints for mantissa/exponent field?
   uint32_t brr_value = clk_freq / baud_rate;
-  // if (IS_USART_CHANNEL(channel)) {
-  // WRITE_FIELD(USARTx_BRR[channel], USARTx_BRR_BRR_4_15, brr_value);
 
-  // // Set parity
-  // switch (parity) {
-  //   case UART_PARITY_DISABLED:
-  //     CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
-  //     break;
-  //   case UART_PARITY_EVEN:
-  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
-  //     CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_PS);
-  //     break;
-  //   case UART_PARITY_ODD:
-  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
-  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PS);
-  //     break;
-  // }
+  if (IS_USART_CHANNEL(channel)) {
+    WRITE_FIELD(USARTx_BRR[channel], USARTx_BRR_BRR_4_15, brr_value);
 
+    switch (parity) {
+      case UART_PARITY_DISABLED:
+        CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
+        break;
+      case UART_PARITY_EVEN:
+        SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
+        CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_PS);
+        break;
+      case UART_PARITY_ODD:
+        SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
+        SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PS);
+        break;
+    }
 
-  // // Set data length
-  // switch (data_length) {
-  //   case UART_DATALENGTH_7:
-  //     if (!parity) {
-  //       // tal_raise(flag, "Invalid parity datasize combo");
-  //       TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return;
-  //     }
-  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-  //     CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-  //     break;
-  //   case UART_DATALENGTH_8:
-  //     CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-  //     CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-  //     break;
-  //   case UART_DATALENGTH_9:
-  //     if (parity) {
-  //       // tal_raise(flag, "Invalid parity datasize combo");
-  //       TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return;
-  //     }
-  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-  //     SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-  //     break;
-  // }
+    switch (data_length) {
+      case UART_DATALENGTH_7:
+        if (!parity) {
+          TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo");
+          return;
+        }
+        SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
+        CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
+        break;
+      case UART_DATALENGTH_8:
+        CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
+        CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
+        break;
+      case UART_DATALENGTH_9:
+        if (parity) {
+          TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo");
+          return;
+        }
+        SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
+        SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
+        break;
+    }
 
+    SET_FIELD(USARTx_CR1[channel], USARTx_CR1_FIFOEN);
+  } else {
+    WRITE_FIELD(UARTx_BRR[channel], UARTx_BRR_BRR_4_15, brr_value);
 
-  // // Enable FIFOs
-  // SET_FIELD(USARTx_CR1[channel], USARTx_CR1_FIFOEN);
-// } else {
-  WRITE_FIELD(UARTx_BRR[channel], UARTx_BRR_BRR_4_15, brr_value);
+    switch (parity) {
+      case UART_PARITY_DISABLED:
+        CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
+        break; //
+      case UART_PARITY_EVEN:
+        SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
+        CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_PS);
+        break; //
+      case UART_PARITY_ODD:
+        SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
+        SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PS);
+        break; //
+    }
 
-  // Set parity
-  switch (parity) {
-    case UART_PARITY_DISABLED:
-      CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
-      break; //
-    case UART_PARITY_EVEN:
-      SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
-      CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_PS);
-      break; //
-    case UART_PARITY_ODD:
-      SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
-      SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PS);
-      break; //
-  }
-
-
-  // Set data length
-  switch (data_length) {
-    case UART_DATALENGTH_7:
-      if (!parity) {
-        // tal_raise(flag, "Invalid parity datasize combo"); //
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return; //
+    switch (data_length) {
+      case UART_DATALENGTH_7:
+        if (!parity) {
+          // tal_raise(flag, "Invalid parity datasize combo"); //
+          TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return; //
+        }
+        SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
+        CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
+        break; //
+      case UART_DATALENGTH_8:
+        CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
+        CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
+        break; //
+      case UART_DATALENGTH_9:
+        if (parity) {
+          // tal_raise(flag, "Invalid parity datasize combo"); //
+          TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return; //
+        }
+        SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
+        SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
+        break;
       }
-      SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
-      CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
-      break; //
-    case UART_DATALENGTH_8:
-      CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
-      CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
-      break; //
-    case UART_DATALENGTH_9:
-      if (parity) {
-        // tal_raise(flag, "Invalid parity datasize combo"); //
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid parity datasize combo"); return; //
-      }
-      SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
-      SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
-      break;
+
+    SET_FIELD(UARTx_CR1[channel], UARTx_CR1_FIFOEN);
   }
-
-
-  // Enable FIFOs
-  SET_FIELD(UARTx_CR1[channel], UARTx_CR1_FIFOEN);
-
-// }
 
   dma_config_t dma_tx_stream = {
       .instance = tx_stream->instance,
@@ -854,6 +845,28 @@ void uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
   // No explicit return needed for void function
 }
 
+void uart_flush_rx(uart_channel_t channel, enum ti_errc_t *errc) {
+  if (errc) *errc = TI_ERRC_NONE;
+  if (channel == 0 || channel >= UART_CHANNEL_COUNT) {
+    TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART channel");
+    return;
+  }
+
+  if (IS_USART_CHANNEL(channel)) {
+    SET_FIELD(USARTx_RQR[channel], USARTx_RQR_RXFRQ);
+    SET_FIELD(USARTx_ICR[channel], USARTx_ICR_ORECF);
+    SET_FIELD(USARTx_ICR[channel], USARTx_ICR_FECF);
+    SET_FIELD(USARTx_ICR[channel], USARTx_ICR_NCF);
+    SET_FIELD(USARTx_ICR[channel], USARTx_ICR_PECF);
+  } else {
+    SET_FIELD(UARTx_RQR[channel], UARTx_RQR_RXFRQ);
+    SET_FIELD(UARTx_ICR[channel], UARTx_ICR_ORECF);
+    SET_FIELD(UARTx_ICR[channel], UARTx_ICR_FECF);
+    SET_FIELD(UARTx_ICR[channel], UARTx_ICR_NCF);
+    SET_FIELD(UARTx_ICR[channel], UARTx_ICR_PECF);
+  }
+}
+
 void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
                         uint32_t size, enum ti_errc_t *errc) {
   if (errc) *errc = TI_ERRC_NONE;
@@ -864,17 +877,17 @@ void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
   }
 
   // Check if usart channel is bus
-//   if(IS_USART_CHANNEL(channel)) {
-//   while (!READ_FIELD(USARTx_ISR[channel], USARTx_ISR_BUSY)) {
-//     asm("nop");
-//     // tal_raise(flag, "USART channel is busy");
-//   }
-// } else {
-//   while (!READ_FIELD(UARTx_ISR[channel], UARTx_ISR_BUSY)) {
-//     asm("nop");
-//     // tal_raise(flag, "USART channel is busy");
-//   }
-// }
+  if(IS_USART_CHANNEL(channel)) {
+  while (!READ_FIELD(USARTx_ISR[channel], USARTx_ISR_BUSY)) {
+    asm("nop");
+    // tal_raise(flag, "USART channel is busy");
+  }
+} else {
+  while (!READ_FIELD(UARTx_ISR[channel], UARTx_ISR_BUSY)) {
+    asm("nop");
+    // tal_raise(flag, "USART channel is busy");
+  }
+}
   // uart_busy[channel] = true;
 
 

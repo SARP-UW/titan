@@ -37,7 +37,7 @@ void umbilical_init(umbilical_t *dev, const umbilical_uart_dev *uart_config, enu
         .channel = (uart_channel_t)uart_config->uart_channel,
         .parity = UART_PARITY_DISABLED,
         .data_length = UART_DATALENGTH_8,
-        .clk_freq = 16000000,  // 16 MHz system clock
+        .clk_freq = 4000000,
         .baud_rate = uart_config->baud_rate
     };
 
@@ -78,6 +78,12 @@ void umbilical_receive(umbilical_t *dev, uint8_t *data, size_t max_len, size_t *
     }
     if (!data || max_len == 0) {
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid umbilical receive args");
+        return;
+    }
+
+    // uart_flush_rx((uart_channel_t)dev->uart_config.uart_channel, errc);
+    if (errc && *errc != TI_ERRC_NONE) {
+        if (actual_len) *actual_len = 0;
         return;
     }
 
