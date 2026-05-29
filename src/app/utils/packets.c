@@ -324,6 +324,8 @@ void parse_uplink_comm_packet(const uint8_t *buffer,
 
     out->packet_present = true;
     out->ping_id = (uint16_t)(((uint16_t)buffer[9] << 8) | (uint16_t)buffer[10]);
+    asm("BKPT #0");
+    
     out->system_time = ((uint32_t)buffer[11] << 24)
                      | ((uint32_t)buffer[12] << 16)
                      | ((uint32_t)buffer[13] << 8)

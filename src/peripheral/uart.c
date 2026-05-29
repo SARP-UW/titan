@@ -731,16 +731,6 @@ void uart_init(uart_config_t *usart_config, dma_callback_t *callback,
   uart_to_dma[channel] = info;
 
   // Enable the peripheral
-
-  if (IS_USART_CHANNEL(channel)) {
-    SET_FIELD(USARTx_CR1[channel], USARTx_CR1_TE);
-    SET_FIELD(USARTx_CR1[channel], USARTx_CR1_RE);
-    SET_FIELD(USARTx_CR1[channel], USARTx_CR1_UE);
-  } else {
-     SET_FIELD(UARTx_CR1[channel], UARTx_CR1_TE);
-    SET_FIELD(UARTx_CR1[channel], UARTx_CR1_RE);
-    SET_FIELD(UARTx_CR1[channel], UARTx_CR1_UE);
-  }
 }
 
 void uart_write_async(uart_channel_t channel, uint8_t *tx_buff, uint32_t size, enum ti_errc_t *errc) {
@@ -819,6 +809,14 @@ void uart_read_async(uart_channel_t channel, uint8_t *rx_buff, uint32_t size, en
 void uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
                          uint32_t size, enum ti_errc_t *errc) {
   if (errc) *errc = TI_ERRC_NONE;
+
+  if (IS_USART_CHANNEL(channel)) {
+    SET_FIELD(USARTx_CR1[channel], USARTx_CR1_TE);
+    SET_FIELD(USARTx_CR1[channel], USARTx_CR1_UE);
+  } else {
+    SET_FIELD(UARTx_CR1[channel], UARTx_CR1_TE);
+    SET_FIELD(UARTx_CR1[channel], USARTx_CR1_UE);
+  }
   // Verify parameters
   bool test_params = verify_transfer_parameters(channel, tx_buff, size);
 
@@ -843,6 +841,13 @@ void uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff,
 
   // uart_busy[channel] = false;
   // No explicit return needed for void function
+  if (IS_USART_CHANNEL(channel)) {
+    CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_TE);
+    CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_UE);
+  } else {
+    CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_TE);
+    CLR_FIELD(UARTx_CR1[channel], USARTx_CR1_UE);
+  }
 }
 
 void uart_flush_rx(uart_channel_t channel, enum ti_errc_t *errc) {
@@ -870,6 +875,14 @@ void uart_flush_rx(uart_channel_t channel, enum ti_errc_t *errc) {
 void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
                         uint32_t size, enum ti_errc_t *errc) {
   if (errc) *errc = TI_ERRC_NONE;
+
+  if (IS_USART_CHANNEL(channel)) {
+    SET_FIELD(USARTx_CR1[channel], USARTx_CR1_RE);
+    SET_FIELD(USARTx_CR1[channel], USARTx_CR1_UE);
+  } else {
+    SET_FIELD(UARTx_CR1[channel], UARTx_CR1_RE);
+    SET_FIELD(UARTx_CR1[channel], USARTx_CR1_UE);
+  }
   // Verify parameters
   bool test_params = verify_transfer_parameters(channel, rx_buff, size);
   if (!test_params) {
@@ -897,5 +910,13 @@ void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
       TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "UART read byte timed out"); //
       return; //
     }
+  }
+
+  if (IS_USART_CHANNEL(channel)) {
+    CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_RE);
+    CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_UE);
+  } else {
+    CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_RE);
+    CLR_FIELD(UARTx_CR1[channel], USARTx_CR1_UE);
   }
 }
