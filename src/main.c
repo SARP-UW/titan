@@ -1,4 +1,3 @@
-
 #include <string.h>
 
 #include "app/utils/extern_flash.h"
@@ -10,17 +9,35 @@
 #include "peripheral/qspi.h"
 #include "app/utils/pinout.h"
 #include "peripheral/systick.h"
+#include "peripheral/pwm.h"
 
 
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void _start() { // NOLINT(misc-use-internal-linkage)3
 
-    int a = 10;
-    tal_enable_clock(BATT_EN);
-    tal_set_mode(BATT_EN, 1);
-    asm("BKPT #0");
-    tal_set_pin(BATT_EN, 1);
-    tal_pull_pin(BATT_EN, 1);
-    
+
+
+
+  struct ti_pwm_config_t config = {
+    2,    /**< PWM hardware instance */
+    2,      /**< PWM channel number */
+    1000,        /**< Output frequency in Hz */
+    500,        /**< Duty cycle (0-1000 for 0-100%) */
+    2000000  /**< Source clock frequency in Hz */
+  };
+
+  ti_set_pwm(config, 0);
+  
+
+  tal_enable_clock(BATT_EN);
+  tal_set_mode(BATT_EN, 1);
+  tal_set_pin(BATT_EN, 1);
+
+  while (true)
+  {
+    asm("NOP");
+  }
+  
+
 }
