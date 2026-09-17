@@ -193,20 +193,47 @@ void uart_init(uart_config_t *config, enum ti_errc_t *errc)
     }
 
     switch (data_length) {
+        /* M1:M0 = 10  -> 7-bit hardware word
+        M1:M0 = 00  -> 8-bit hardware word
+        M1:M0 = 01  -> 9-bit hardware word */
         case UART_DATALENGTH_7:
-            SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
-            CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
+            if (parity == UART_PARITY_DISABLED) {
+                // 7 data bits, no parity -> 7-bit hardware word
+                SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
+                CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
+            } else {
+                // 7 data bits + parity -> 8-bit hardware word
+                CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
+                CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
+            }
             break;
 
         case UART_DATALENGTH_8:
-            CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
-            CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
+            if (parity == UART_PARITY_DISABLED) {
+                // 8 data bits, no parity -> 8-bit hardware word
+                CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
+                CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
+            } else {
+                // 8 data bits + parity -> 9-bit hardware word
+                CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
+                SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
+            }
             break;
 
         case UART_DATALENGTH_9:
+            TI_SET_ERRC(
+                errc,
+                TI_ERRC_INVALID_ARG,
+                "9 data bits with parity is not supported"
+            );
+
+            /*
+            This 9 data bits NO parity is possible for this machine, but
+            will need to change read and write parameters to uint16_t.
             CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
             SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
             break;
+            */ 
 
         default:
             TI_SET_ERRC(
