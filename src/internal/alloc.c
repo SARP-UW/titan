@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * @file internal/alloc.c
- * @authors Joshua Beard
+ * @authors Joshua Beard and Victor Wong
  * @brief Internal memory allocator implementation.
  */
 #include "alloc.h"
@@ -67,14 +67,6 @@ static struct block_t* build_pool(void* curr, uint32_t pool_size, uint32_t pool_
  */
 static void get_index(void* block, uint32_t* ret_index, enum ti_errc_t *errc){
     if (errc) *errc = TI_ERRC_NONE;
-    /**
-     * This function really annoyed me.  Basically we need the amount of total blocks before this pointer
-     * (which is its index ofc), but I can not think of a way to do this in constant time.  Maybe some sort
-     * of hash function would do.  For now I am writing this in linear time to just work for testing,
-     * and maybe sometime in the future we can optimize it (I can think of a way to get it to logorithmic time).
-     * Reguardless, I feel like it should be possible in constant time so if you're reading this and are
-     * bored then I would be forever grateful if you could make this fast.
-     */
 
      // updated condition to >= because:
      // HEAP_START + TOTAL_HEAP_SIZE will be 1 out of range, so if block equals that, that's 1 OOB
@@ -82,24 +74,25 @@ static void get_index(void* block, uint32_t* ret_index, enum ti_errc_t *errc){
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Block pointer is outside the heap address range"); return; //
     }
 
-    uint8_t* blk = (uint8_t*) block;
-
+    uint8_t *blk = (uint8_t*)block;
+    uint8_t *current_start = HEAP_START;
+    uint32_t index = 0;
     uint32_t i = 0;
-    uint32_t pool_left = POOL_SIZES[i];
+    uint32_t curr_pool_size = POOL_SIZES[i] * POOL_BLOCK_SIZES[i];
+    // check if it is greater than POOL_SIZES[i] * POOL_BLOCK_SIZES[i] + current # bytes so far (global)
+    // check if we are on the last pool
+    while (blk >= current_start + curr_pool_size){
+        // we have not found the block yet
+        index += POOL_SIZES[i]; // increase by that amount of blocks (it wasn't in there)
+        current_start += curr_pool_size;
+        i++;
 
-    uint32_t index = -1;
-
-    while(blk >= (uint8_t*)HEAP_START){
-        if(pool_left <= 0){
-            pool_left = POOL_SIZES[++i];
-        }
-
-        blk -= POOL_BLOCK_SIZES[i];
-        pool_left -= 1;
-        index++;
+        // update the pool size
+        curr_pool_size = POOL_SIZES[i] * POOL_BLOCK_SIZES[i];
     }
-
-    *ret_index = index;
+    // we are now inside the block
+    // calculate the index
+    *ret_index = ((blk - current_start) / POOL_BLOCK_SIZES[i]) + index;
 }
 
 /**

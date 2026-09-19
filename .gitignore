@@ -255,3 +255,4 @@ html/
 docs/
 # End of https://www.toptal.com/developers/gitignore/api/cmake,c,c++,clion,macos
 *.bin
+.vscode/c_cpp_properties.json
