@@ -34,7 +34,7 @@ struct adc_spi_dev {
 };
 
 /**
- * @brief Available pins on the ADS124S08 ADC
+ * @brief Available pins on the ADS124S08 ADC; ref: 9.6.1.8
  */
 enum adc_pin {
     AIN0   = 0x00, 
@@ -54,7 +54,7 @@ enum adc_pin {
 };
 
 /**
- * @brief IDAC Current Magnitudes
+ * @brief IDAC Current Magnitudes; ref: 9.6.1.7
  */
 enum idac_mag { 
     IDAC_OFF      = 0x00, // Pair this with the adc_set_idac function to turn off the idac
@@ -70,7 +70,7 @@ enum idac_mag {
 };
 
 /**
- * @brief PGA Gain Settings
+ * @brief PGA Gain Settings; ref: 9.6.1.4
  */
 enum adc_gain {
     GAIN_1   = 0x00,
@@ -84,7 +84,8 @@ enum adc_gain {
 };
 
 /**
- * @brief Reference Voltage Sources
+ * @brief Reference Voltage Sources; ref: 9.6.1.6
+ * // FLAG - referring to bits 3:2, 00 is external 0, 01 is external 1, 10 is internal, and 11 is reserved; also we are using bits 3:2 so adjust accordingly in mask. should be 0x00, 0x04, 0x08
  */
 enum adc_ref_voltage_source {
     REF_INTERNAL = 0x00, // 2.5V Internal

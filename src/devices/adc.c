@@ -16,7 +16,7 @@
  *
  * @file devices/adc.h
  * @authors Jude Merritt
- * @brief ADS124S0x ADC driver
+ * @brief ADS124S0x ADC driver; https://www.ti.com/lit/ds/symlink/ads124s06.pdf
  */
 
 #include <stdint.h>
@@ -26,25 +26,47 @@
 #include "internal/mmio.h"
 #include "peripheral/errc.h"
 
+// in order as defined in ref: 9.5.3; Table 24
+// control commands
+#define NOP 0x00
+#define WAKEUP 0x02
+#define POWERDOWN 0x04
 #define RESET 0x06
 #define START 0x08
 #define STOP  0x0A
+
+// calibration commands
+#define SYOCAL 0x16
+#define SYGCAL 0x17
+#define SFOCAL 0x19
+
+// data read command
 #define RDATA 0x12
+
+// ref: 9.6.1; Table 25; configuration register map
+#define ID_REG 0x00
 #define STATUS_REG 0x01
 #define INPMUX_REG 0x02
 #define PGA_REG 0x03
+#define DATARATE 0x04
 #define REF_REG 0x05
 #define IDACMAG_REG 0x06
 #define IDACMUX_REG 0x07
 #define GPIODAT_REG 0x10
 #define GPIOCON_REG 0x11
-#define RDY_FLAG 0x40
+
+// ref: 9.6.1.2; Table 27; device register fields
+#define RDY_FLAG 0x40 // bit 6
+
+// ref: 9.5.3; Table 24
 #define READ_BIT 0x20
 #define WRITE_BIT 0x40
-#define MAX_RREG_SIZE 6
+
+#define MAX_RREG_SIZE 6 // FLAG: isn't this 5? there are 5 bits available for address
 
 static struct adc_spi_dev dev;
 
+// ref: 9.5.3.11: Read device register data
 static int spi_rreg(uint8_t reg_addr, uint8_t data_size, enum ti_errc_t* errc) {
     if (data_size > (MAX_RREG_SIZE - 2) || data_size == 0) {
         *errc = TI_ERRC_INVALID_ARG;
@@ -73,6 +95,7 @@ static int spi_rreg(uint8_t reg_addr, uint8_t data_size, enum ti_errc_t* errc) {
     return result;
 }
 
+// ref: 9.5.3.12: Write device register data
 static void spi_wreg(uint8_t reg_addr, uint16_t data_size, uint32_t data, enum ti_errc_t* errc) { 
     if (data_size > (MAX_RREG_SIZE - 2) || data_size == 0) {
         *errc = TI_ERRC_INVALID_ARG;
@@ -94,6 +117,7 @@ static void spi_wreg(uint8_t reg_addr, uint16_t data_size, uint32_t data, enum t
     spi_transfer_sync(dev.inst, dev.ss_pin, src, dst, tot_size, errc);
 }
 
+// ref: 9.5.3, Table 24 for commands
 static int32_t spi_single_command(uint8_t cmd, uint8_t transfer_size, enum ti_errc_t* errc) {
     if (transfer_size < 1 || transfer_size > 4) {
         *errc = TI_ERRC_INVALID_ARG;
@@ -119,6 +143,7 @@ static int32_t spi_single_command(uint8_t cmd, uint8_t transfer_size, enum ti_er
     
 }
 
+
 void adc_init(struct adc_spi_dev *device, enum ti_errc_t* errc) {
     if (device->inst < 1 || device->inst > 6) {
         *errc = TI_ERRC_INVALID_ARG;
@@ -134,8 +159,11 @@ void adc_init(struct adc_spi_dev *device, enum ti_errc_t* errc) {
         return;
     }
 
+    // ref: 9.5.3.4
     // Delay recommended by datasheet after RESET
-    //systick_delay(5); // TODO: Why is this getting stuck?
+    // systick_delay(5); // TODO: Why is this getting stuck?
+    // FLAG: do we ever start systick? systick will not fulfill if not started up somewhere
+    // looked for systick_init references and did not find any
     for (int i = 0; i < 100000; i++) {
         asm("NOP");
     }
@@ -144,10 +172,9 @@ void adc_init(struct adc_spi_dev *device, enum ti_errc_t* errc) {
 
     // Wait until ADC is ready for communication
     bool is_ready = false;
-    int timeout = 100000; 
+    int timeout = 100000; // FLAG: perhaps we should be using systick? sol seems janky rn
     while (!is_ready) {
         uint8_t status_reg = spi_rreg(STATUS_REG, 1, errc);
-        
         if ((status_reg & RDY_FLAG) == 0 && *errc == TI_ERRC_NONE) {
             is_ready = true;
         } else if (timeout == 0) {
@@ -162,6 +189,7 @@ void adc_init(struct adc_spi_dev *device, enum ti_errc_t* errc) {
     spi_wreg(REF_REG, 1, 0x12, errc);
 }
 
+// ref: 7.3; view (1) for more specification
 int adc_read_voltage(const struct adc_channel* channel, enum ti_errc_t* errc) {
     if (dev.inst < 1 || dev.inst > 6 || !channel) {
         *errc = TI_ERRC_INVALID_ARG;
@@ -179,6 +207,9 @@ int adc_read_voltage(const struct adc_channel* channel, enum ti_errc_t* errc) {
     spi_wreg(PGA_REG, 1, pga_val, errc);
 
     // Set reference voltage
+    // FLAG: 0x12? --> 00010010??
+    // why are we disabling the negative reference buffer bypass?
+    // correctly adjusting bits 3:2
     uint8_t ref_val = 0x12 | ((channel->source & 0x03) << 2);
     spi_wreg(REF_REG, 1, ref_val, errc);
 
@@ -187,7 +218,7 @@ int adc_read_voltage(const struct adc_channel* channel, enum ti_errc_t* errc) {
     }
 
     // Wait for device ready flag
-    int timeout = 100;
+    int timeout = 100; // FLAG: use systick?
     while ((spi_rreg(STATUS_REG, 1, errc) & RDY_FLAG) != 0 && timeout > 0) {
         timeout--;
     }
@@ -219,6 +250,8 @@ int adc_read_voltage_diff(struct adc_channel channel1, struct adc_channel channe
 }
 
 // You don't need to disconnect a pin to change the idac pins
+// ref: 9.6.1.7
+// both pin 1 and pin 2 are set to the same magnitude at the same time
 void adc_set_idac(enum idac_mag magnitude, enum adc_pin pin1, enum adc_pin pin2, enum ti_errc_t* errc) {
     if (dev.inst < 1 || dev.inst > 6) {
         *errc = TI_ERRC_INVALID_ARG;
@@ -226,16 +259,20 @@ void adc_set_idac(enum idac_mag magnitude, enum adc_pin pin1, enum adc_pin pin2,
     }
 
     // Set IDAC magnitude
+    // 9.6.1.7, Table 32. Bits 3:0
     spi_wreg(IDACMAG_REG, 1, magnitude, errc);
 
     if (*errc != TI_ERRC_NONE) {
         return;
     }
 
+    // ref: 9.6.1.8
+    // refer to idac_mag in adc.h for valid values
     uint8_t mux_pins = ((pin2 & 0x0F) << 4) | (pin1 & 0x0F);
     spi_wreg(IDACMUX_REG, 1, mux_pins, errc);
 }
 
+//ref: 9.6.1.17, 9.6.1.18
 void adc_set_gpio(enum adc_pin pin, bool default_high, bool input, enum ti_errc_t* errc) {
     if (dev.inst < 1 || dev.inst > 6) {
         *errc = TI_ERRC_INVALID_ARG;
@@ -255,7 +292,7 @@ void adc_set_gpio(enum adc_pin pin, bool default_high, bool input, enum ti_errc_
 
     uint8_t gpiodat_val;
     if (default_high && input) {
-        gpiodat_val = 1 << (gpio_idx + 4) | gpio_idx;
+        gpiodat_val = 1 << (gpio_idx + 4) | gpio_idx; // FLAG: you can't just slap on gpio_idx, if it's 0x03 then that's 00000011. it needs to left shift by the idx instead. 0001 0010 0100 1000?
     } else if (default_high && !input) {
         gpiodat_val = 1 << gpio_idx;
     } else if (!default_high && input) {
