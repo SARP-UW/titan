@@ -65,13 +65,16 @@
 #define ACTUATOR_IMONITOR_CH0        0x45
 
 /** @brief I-Monitor register address for channel 1. */
-#define ACTUATOR_IMONITOR_CH1        0x4D
+#define ACTUATOR_IMONITOR_CH1        0x4E
 
 /** @brief I-Monitor register address for channel 2. */
-#define ACTUATOR_IMONITOR_CH2        0x55
+#define ACTUATOR_IMONITOR_CH2        0x57
 
 /** @brief I-Monitor register address for channel 3. */
-#define ACTUATOR_IMONITOR_CH3        0x5D
+#define ACTUATOR_IMONITOR_CH3        0x60
+
+/** @brief Address stride between per-channel diagnostic blocks (datasheet: CH0=0x45, CH2=0x57). */
+#define ACTUATOR_DIAG_STRIDE         0x09
 
 /** @brief Global control register address. */
 #define ACTUATOR_REG_GLOBAL_CTRL     0x00
@@ -271,12 +274,28 @@ void actuator_read_status(actuator_t *dev, uint16_t *status, uint8_t *status_out
 void actuator_read_fault(actuator_t *dev, uint16_t *fault0, uint16_t *fault1, uint8_t *status_out, enum ti_errc_t *errc);
 
 /**
+ * @brief Clears fault flags (FAULT0/FAULT1 are write-1-to-clear; reading does NOT clear them).
+ *
+ * UVM (and often COMER) is latched at every power-up, and an OCP fault keeps its channel
+ * off until cleared, so call this after power-up and after handling any fault.
+ * Pass the value returned by actuator_read_fault() to clear exactly what was seen,
+ * or 0xFFFF to clear everything.
+ *
+ * @param dev          Pointer to the actuator device handle.
+ * @param fault0_mask  Bits to clear in FAULT0.
+ * @param fault1_mask  Bits to clear in FAULT1.
+ * @param errc         Pointer to error status output.
+ */
+void actuator_clear_faults(actuator_t *dev, uint16_t fault0_mask, uint16_t fault1_mask, enum ti_errc_t *errc);
+
+/**
  * @brief Reads the I-Monitor register for a given channel.
  *
  * @param dev         Pointer to the actuator device handle.
  * @param channel     Channel index (0–3).
- * @param i_monitor   Pointer to store the 16-bit I-Monitor value.
+ * @param i_monitor   Pointer to store the signed I-Monitor value (two's complement; negative
+ *                    on the secondary channel of a full bridge). mA = KCDR x GAIN x SNSF x value.
  * @param status_out  Optional pointer to store the SPI status byte (may be NULL). //
  * @param errc        Pointer to error status output.
  */ //
-void actuator_read_i_monitor(actuator_t *dev, actuator_channel_t channel, uint16_t *i_monitor, uint8_t *status_out, enum ti_errc_t *errc);
+void actuator_read_i_monitor(actuator_t *dev, actuator_channel_t channel, int16_t *i_monitor, uint8_t *status_out, enum ti_errc_t *errc);

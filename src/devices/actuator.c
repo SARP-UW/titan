@@ -126,7 +126,9 @@ static void actuator_write_reg(actuator_t *dev, uint8_t addr, uint16_t value, ui
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
  */
 static void actuator_read_reg(actuator_t *dev, uint8_t addr, uint16_t *value, uint8_t *status_out, enum ti_errc_t *errc) {
-    if (errc) *errc = TI_ERRC_NONE; //
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;  // Always track errors internally, even if the caller passed NULL
+    *errc = TI_ERRC_NONE;
     // Cycle 1: Send address, discard response (it's stale data)
     actuator_spi_transfer(dev, addr, false, ACTUATOR_SPI_DUMMY_DATA, NULL, NULL, errc); //
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
@@ -153,7 +155,9 @@ static void actuator_read_reg(actuator_t *dev, uint8_t addr, uint16_t *value, ui
  * @return TI_ERRC_NONE on success, or an appropriate error code on failure.
  */
 static void actuator_update_reg(actuator_t *dev, uint8_t addr, uint16_t mask, uint16_t value, enum ti_errc_t *errc) {
-    if (errc) *errc = TI_ERRC_NONE; //
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;  // A failed read must never be followed by a write-back
+    *errc = TI_ERRC_NONE;
     uint16_t reg_val = 0;
     // Step 1: Read the current register contents
     actuator_read_reg(dev, addr, &reg_val, NULL, errc); //
@@ -175,15 +179,26 @@ void actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config, const ac
     if (errc) *errc = TI_ERRC_NONE; //
     if (!dev || !spi_config || !config) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Params NULL"); return; } //
     // Copy both configs into the device handle so all future calls can reference them
+    if (config->enable_crc) {
+        // CRC adds a 4th byte to every frame; actuator_spi_transfer() only builds 3-byte frames.
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI CRC mode not implemented"); return;
+    }
     dev->spi_config = *spi_config;
     dev->config = *config;
+
+    // CRC_EN must be low for the 3-byte frame format used by this driver.
+    if (dev->config.crc_en_pin) {
+        tal_enable_clock(dev->config.crc_en_pin);
+        tal_set_pin(dev->config.crc_en_pin, 0);
+        tal_set_mode(dev->config.crc_en_pin, 1);
+    }
 
     // Configure the hardware ENABLE pin as a GPIO output.
     // Default to OFF (0) for safety — valves should not actuate until explicitly commanded.
     if (dev->config.enable_pin) {
         tal_enable_clock(dev->config.enable_pin);  // Enable GPIO port clock (STM32 requirement)
+        tal_set_pin(dev->config.enable_pin, 0);    // Latch OFF before driving the pin (valves safe)
         tal_set_mode(dev->config.enable_pin, 1);   // Set as output (mode 1 = output)
-        tal_set_pin(dev->config.enable_pin, 0);    // Start with enable OFF (valves safe)
     }
 
     // Configure the FAULT pin as a GPIO input with internal pull-up.
@@ -195,7 +210,6 @@ void actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config, const ac
         tal_pull_pin(dev->config.fault_pin, 1);    // Enable internal pull-up
     }
 
-    // No explicit return needed for void function
 }
 
 void actuator_set_enable(actuator_t *dev, bool enable, enum ti_errc_t *errc) {
@@ -206,6 +220,10 @@ void actuator_set_enable(actuator_t *dev, bool enable, enum ti_errc_t *errc) {
     // for the actuator to drive outputs. This is a defense-in-depth safety pattern:
     //   - Software crash? Hardware enable is still off by default.
     //   - SPI bus stuck? Pull the GPIO to kill outputs.
+    //
+    // TIMING (datasheet): after ENABLE goes high the part needs tEN = 0.8 ms before it is
+    // operational; after ACTIVE is set it needs tFWU = 1.1 ms. Driving ENABLE low clears all
+    // registers and faults, so the channel config must be rewritten after re-enabling.
     tal_set_pin(dev->config.enable_pin, (int)enable); //
 }
 
@@ -246,17 +264,21 @@ void actuator_configure_channel(actuator_t *dev, actuator_channel_t channel, con
     //   DCH    = duty cycle during the high (hold) phase (reduced current to hold open without overheating)
     //   DCL    = duty cycle during the low phase (off or very low current)
     //   TIMEL2H = how long the L2H phase lasts before switching to the hold phase
-    actuator_write_reg(dev, base + ACTUATOR_CH_REG_DCL2H, cfg->dc_l2h, NULL, errc);   
+    // Each write resets *errc, so check after every one (previously only the last was checked).
+    actuator_write_reg(dev, base + ACTUATOR_CH_REG_DCL2H, cfg->dc_l2h, NULL, errc);
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
     actuator_write_reg(dev, base + ACTUATOR_CH_REG_DCH, cfg->dc_h, NULL, errc);     //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
     actuator_write_reg(dev, base + ACTUATOR_CH_REG_DCL, cfg->dc_l, NULL, errc);     //
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
     actuator_write_reg(dev, base + ACTUATOR_CH_REG_TIMEL2H, cfg->time_l2h, NULL, errc); //
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
     
     // Pack CTRL0 register — a 16-bit bitfield with control loop settings:
     //   [15:14] ctrl_mode   — VDR/CDR selection (voltage vs current drive mode)
-    //   [13]    hhf_enable  — High-side H-bridge fault detection
+    //   [13]    hhf_enable  — HHF: flag if the HIT (DC_L2H) current is not reached (CDR only)
     //   [12]    open_load   — Detect if the solenoid coil is disconnected
-    //   [11]    h2l_enable  — Enable high-to-low transition control
+    //   [11]    h2l_enable  — Fast demagnetization using global DC_H2L (full-bridge only)
     //   [10]    ramp_down   — Gradual current decrease when turning off
     //   [9]     ramp_mid    — Gradual mid-phase ramping
     //   [8]     ramp_up     — Gradual current increase when turning on (prevents inrush spikes)
@@ -279,7 +301,7 @@ void actuator_configure_channel(actuator_t *dev, actuator_channel_t channel, con
     //   [5:4]  slew_rate  — How fast the output voltage transitions (Fast/400V/200V/100V per μs)
     //                        Slower = less EMI noise, faster = more responsive valve actuation
     //   [3:2]  gain       — Current sense amplifier gain (higher gain = more sensitive monitoring)
-    //   [1:0]  snsf       — Sense filtering (smooths current measurements, reduces noise)
+    //   [1:0]  snsf       — Sense scaling factor (MAX22216 only; also changes low-side RON)
     uint16_t ctrl1_val = //
         (((uint16_t)cfg->high_side) << 10) |
         ((cfg->pwm_div & 0x3U) << 8) |
@@ -317,24 +339,35 @@ void actuator_read_fault(actuator_t *dev, uint16_t *fault0, uint16_t *fault1, ui
     if (errc) *errc = TI_ERRC_NONE; //
     if (!fault0 || !fault1) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "fault0 or fault1 pointer is NULL"); return; } //
     // Two separate fault registers capture different failure modes:
-    //   FAULT0 (0x65) — overcurrent, thermal shutdown, supply undervoltage
-    //   FAULT1 (0x66) — open-load detection, watchdog timeout
-    // Reading them acknowledges and resets the fault flags.
+    //   FAULT0 (0x65): OCP[3:0], HHF[3:0], OLF[3:0], DPM[3:0] (per channel)
+    //   FAULT1 (0x66): IND[3:0], UVM, COMER, OVT, RES[3:0]
+    // Reading does NOT clear them; they are write-1-to-clear (see actuator_clear_faults).
     actuator_read_reg(dev, ACTUATOR_REG_FAULT0, fault0, status_out, errc); //
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
     actuator_read_reg(dev, ACTUATOR_REG_FAULT1, fault1, status_out, errc); //
 }
 
-void actuator_read_i_monitor(actuator_t *dev, actuator_channel_t channel, uint16_t *i_monitor, uint8_t *status_out, enum ti_errc_t *errc) {
+void actuator_read_i_monitor(actuator_t *dev, actuator_channel_t channel, int16_t *i_monitor, uint8_t *status_out, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE; //
     if (!i_monitor || !actuator_channel_valid(channel)) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Params invalid"); return; } //
     
     // I-Monitor registers are NOT contiguous with the channel config registers.
-    // They live at addresses: CH0=0x45, CH1=0x4D, CH2=0x55, CH3=0x5D
-    // Stride between them is 8 (not 0x0E like the config registers).
-    // Returns a raw 16-bit ADC value proportional to the solenoid coil current.
+    // They live at addresses: CH0=0x45, CH1=0x4E, CH2=0x57, CH3=0x60
+    // Stride between them is 9 (the datasheet gives CH2 = 0x57), not 0x0E like the config registers.
+    // The value is signed (two's complement): mA = KCDR x GAIN x SNSF x value.
     // Used to verify the valve actually moved — a current spike = solenoid energized.
-    uint8_t imon_reg = ACTUATOR_IMONITOR_CH0 + (channel * 8); //
+    uint8_t imon_reg = ACTUATOR_IMONITOR_CH0 + (channel * ACTUATOR_DIAG_STRIDE); //
     
-    actuator_read_reg(dev, imon_reg, i_monitor, status_out, errc); //
+    uint16_t raw = 0;
+    actuator_read_reg(dev, imon_reg, &raw, status_out, errc); //
+    *i_monitor = (int16_t)raw;
+}
+
+void actuator_clear_faults(actuator_t *dev, uint16_t fault0_mask, uint16_t fault1_mask, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    // FAULT0/FAULT1 are write-1-to-clear: bits written as 1 are cleared, 0 bits are untouched.
+    // Datasheet recommends CS high for > 1 us after a fault-clearing write before the next frame.
+    actuator_write_reg(dev, ACTUATOR_REG_FAULT0, fault0_mask, NULL, errc);
+    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
+    actuator_write_reg(dev, ACTUATOR_REG_FAULT1, fault1_mask, NULL, errc);
 }

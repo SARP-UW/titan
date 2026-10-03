@@ -96,6 +96,11 @@ function(add_firmware_target target_name entry_file)
     -Xlinker
     -print-memory-usage
   )
+
+  # -nostdlib drops libgcc too, but we still need GCC's runtime helpers
+  # (e.g. __aeabi_ldivmod for 64-bit division). Must come after the objects
+  # on the link line, so it goes here rather than in target_link_options.
+  target_link_libraries(${target_name}.elf PRIVATE gcc)
 endfunction()
 
 add_firmware_target(titan ${CMAKE_SOURCE_DIR}/src/main.c)

@@ -7,7 +7,8 @@
 #include "devices/actuator.h"
 #include "devices/barometer.h"
 #include "devices/gnss.h"
-// #include "devices/imu.h"
+#include "devices/imu.h"
+#include "devices/magnetometer.h"
 #include "devices/radio.h"
 #include "devices/temperature.h"
 #include "devices/umbilical.h"
@@ -48,15 +49,15 @@ static gnss_t gnss_dev = {
 	.initialized = 0
 };
 
-// static struct imu_spi_dev imu_dev1 = {
-// 	.inst = (uint8_t)SENSOR_SPI_INST,
-// 	.ss_pin = (uint8_t)IMU_1_CS
-// };
+static struct imu_spi_dev imu_dev1 = {
+	.inst = (uint8_t)SENSOR_SPI_INST,
+	.ss_pin = (uint8_t)IMU_1_CS
+};
 
-// static struct imu_spi_dev imu_dev2 = {
-// 	.inst = (uint8_t)SENSOR_SPI_INST,
-// 	.ss_pin = (uint8_t)IMU_2_CS
-// };
+static struct imu_spi_dev imu_dev2 = {
+	.inst = (uint8_t)SENSOR_SPI_INST,
+	.ss_pin = (uint8_t)IMU_2_CS
+};
 
 static barometer_t barometer_dev1 = {
 	.spi_dev = {
@@ -76,6 +77,16 @@ static barometer_t barometer_dev2 = {
 	.osr = OSR_4096,
 	.calibration_data = {0},
 	.result = {0}
+};
+
+static struct magnetometer_spi_dev magnetometer_dev1 = {
+	.inst = (uint8_t)SENSOR_SPI_INST,
+	.ss_pin = (uint8_t)MAGNOTOMETER_CS
+};
+
+static struct magnetometer_spi_dev magnetometer_dev2 = {
+	.inst = (uint8_t)SENSOR_SPI_INST,
+	.ss_pin = (uint8_t)MAGNOTOMETER_CS
 };
 
 static temperature_t temperature_dev1 = {
@@ -111,7 +122,7 @@ static const struct adc_channel adc_channels[] = {
 		.neg_pin = AINCOM,
 		.gain = GAIN_1,
 		.source = REF_INTERNAL,
-		.ref_voltage = 25,
+		.ref_mv = 2500,
 		.name = "adc0"
 	}
 };

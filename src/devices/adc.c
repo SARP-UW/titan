@@ -14,276 +14,442 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * @file devices/adc.h
+ * @file devices/adc.c
  * @authors Jude Merritt
- * @brief ADS124S0x ADC driver
+ * @brief ADS124S0x ADC driver (TI SBAS660C)
+ *
+ * Section numbers in comments refer to the ADS124S0x datasheet, SBAS660C.
  */
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include "devices/adc.h"
 #include "peripheral/spi.h"
 #include "peripheral/systick.h"
 #include "internal/mmio.h"
 #include "peripheral/errc.h"
 
-#define RESET 0x06
-#define START 0x08
-#define STOP  0x0A
-#define RDATA 0x12
-#define STATUS_REG 0x01
-#define INPMUX_REG 0x02
-#define PGA_REG 0x03
-#define REF_REG 0x05
-#define IDACMAG_REG 0x06
-#define IDACMUX_REG 0x07
-#define GPIODAT_REG 0x10
-#define GPIOCON_REG 0x11
-#define RDY_FLAG 0x40
-#define READ_BIT 0x20
-#define WRITE_BIT 0x40
-#define MAX_RREG_SIZE 6
+/**************************************************************************************************
+ * @section Device constants (Table 24, Table 25)
+ **************************************************************************************************/
+
+// Commands
+#define CMD_START      0x08
+#define CMD_RDATA      0x12
+#define CMD_RREG       0x20  // 001r rrrr
+#define CMD_WREG       0x40  // 010r rrrr
+
+// Registers
+#define REG_ID         0x00
+#define REG_STATUS     0x01
+#define REG_INPMUX     0x02
+#define REG_PGA        0x03
+#define REG_DATARATE   0x04
+#define REG_REF        0x05
+#define REG_IDACMAG    0x06
+#define REG_IDACMUX    0x07
+#define REG_VBIAS      0x08
+#define REG_SYS        0x09
+#define REG_GPIODAT    0x10
+#define REG_GPIOCON    0x11
+
+// STATUS
+#define STATUS_RDY     0x40  // 0 = ready for communication (NOT a data-ready flag)
+
+// PGA
+#define PGA_EN_ON      0x08  // PGA_EN[1:0] = 01
+#define PGA_BYPASS     0x00  // PGA_EN[1:0] = 00 with GAIN = 000
+
+// DATARATE: G_CHOP=0, CLK=0 (internal), MODE=0 (continuous), FILTER=1 (low-latency)
+#define DATARATE_BASE  0x10
+
+// REF: REFCON = 10 (internal reference always on; required for the IDACs)
+#define REF_REFCON_ON      0x02
+#define REF_REFP_BUF_OFF   0x20
+#define REF_REFN_BUF_OFF   0x10
+
+// SYS
+#define SYS_DEFAULT        0x10  // SYS_MON off, CAL_SAMP = 8, no timeout/CRC/STATUS byte
+#define SYS_MON_AVDD_DIV4  0x60  // SYS_MON = 011: (AVDD - AVSS) / 4
+
+#define DEV_ID_ADS124S08   0x00
+#define DEV_ID_ADS124S06   0x01
+
+#define MAX_REG_BURST      8     // Largest register block this driver reads/writes at once
+#define RDY_POLL_TRIES     1000
+
+// First-data time for the low-latency filter in continuous mode, in microseconds
+// (Table 13), indexed by DR[3:0]. The programmable delay (14 tMOD = 55 us) is not included.
+static const uint32_t first_data_us[14] = {
+    406504, 206504, 106504, 60254, 56504, 20156, 16910,
+    10156,  5156,   2656,   1406,  1156,  656,   406
+};
+
+/**************************************************************************************************
+ * @section Driver state
+ **************************************************************************************************/
 
 static struct adc_spi_dev dev;
+static bool dev_ready = false;
+static uint8_t data_rate = ADC_DR_400_SPS;
 
-static int spi_rreg(uint8_t reg_addr, uint8_t data_size, enum ti_errc_t* errc) {
-    if (data_size > (MAX_RREG_SIZE - 2) || data_size == 0) {
-        *errc = TI_ERRC_INVALID_ARG;
-        return -1;
-    }
+/**************************************************************************************************
+ * @section SPI helpers
+ **************************************************************************************************/
 
-    uint8_t src[MAX_RREG_SIZE] = {0};
-    uint8_t dst[MAX_RREG_SIZE] = {0};
+// One framed SPI transaction in mode 1 (the only mode the ADS124S0x supports, 9.5.1).
+// The bus mode is restored afterwards so other devices on the same bus are unaffected.
+static void adc_xfer(uint8_t* src, uint8_t* dst, uint8_t len, enum ti_errc_t* errc) {
+    uint8_t prev_mode = spi_set_mode(dev.inst, MODE_1, errc);
+    if (*errc != TI_ERRC_NONE) return;
 
-    src[0] = READ_BIT | reg_addr;
-    src[1] = data_size - 1;
+    spi_transfer_sync(dev.inst, dev.ss_pin, src, dst, len, errc);
 
-    // Two command bytes + the number of registers to read
-    uint8_t tot_size = 2 + data_size;
-    spi_transfer_sync(dev.inst, dev.ss_pin, src, dst, tot_size, errc); // TODO: Make sure that SPI is returning an actual error code
-
-    if (*errc != TI_ERRC_NONE) {
-        return -1;
-    }
-
-    uint32_t result = 0;
-    for (int i = 0; i < data_size; i++) {
-        result = (result << 8) | dst[2 + i];
-    }
-
-    return result;
+    enum ti_errc_t restore_errc;
+    spi_set_mode(dev.inst, prev_mode, &restore_errc);
+    if (*errc == TI_ERRC_NONE) *errc = restore_errc;
 }
 
-static void spi_wreg(uint8_t reg_addr, uint16_t data_size, uint32_t data, enum ti_errc_t* errc) { 
-    if (data_size > (MAX_RREG_SIZE - 2) || data_size == 0) {
-        *errc = TI_ERRC_INVALID_ARG;
-        return;
-    }
-
-    uint8_t src[MAX_RREG_SIZE] = {0};
-    uint8_t dst[MAX_RREG_SIZE] = {0};
-
-    src[0] = WRITE_BIT | reg_addr;
-    src[1] = data_size - 1;
-
-    for (int i = 0; i < data_size; i++) {
-        // Move data into src while accounting for MSB formatting
-        src[2 + i] = (uint8_t)(data >> (8 * (data_size - 1 - i)));
-    }
-
-    uint8_t tot_size = 2 + data_size;
-    spi_transfer_sync(dev.inst, dev.ss_pin, src, dst, tot_size, errc);
+static void spi_command(uint8_t cmd, enum ti_errc_t* errc) {
+    uint8_t src[1] = { cmd };
+    uint8_t dst[1] = { 0 };
+    adc_xfer(src, dst, 1, errc);
 }
 
-static int32_t spi_single_command(uint8_t cmd, uint8_t transfer_size, enum ti_errc_t* errc) {
-    if (transfer_size < 1 || transfer_size > 4) {
-        *errc = TI_ERRC_INVALID_ARG;
+// Reads 'count' consecutive registers starting at 'reg' into 'out' (9.5.3.11).
+static void spi_rreg(uint8_t reg, uint8_t count, uint8_t* out, enum ti_errc_t* errc) {
+    if (count == 0 || count > MAX_REG_BURST) { *errc = TI_ERRC_INVALID_ARG; return; }
 
-        return -1;
-    }
+    uint8_t src[2 + MAX_REG_BURST] = { 0 };  // DIN held low after the command bytes
+    uint8_t dst[2 + MAX_REG_BURST] = { 0 };
+    src[0] = (uint8_t)(CMD_RREG | (reg & 0x1F));
+    src[1] = (uint8_t)(count - 1);
 
-    uint8_t src[4] = {cmd, 0, 0, 0};
-    uint8_t dst[4] = {0, 0, 0, 0};
+    adc_xfer(src, dst, (uint8_t)(2 + count), errc);
+    if (*errc != TI_ERRC_NONE) return;
 
-    spi_transfer_sync(dev.inst, dev.ss_pin, src, dst, transfer_size, errc); 
-
-    if (*errc != TI_ERRC_NONE) {
-        return -1;
-    }
-
-    if (transfer_size == 1) {
-        return dst[0];
-    } 
-    
-    int32_t result = (dst[1] << 16) | (dst[2] << 8) | dst[3];
-    return result;
-    
+    for (uint8_t i = 0; i < count; i++) out[i] = dst[2 + i];
 }
 
-void adc_init(struct adc_spi_dev *device, enum ti_errc_t* errc) {
-    if (device->inst < 1 || device->inst > 6) {
-        *errc = TI_ERRC_INVALID_ARG;
-        return;
-    }
+static uint8_t spi_rreg1(uint8_t reg, enum ti_errc_t* errc) {
+    uint8_t val = 0;
+    spi_rreg(reg, 1, &val, errc);
+    return val;
+}
 
+// Writes 'count' consecutive registers starting at 'reg' from 'data' (9.5.3.12).
+static void spi_wreg(uint8_t reg, uint8_t count, const uint8_t* data, enum ti_errc_t* errc) {
+    if (count == 0 || count > MAX_REG_BURST) { *errc = TI_ERRC_INVALID_ARG; return; }
+
+    uint8_t src[2 + MAX_REG_BURST] = { 0 };
+    uint8_t dst[2 + MAX_REG_BURST] = { 0 };
+    src[0] = (uint8_t)(CMD_WREG | (reg & 0x1F));
+    src[1] = (uint8_t)(count - 1);
+    for (uint8_t i = 0; i < count; i++) src[2 + i] = data[i];
+
+    adc_xfer(src, dst, (uint8_t)(2 + count), errc);
+}
+
+static void spi_wreg1(uint8_t reg, uint8_t val, enum ti_errc_t* errc) {
+    spi_wreg(reg, 1, &val, errc);
+}
+
+// Reads the latest conversion result from the data-holding register (9.5.4.2).
+// RDATA is safe at any time, with no need to synchronize to DRDY.
+static int32_t read_data(enum ti_errc_t* errc) {
+    uint8_t src[4] = { CMD_RDATA, 0, 0, 0 };
+    uint8_t dst[4] = { 0 };
+    adc_xfer(src, dst, 4, errc);
+    if (*errc != TI_ERRC_NONE) return 0;
+
+    // 24-bit two's complement, MSB first (9.5.2)
+    int32_t code = ((int32_t)dst[1] << 16) | ((int32_t)dst[2] << 8) | (int32_t)dst[3];
+    if (code & 0x800000) code -= 0x1000000;
+    return code;
+}
+
+/**************************************************************************************************
+ * @section Timing helpers
+ **************************************************************************************************/
+
+static bool systick_running(void) {
+    return READ_FIELD(STK_CSR, STK_CSR_ENABLE) != 0;
+}
+
+// Waits long enough for a full conversion to complete after a configuration write
+// restarted the digital filter (9.5.3.12): first-data time + programmable delay,
+// +2% for internal oscillator tolerance (1.5% max), rounded up to whole ms, +1 ms
+// for SysTick granularity.
+static void wait_for_conversion(void) {
+    uint32_t us = first_data_us[data_rate] + 55U;
+    us += us / 50U;
+    systick_delay((us + 999U) / 1000U + 1U);
+}
+
+/**************************************************************************************************
+ * @section Configuration helpers
+ **************************************************************************************************/
+
+static uint8_t ref_reg_value(enum adc_ref_voltage_source source) {
+    uint8_t ref = REF_REFCON_ON | (uint8_t)((source & 0x03) << 2);
+    if (source == REF_INTERNAL) {
+        // Datasheet Table 31 note 1: disable both buffers with the internal reference.
+        ref |= REF_REFP_BUF_OFF | REF_REFN_BUF_OFF;
+    } else {
+        // Reset default: positive buffer on, negative buffer off (REFNx normally at AVSS).
+        ref |= REF_REFN_BUF_OFF;
+    }
+    return ref;
+}
+
+static uint8_t pga_reg_value(enum adc_gain gain) {
+    // Gain 1: bypass the PGA so single-ended inputs down to AVSS work (9.3.2.3, Table 29).
+    if ((gain & 0x07) == GAIN_1) return PGA_BYPASS;
+    return (uint8_t)(PGA_EN_ON | (gain & 0x07));
+}
+
+static bool check_ready(enum ti_errc_t* errc) {
+    if (!dev_ready) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "ADC not initialized");
+        return false;
+    }
+    return true;
+}
+
+/**************************************************************************************************
+ * @section Public functions
+ **************************************************************************************************/
+
+void adc_init(struct adc_spi_dev* device, enum ti_errc_t* errc) {
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;
     *errc = TI_ERRC_NONE;
-    dev  = *device;
+    dev_ready = false;
 
-    // Reset ADC
-    uint8_t err = spi_single_command(RESET, 1, errc);
-    if (err == -1 || *errc != TI_ERRC_NONE) {
+    if (!device || device->inst < 1 || device->inst > 6) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid ADC device"); return;
+    }
+    if (!systick_running()) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "systick_init() must be called before adc_init()"); return;
+    }
+    dev = *device;
+    data_rate = ADC_DR_400_SPS;
+
+    // 1. Power-on reset needs 2.2 ms before communication (9.4.1.1), then RDY = 0.
+    //    No RESET command is needed: every configuration register is written below.
+    systick_delay(3);
+    int tries = 0;
+    while (spi_rreg1(REG_STATUS, errc) & STATUS_RDY) {
+        if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC STATUS read failed"); return; }
+        if (++tries >= RDY_POLL_TRIES) { TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "ADC never became ready"); return; }
+    }
+    if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC STATUS read failed"); return; }
+
+    // 2. Check the device ID. A wrong ID usually means a wiring, CS or SPI-mode problem.
+    uint8_t id = adc_read_device_id(errc);
+    if (*errc != TI_ERRC_NONE) return;
+    if (id != DEV_ID_ADS124S08 && id != DEV_ID_ADS124S06) {
+        TI_SET_ERRC(errc, TI_ERRC_DEVICE, "Unexpected ADC device ID"); return;
+    }
+
+    // 3. Clear the FL_POR flag.
+    spi_wreg1(REG_STATUS, 0x00, errc);
+    if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC STATUS write failed"); return; }
+
+    // 4. Write a complete known configuration (02h-09h) and read it back.
+    const uint8_t cfg[8] = {
+        (AIN0 << 4) | AINCOM,               // INPMUX
+        PGA_BYPASS,                         // PGA: bypassed, gain 1
+        DATARATE_BASE | data_rate,          // DATARATE: low-latency, continuous, internal clock
+        ref_reg_value(REF_INTERNAL),        // REF: internal 2.5 V always on and selected
+        0x00,                               // IDACMAG: off
+        0xFF,                               // IDACMUX: both disconnected
+        0x00,                               // VBIAS: off
+        SYS_DEFAULT                         // SYS
+    };
+    spi_wreg(REG_INPMUX, sizeof(cfg), cfg, errc);
+    if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC config write failed"); return; }
+
+    uint8_t readback[8] = { 0 };
+    spi_rreg(REG_INPMUX, sizeof(readback), readback, errc);
+    if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC config readback failed"); return; }
+    for (uint8_t i = 0; i < sizeof(cfg); i++) {
+        if (readback[i] != cfg[i]) {
+            TI_SET_ERRC(errc, TI_ERRC_DEVICE, "ADC config readback mismatch"); return;
+        }
+    }
+
+    // 5. Internal reference start-up time: up to 7 ms with 47 uF (Table 10).
+    systick_delay(8);
+
+    // 6. Start continuous conversions (START/SYNC is tied low, so the command is decoded).
+    spi_command(CMD_START, errc);
+    if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC START failed"); return; }
+
+    // 7. Prove conversions are running: measure (AVDD - AVSS) / 4 with the supply
+    //    monitor. AVDD of 2.7-5.25 V gives 0.675-1.31 V. Conversion data are cleared
+    //    when a config write restarts the filter, so 0 here means nothing converted.
+    spi_wreg1(REG_SYS, SYS_DEFAULT | SYS_MON_AVDD_DIV4, errc);
+    if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC SYS write failed"); return; }
+    wait_for_conversion();
+    int32_t code = read_data(errc);
+    if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC RDATA failed"); return; }
+
+    spi_wreg1(REG_SYS, SYS_DEFAULT, errc);
+    if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC SYS restore failed"); return; }
+
+    // 0.6 V .. 1.4 V against the 2.5 V internal reference
+    const int32_t min_code = (int32_t)((600LL  << 23) / 2500);
+    const int32_t max_code = (int32_t)((1400LL << 23) / 2500);
+    if (code < min_code || code > max_code) {
+        TI_SET_ERRC(errc, TI_ERRC_DEVICE,
+                    "ADC not converting or AVDD out of range");
         return;
     }
 
-    // Delay recommended by datasheet after RESET
-    //systick_delay(5); // TODO: Why is this getting stuck?
-    for (int i = 0; i < 100000; i++) {
-        asm("NOP");
+    dev_ready = true;
+}
+
+void adc_set_data_rate(enum adc_data_rate rate, enum ti_errc_t* errc) {
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;
+    *errc = TI_ERRC_NONE;
+    if (!check_ready(errc)) return;
+    if ((uint8_t)rate > ADC_DR_4000_SPS) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid data rate"); return; }
+
+    spi_wreg1(REG_DATARATE, (uint8_t)(DATARATE_BASE | rate), errc);
+    if (*errc == TI_ERRC_NONE) data_rate = (uint8_t)rate;
+}
+
+int32_t adc_read_raw(const struct adc_channel* channel, enum ti_errc_t* errc) {
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;
+    *errc = TI_ERRC_NONE;
+    if (!check_ready(errc)) return 0;
+    if (!channel || channel->pos_pin > AINCOM || channel->neg_pin > AINCOM ||
+        channel->source > REF_INTERNAL) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid ADC channel"); return 0;
     }
 
-     spi_single_command(START, 1, errc);
+    // INPMUX, PGA, DATARATE, REF in one burst. Any changed value restarts the
+    // conversion (9.5.3.12), so wait a full first-conversion time before reading.
+    // If nothing changed, conversions keep running and the wait still guarantees
+    // the result was taken after this call.
+    const uint8_t cfg[4] = {
+        (uint8_t)(((channel->pos_pin & 0x0F) << 4) | (channel->neg_pin & 0x0F)),
+        pga_reg_value(channel->gain),
+        (uint8_t)(DATARATE_BASE | data_rate),
+        ref_reg_value(channel->source)
+    };
+    spi_wreg(REG_INPMUX, sizeof(cfg), cfg, errc);
+    if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC channel config failed"); return 0; }
 
-    // Wait until ADC is ready for communication
-    bool is_ready = false;
-    int timeout = 100000; 
-    while (!is_ready) {
-        uint8_t status_reg = spi_rreg(STATUS_REG, 1, errc);
-        
-        if ((status_reg & RDY_FLAG) == 0 && *errc == TI_ERRC_NONE) {
-            is_ready = true;
-        } else if (timeout == 0) {
-            *errc = TI_ERRC_TIMEOUT;
-            return; 
-        }
+    wait_for_conversion();
 
-        timeout--;
+    int32_t code = read_data(errc);
+    if (*errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "ADC RDATA failed"); return 0; }
+    return code;
+}
+
+int32_t adc_read_microvolts(const struct adc_channel* channel, enum ti_errc_t* errc) {
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;
+
+    int32_t code = adc_read_raw(channel, errc);
+    if (*errc != TI_ERRC_NONE) return 0;
+
+    // 1 LSB = (2 * VREF / Gain) / 2^24 = VREF / (Gain * 2^23)   (Equation 11)
+    int64_t ref_uv = (int64_t)channel->ref_mv * 1000;
+    int64_t divisor = (int64_t)1 << (23 + (channel->gain & 0x07));
+    if (divisor == 0){
+        return 0;
     }
-
-    // Enable internal reference 
-    spi_wreg(REF_REG, 1, 0x12, errc);
+    return (int32_t)(((int64_t)code * ref_uv) / divisor);
 }
 
 int adc_read_voltage(const struct adc_channel* channel, enum ti_errc_t* errc) {
-    if (dev.inst < 1 || dev.inst > 6 || !channel) {
-        *errc = TI_ERRC_INVALID_ARG;
-        return -1;
-    }
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;
 
-    *errc = TI_ERRC_NONE;
-
-    // Configure Input Multiplexer
-    uint8_t mux_val = (channel->pos_pin << 4) | (channel->neg_pin & 0x0F);
-    spi_wreg(INPMUX_REG, 1, mux_val, errc); // Returns -1 if unexpected return, otherwise 1
-
-    // Set gain
-    uint8_t pga_val = 0x08 | (channel->gain & 0x07);
-    spi_wreg(PGA_REG, 1, pga_val, errc);
-
-    // Set reference voltage
-    uint8_t ref_val = 0x12 | ((channel->source & 0x03) << 2);
-    spi_wreg(REF_REG, 1, ref_val, errc);
-
-    if (*errc != TI_ERRC_NONE) {
-        return -1;
-    }
-
-    // Wait for device ready flag
-    int timeout = 100;
-    while ((spi_rreg(STATUS_REG, 1, errc) & RDY_FLAG) != 0 && timeout > 0) {
-        timeout--;
-    }
-
-    // Request data
-    int32_t result = spi_single_command(RDATA, 4, errc);
-
-    // If result is negative, ensure that top eight bit are flipped to 1
-    if (result & 0x800000) {
-        result |= 0xFF000000;
-    }
-
-    // Voltage conversion math
-    float divisor = (float)((1 << 23) - 1); 
-
-    // Convert the 3-bit gain code (0-7) into the actual multiplier (1, 2, 4... 128)
-    float actual_gain = (float)(1 << (channel->gain & 0x07));
-
-    float final_voltage = ((float)result * channel->ref_voltage) / (actual_gain * divisor);
-
-    return (int32_t)(final_voltage * 1000);
+    int32_t uv = adc_read_microvolts(channel, errc);
+    if (*errc != TI_ERRC_NONE) return 0;
+    return (uv >= 0) ? (uv + 500) / 1000 : (uv - 500) / 1000;
 }
 
-int adc_read_voltage_diff(struct adc_channel channel1, struct adc_channel channel2, enum ti_errc_t* errc) { 
-    int32_t voltage1 = adc_read_voltage(&channel1, errc);
-    int32_t voltage2 = adc_read_voltage(&channel2, errc);
+int adc_read_voltage_diff(struct adc_channel channel1, struct adc_channel channel2, enum ti_errc_t* errc) {
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;
 
-    return voltage1 - voltage2;
+    int v1 = adc_read_voltage(&channel1, errc);
+    if (*errc != TI_ERRC_NONE) return 0;
+    int v2 = adc_read_voltage(&channel2, errc);
+    if (*errc != TI_ERRC_NONE) return 0;
+    return v1 - v2;
 }
 
-// You don't need to disconnect a pin to change the idac pins
 void adc_set_idac(enum idac_mag magnitude, enum adc_pin pin1, enum adc_pin pin2, enum ti_errc_t* errc) {
-    if (dev.inst < 1 || dev.inst > 6) {
-        *errc = TI_ERRC_INVALID_ARG;
-        return;
-    }
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;
+    *errc = TI_ERRC_NONE;
+    if (!check_ready(errc)) return;
+    if ((uint8_t)magnitude > IDAC_2000_UA) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid IDAC magnitude"); return; }
 
-    // Set IDAC magnitude
-    spi_wreg(IDACMAG_REG, 1, magnitude, errc);
+    // Keep FL_RAIL_EN / PSW (bits 7:6); bits 5:4 are reserved and must be 0.
+    uint8_t mag = spi_rreg1(REG_IDACMAG, errc);
+    if (*errc != TI_ERRC_NONE) return;
+    mag = (uint8_t)((mag & 0xC0) | ((uint8_t)magnitude & 0x0F));
+    spi_wreg1(REG_IDACMAG, mag, errc);
+    if (*errc != TI_ERRC_NONE) return;
 
-    if (*errc != TI_ERRC_NONE) {
-        return;
-    }
-
-    uint8_t mux_pins = ((pin2 & 0x0F) << 4) | (pin1 & 0x0F);
-    spi_wreg(IDACMUX_REG, 1, mux_pins, errc);
+    // IDACMUX: I2MUX[7:4], I1MUX[3:0]. The internal reference must be on (it is).
+    uint8_t mux = (uint8_t)(((pin2 & 0x0F) << 4) | (pin1 & 0x0F));
+    spi_wreg1(REG_IDACMUX, mux, errc);
 }
 
 void adc_set_gpio(enum adc_pin pin, bool default_high, bool input, enum ti_errc_t* errc) {
-    if (dev.inst < 1 || dev.inst > 6) {
-        *errc = TI_ERRC_INVALID_ARG;
-        return;
-    }
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;
+    *errc = TI_ERRC_NONE;
+    if (!check_ready(errc)) return;
+    if (pin < AIN8 || pin > AIN11) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Only AIN8-AIN11 can be GPIO"); return; }
 
-    // Only ADC pins 8 - 11 work
-    uint8_t gpio_idx = pin - 0x08;
+    uint8_t idx = (uint8_t)(pin - AIN8);
 
-    // Enable GPIO function
-    uint8_t gpiocon_val = 0;
-    gpiocon_val |= (1 << gpio_idx);
-    spi_wreg(GPIOCON_REG, 1, gpiocon_val, errc);
-    if (*errc != TI_ERRC_NONE) {
-        return;
-    }
+    // Read-modify-write both registers so other GPIOs keep their configuration.
+    // Set direction and level before enabling the pin as a GPIO (datasheet Figure 7).
+    uint8_t dat = spi_rreg1(REG_GPIODAT, errc);
+    if (*errc != TI_ERRC_NONE) return;
+    dat &= (uint8_t)~((1U << (idx + 4)) | (1U << idx));
+    if (input)        dat |= (uint8_t)(1U << (idx + 4));  // DIR = 1: input
+    else if (default_high) dat |= (uint8_t)(1U << idx);   // DAT = 1: output high
+    spi_wreg1(REG_GPIODAT, dat, errc);
+    if (*errc != TI_ERRC_NONE) return;
 
-    uint8_t gpiodat_val;
-    if (default_high && input) {
-        gpiodat_val = 1 << (gpio_idx + 4) | gpio_idx;
-    } else if (default_high && !input) {
-        gpiodat_val = 1 << gpio_idx;
-    } else if (!default_high && input) {
-        gpiodat_val = 1 << (gpio_idx + 4);
-    } else {
-        gpiodat_val = 0;
-    } 
-
-    // Set as output/input and default high/low
-    spi_wreg(GPIODAT_REG, 1, gpiodat_val, errc);
+    uint8_t con = spi_rreg1(REG_GPIOCON, errc);
+    if (*errc != TI_ERRC_NONE) return;
+    con = (uint8_t)((con | (1U << idx)) & 0x0F);
+    spi_wreg1(REG_GPIOCON, con, errc);
 }
 
 char* adc_get_channel_name(struct adc_channel channel) {
     return channel.name;
 }
 
-uint8_t adc_read_manufacturer_id(enum ti_errc_t* errc) {
+uint8_t adc_read_device_id(enum ti_errc_t* errc) {
+    enum ti_errc_t local_errc;
+    if (!errc) errc = &local_errc;
     *errc = TI_ERRC_NONE;
+    if (dev.inst < 1 || dev.inst > 6) { TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "ADC device not set"); return 0; }
 
-    uint8_t id = spi_rreg(0x00, 1, errc); 
-    return id;
+    uint8_t id = spi_rreg1(REG_ID, errc);
+    return (uint8_t)(id & 0x07);
 }
 
-
 /**
- * Notes:
- * 1. Start and reset pins are perminently tied to high, clk is tied to low, and data ready is left hanging. 
- * Only standard spi pins are used.
- * 
- * 2. If errc is not TI_ERRC_NONE the return value has no meaning **
+ * Hardware notes:
+ * 1. RESET is tied high, CLK is tied low (internal oscillator) and DRDY is unconnected,
+ *    so conversions are timed and read with RDATA.
+ * 2. START/SYNC is tied low, so conversions are started with the START command.
+ * 3. If errc is not TI_ERRC_NONE the return value has no meaning.
  */

@@ -24,6 +24,7 @@
 #include "peripheral/gpio.h"
 #include "peripheral/errc.h"
 #include <stdint.h>
+#include <stddef.h>
 
 #define INST1_SCK 44
 #define INST1_MISO 45
@@ -45,8 +46,8 @@
 #define INST5_MISO 22
 #define INST5_MOSI 23
 
-#define INST6_SCK 125
-#define INST6_MISO 126
+#define INST6_SCK 126  // PG13
+#define INST6_MISO 125 // PG12
 #define INST6_MOSI 127
 
 
@@ -94,7 +95,7 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI instance range error"); return;
     }
 
-    if (mode > 3 || mode < 0) {
+    if (mode > 3) {
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI mode range error"); return;
     }
 
@@ -124,6 +125,10 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
 
     // Enable clocks for all SS pins
     enable_ss_clocks(ss_list, slave_count);
+
+    // Latch SS outputs high BEFORE switching the pins to output mode,
+    // otherwise they are briefly driven low (ODR resets to 0)
+    ss_high(ss_list, slave_count);
 
     // Configure pins
     switch (inst) {
@@ -280,9 +285,6 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
         default:
             break;
     }
-    
-    // Ensure SS lines are high
-    ss_high(ss_list, slave_count);
 
     // Ensure SPI hardware is disabled before config
     CLR_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
@@ -291,10 +293,11 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
     CLR_FIELD(SPIx_CGFR[inst], SPIx_CGFR_I2SMOD);
     // Set threshold level
     WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_FTHVL, 0x00);
-    // Set baudrate prescaler ( 64MHz /8  = 8MHz) 
-    WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_MBR, 0b111); 
-    // Set data size
-    WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_DSIZE, 0b00111); // TODO: Ensure that this is lower than the slowest device's baudrate
+    // Set baudrate prescaler (64MHz / 8 = 8MHz)
+    // TODO: Ensure that this is lower than the slowest device's max baudrate
+    WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_MBR, 0b010);
+    // Set data size (8 bits)
+    WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_DSIZE, 0b00111);
     
     // Set clock polarities
     switch (mode) {
@@ -323,11 +326,22 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
     SET_FIELD(SPIx_CR1[inst], SPIx_CR1_SSI);
     // Set SPI as master
     SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_MASTER);
+    // Keep SCK/MOSI driven at their idle levels while SPE = 0
+    // (must only be set once in master mode, per RM)
+    SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_AFCNTR);
 
 }
 
 void spi_transfer_sync (uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
+    if (inst > 6 || inst < 1) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI instance range error");
+        return;
+    }
+    if (src == NULL || dst == NULL) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Null buffer");
+        return;
+    }
     if (size == 0) {
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Transfer size cannot be zero"); 
         return; 
@@ -356,11 +370,38 @@ void spi_transfer_sync (uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint
         ((uint8_t *)dst)[i] = *(volatile uint8_t *)SPIx_RXDR[inst];
     }
 
-    // Wait for end of tranfer
+    // Wait for end of transfer
     while (!READ_FIELD(SPIx_SR[inst], SPIx_SR_EOT));
     SET_WO_FIELD(SPIx_IFCR[inst], SPIx_IFCR_EOTC);
     SET_WO_FIELD(SPIx_IFCR[inst], SPIx_IFCR_TXTFC);
 
+    // Close the transaction per RM procedure
+    CLR_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
+
     // Pull SS pin high to end transfer
     tal_set_pin(ss_pin, 1);
+}
+
+uint8_t spi_set_mode(uint8_t inst, uint8_t mode, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (inst > 6 || inst < 1 || mode > 3) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI instance or mode range error");
+        return MODE_0;
+    }
+
+    uint8_t old = (uint8_t)((READ_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL) << 1) |
+                             READ_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA));
+    if (old == mode) return old;
+
+    // CFG2 may only be changed with the peripheral disabled. spi_transfer_sync()
+    // leaves SPE = 0 between transfers and re-enables it itself.
+    CLR_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
+    while (READ_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE));
+
+    if (mode & 0x2) SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL);
+    else            CLR_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL);
+    if (mode & 0x1) SET_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA);
+    else            CLR_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA);
+
+    return old;
 }

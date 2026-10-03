@@ -79,4 +79,17 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
  *
  * @param errc Pointer to error status output.
  */ 
-void spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc); 
+/**
+ * @brief Changes the clock polarity/phase of an already-initialized SPI instance.
+ *
+ * Lets devices that need different SPI modes share one bus. Call only while no
+ * transfer is in progress (all chip selects high).
+ *
+ * @param inst  SPI instance (1-6).
+ * @param mode  New SPI mode (MODE_0..MODE_3).
+ * @param errc  Error output.
+ * @return The mode that was active before the call, so it can be restored.
+ */
+uint8_t spi_set_mode(uint8_t inst, uint8_t mode, enum ti_errc_t *errc);
+
+void spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc);
