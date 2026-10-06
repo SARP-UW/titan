@@ -326,6 +326,31 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
 
 }
 
+uint8_t spi_get_miso_pin(uint8_t inst) {
+    switch (inst) {
+    case INST_ONE:
+        return INST1_MISO;
+
+    case INST_TWO:
+        return INST2_MISO;
+
+    case INST_THREE:
+        return INST3_MISO;
+
+    case INST_FOUR:
+        return INST4_MISO;
+
+    case INST_FIVE:
+        return INST5_MISO;
+
+    case INST_SIX:
+        return INST6_MISO;
+
+    default:
+        return -1;
+    }
+}
+
 void spi_transfer_sync (uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
     if (size == 0) {

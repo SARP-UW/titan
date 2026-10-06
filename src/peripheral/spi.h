@@ -52,6 +52,10 @@ enum spi_mode {
  */
 void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_t *errc);
 
+// gets the DOUT/DRDY pin (ref: Altium schematic; pin 12 DOUT/DRDY goes to MISO)
+// TODO: add extra documentation
+uint8_t spi_get_miso_pin(uint8_t inst, ti_errc_t *errc);
+
 /**
  * @brief Perform an SPI data transfer with blocking. 
  * 
