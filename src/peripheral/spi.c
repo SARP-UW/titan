@@ -326,7 +326,7 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
 
 }
 
-uint8_t spi_get_miso_pin(uint8_t inst) {
+uint8_t spi_get_miso_pin(uint8_t inst, enum ti_errc_t *errc) {
     switch (inst) {
     case INST_ONE:
         return INST1_MISO;
@@ -347,6 +347,7 @@ uint8_t spi_get_miso_pin(uint8_t inst) {
         return INST6_MISO;
 
     default:
+        *errc = TI_ERRC_INVALID_ARG;
         return -1;
     }
 }

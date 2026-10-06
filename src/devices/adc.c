@@ -199,6 +199,9 @@ void adc_init(struct adc_spi_dev *device, enum ti_errc_t *errc) {
     systick_delay(2);
 
     adc_single_command(START, errc);
+    if (*errc != TI_ERRC_NONE) {
+        return -1;
+    }
 
     // Enable internal reference
     adc_wreg(REF_REG, 0x39, errc);
@@ -241,12 +244,12 @@ int adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc) {
     // ref: 9.5.5
     uint8_t dout_pin = spi_get_miso_pin(dev.inst, *errc);
 
-    if (dout_pin < 0 || *errc != TI_ERRC_NONE) {
-        *errc = TI_ERRC_INVALID_ARG;
+    if (*errc != TI_ERRC_NONE) {
         return -1;
     }
 
     if (!adc_wait_data_ready(dout_pin, errc)) {
+        *errc = TI_ERRC_INVALID_ARG;
         return -1;
     }
 
