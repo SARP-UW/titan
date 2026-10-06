@@ -246,8 +246,8 @@ int adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc) {
         return -1;
     }
 
-    while (tal_read_pin(dout_pin)) {
-        adc_wait_data_ready(dout_pin, errc);
+    if (!adc_wait_data_ready(dout_pin, errc)) {
+        return -1;
     }
 
     // Request data
