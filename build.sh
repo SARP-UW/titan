@@ -158,7 +158,7 @@ if [ "$FW_TARGET" = "all" ]; then
 fi
 
 # ── Build ──────────────────────────────────────────────────────────────────────
-run_usb_reset
+# run_usb_reset
 
 echo "Running cmake .."
 cmake -S "$SCRIPT_DIR" -B "$SCRIPT_DIR/build"
@@ -243,7 +243,20 @@ for attempt in $(seq 1 $MAX_ATTEMPTS); do
         sleep 15
 
         run_usb_reset
-ng in 1s..."
+        sleep 8
+
+        echo "Recovery complete — retrying OpenOCD..."
+        continue
+        ;;
+    esac
+  fi
+
+  if [ "$OPENOCD_RC" -eq 0 ]; then
+    echo "Flash successful."
+    break
+  fi
+
+  echo "OpenOCD failed (exit $OPENOCD_RC), retrying in 1s..."
   sleep 1
 done
 

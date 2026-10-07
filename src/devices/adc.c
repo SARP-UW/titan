@@ -242,7 +242,7 @@ int adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc) {
 
     // TODO: use the DRDY pin and CS pin combined to evaluate
     // ref: 9.5.5
-    uint8_t dout_pin = spi_get_miso_pin(dev.inst, *errc);
+    uint8_t dout_pin = spi_get_miso_pin(dev.inst, errc);
 
     if (*errc != TI_ERRC_NONE) {
         return -1;
