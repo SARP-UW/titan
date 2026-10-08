@@ -42,7 +42,9 @@ static gnss_t gnss_dev = {
 	},
 	.config = {
 		.meas_rate_ms = 200,
-		.constellation_mask = GNSS_CONSTELLATION_GPS | GNSS_CONSTELLATION_GLONASS | GNSS_CONSTELLATION_BEIDOU,
+		// u-blox M8 can only track GLONASS *or* BeiDou, never both; enabling both
+		// makes the module NAK UBX-CFG-GNSS and gnss_init() fail.
+		.constellation_mask = GNSS_CONSTELLATION_GPS | GNSS_CONSTELLATION_GLONASS,
 		.dyn_model = GNSS_DYN_AIRBORNE_4G,
 		.power_mode = GNSS_POWER_CONTINUOUS
 	},

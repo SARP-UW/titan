@@ -81,6 +81,8 @@ static const uint32_t ACTUATOR_CS_3 = 61; // ... thus 12 valves total here
 
 static const uint32_t POWER_TMP_CS = 58; // power board temperature 
 
+
+// Note to self, these are 9-pwm# labeled on the power board
 static const uint32_t PWM_1 = 38; 
 static const uint32_t PWM_2 = 93;
 static const uint32_t PWM_3 = 82;

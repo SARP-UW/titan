@@ -45,7 +45,7 @@ static void spi_tx(uint8_t spi_inst, uint8_t ss_pin, const uint8_t *tx_data, uin
     if (errc) *errc = TI_ERRC_NONE;
 
     while (len > 0) {
-        uint8_t chunk_len = (len > 256) ? 256 : (uint8_t)len;
+        uint8_t chunk_len = (len > 255) ? 255 : (uint8_t)len;
         spi_transfer_sync(spi_inst, ss_pin, (void*)tx_data, rx_ptr, chunk_len, errc);
         if (errc && *errc != TI_ERRC_NONE) return;
         tx_data += chunk_len;
@@ -63,7 +63,7 @@ static void spi_rx(uint8_t spi_inst, uint8_t ss_pin, uint8_t *rx_data, uint32_t 
     if (errc) *errc = TI_ERRC_NONE;
 
     while (len > 0) {
-        uint8_t chunk_len = (len > 256) ? 256 : (uint8_t)len;
+        uint8_t chunk_len = (len > 255) ? 255 : (uint8_t)len;
         spi_transfer_sync(spi_inst, ss_pin, dummy_tx, rx_data, chunk_len, errc);
         if (errc && *errc != TI_ERRC_NONE) return;
         rx_data += chunk_len;
@@ -82,6 +82,7 @@ typedef struct {
     uint16_t timeRef;
 } ubx_cfg_rate_t;
 
+/* UBX-CFG-NAV5 is exactly 36 bytes; the module NAKs any other length. */
 typedef struct {
     uint16_t mask;
     uint8_t  dynModel;
@@ -92,11 +93,16 @@ typedef struct {
     uint8_t  drLimit;
     uint16_t pDop;
     uint16_t tDop;
-    uint16_t vDop;
-    uint16_t cDop;
-    uint8_t  reserved1[4];
-    uint8_t  dynCbg;
-    uint8_t  reserved2[11];
+    uint16_t pAcc;
+    uint16_t tAcc;
+    uint8_t  staticHoldThresh;
+    uint8_t  dgnssTimeout;
+    uint8_t  cnoThreshNumSVs;
+    uint8_t  cnoThresh;
+    uint8_t  reserved1[2];
+    uint16_t staticHoldMaxDist;
+    uint8_t  utcStandard;
+    uint8_t  reserved2[5];
 } ubx_cfg_nav5_t;
 
 typedef struct {
@@ -300,37 +306,38 @@ void gnss_init(gnss_t *dev, enum ti_errc_t *errc) {
     gnss_cfg.blocks[0].gnssId = 0; 
     gnss_cfg.blocks[0].resTrkCh = 8;
     gnss_cfg.blocks[0].maxTrkCh = 16;
-    gnss_cfg.blocks[0].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_GPS) ? 0x01010001 : 0x01010000;
+    gnss_cfg.blocks[0].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_GPS) ? 0x00010001 : 0x00010000;
     
     // SBAS block
     gnss_cfg.blocks[1].gnssId = 1; 
     gnss_cfg.blocks[1].resTrkCh = 1;
     gnss_cfg.blocks[1].maxTrkCh = 3;
-    gnss_cfg.blocks[1].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_SBAS) ? 0x01010001 : 0x01010000;
+    gnss_cfg.blocks[1].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_SBAS) ? 0x00010001 : 0x00010000;
 
     // Galileo block
     gnss_cfg.blocks[2].gnssId = 2; 
     gnss_cfg.blocks[2].resTrkCh = 4;
     gnss_cfg.blocks[2].maxTrkCh = 8;
-    gnss_cfg.blocks[2].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_GALILEO) ? 0x01010001 : 0x01010000;
+    gnss_cfg.blocks[2].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_GALILEO) ? 0x00010001 : 0x00010000;
 
     // BeiDou block
     gnss_cfg.blocks[3].gnssId = 3; 
     gnss_cfg.blocks[3].resTrkCh = 8;
     gnss_cfg.blocks[3].maxTrkCh = 16;
-    gnss_cfg.blocks[3].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_BEIDOU) ? 0x01010001 : 0x01010000;
+    gnss_cfg.blocks[3].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_BEIDOU) ? 0x00010001 : 0x00010000;
 
     // QZSS block
     gnss_cfg.blocks[4].gnssId = 5; 
     gnss_cfg.blocks[4].resTrkCh = 0;
     gnss_cfg.blocks[4].maxTrkCh = 3;
-    gnss_cfg.blocks[4].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_QZSS) ? 0x01010001 : 0x01010000;
+    // u-blox M8 requires QZSS and GPS to be enabled/disabled together
+    gnss_cfg.blocks[4].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_GPS) ? 0x00010001 : 0x00010000;
 
     // GLONASS block
     gnss_cfg.blocks[5].gnssId = 6; 
     gnss_cfg.blocks[5].resTrkCh = 8;
     gnss_cfg.blocks[5].maxTrkCh = 14;
-    gnss_cfg.blocks[5].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_GLONASS) ? 0x01010001 : 0x01010000;
+    gnss_cfg.blocks[5].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_GLONASS) ? 0x00010001 : 0x00010000;
 
     ubx_configure(dev, UBX_CLASS_CFG, UBX_CFG_GNSS, &gnss_cfg, sizeof(gnss_cfg), errc);
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
