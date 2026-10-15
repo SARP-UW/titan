@@ -15,7 +15,9 @@
 #include "devices/adc.h"
 #include "app/utils/devices.h"
 #include "app/utils/pinout.h"
+#include "peripheral/gpio.h"
 #include <stdint.h>
+#include <stdio.h>
 
 /* Pause the debugger and inspect these. */
 volatile extern int32_t  adc_ain0_uv = 0;         // Last good AIN0-vs-AINCOM reading, microvolts
@@ -32,7 +34,7 @@ void _start() {
 
     /* Every chip select on the instance has to be listed here, or spi_init()
      * never drives that pin as an output held high. */
-    uint8_t ss_pins[1] = { (uint8_t)SENSOR_CS_1 };
+    uint8_t ss_pins[1] = { (uint8_t)IMU_1_CS };
 
     systick_init();
 
@@ -41,26 +43,23 @@ void _start() {
     spi_init((uint8_t)SENSOR_SPI_INST, MODE_1, ss_pins, 1, &errc);
     spi_errc = errc;
 
-    /* ADC on SENSOR_CS_1. adc_init() checks the device ID, writes a known
-     * config (INPMUX = AIN0/AINCOM, gain 1, internal 2.5 V ref, 400 SPS) and
-     * starts continuous conversions. */
-    adc_init(&adc_dev, &errc);
-    adc_init_errc = errc;
-    adc_dev_id = adc_read_device_id(&errc);
+    uint8_t pin = 101; // USB_DATA+
+    tal_enable_clock(pin);
+    tal_set_mode(pin, 1); // gpio
+
+
+    struct imu_spi_dev imu_dev = {
+        .inst = SENSOR_SPI_INST,
+        .ss_pin = ss_pins[0],
+    };
+    imu_init(&imu_dev, &errc);
+    struct imu_result imu_result;
+    imu_transfer(&imu_dev, &imu_result, &errc);
 
     while (1) {
-        /* adc_channels[0] is AIN0 vs AINCOM, gain 1, internal 2.5 V reference. */
-        errc = TI_ERRC_NONE;
-        int32_t uv = adc_read_microvolts(&adc_channels[0], &errc);
-        adc_read_errc = errc;
-
-        if (errc == TI_ERRC_NONE) {
-            adc_ain0_uv = uv;
-            adc_ok_count++;
-        } else {
-            adc_fail_count++;
-        }
-
-        systick_delay(200);
+        tal_set_pin(pin, 1);
+        systick_delay(50);
+        tal_set_pin(pin, 0);
+        systick_delay(50);
     }
 }
