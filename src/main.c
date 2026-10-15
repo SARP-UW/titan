@@ -15,50 +15,44 @@
 #include "devices/adc.h"
 #include "app/utils/devices.h"
 #include "app/utils/pinout.h"
-#include "peripheral/gpio.h"
-#include "peripheral/pwm.h"
-
 #include <stdint.h>
+#include <stdio.h>
 
 
 void _start() {
-    
-    int pin = 136;
-    
-    tal_enable_clock(pin);
-    tal_set_mode(pin, 1);
+    enum ti_errc_t errc = TI_ERRC_NONE;
+
+    /* Every chip select on the instance has to be listed here, or spi_init()
+     * never drives that pin as an output held high. */
+    uint8_t ss_pins[1] = { (uint8_t)SENSOR_CS_1 };
 
     systick_init();
 
-    // struct ti_pwm_config_t pwm = {
-    //     4, 3, 500, 500, 16*4000000
-    // };
-    // enum ti_errc_t error = TI_ERRC_NONE;
+    /* The ADS124S0x only talks SPI mode 1; the driver sets that per transfer
+     * anyway, so initializing the bus in mode 1 just avoids the switching. */
+    spi_init((uint8_t)SENSOR_SPI_INST, MODE_1, ss_pins, 1, &errc);
+    spi_errc = errc;
 
-    // ti_set_pwm(pwm, &error);
+    /* ADC on SENSOR_CS_1. adc_init() checks the device ID, writes a known
+     * config (INPMUX = AIN0/AINCOM, gain 1, internal 2.5 V ref, 400 SPS) and
+     * starts continuous conversions. */
+    adc_init(&adc_dev, &errc);
+    adc_init_errc = errc;
+    adc_dev_id = adc_read_device_id(&errc);
 
-    
-    while(true){
-        for(int j = 0; j < 100; j++){
-            tal_set_pin(pin, 1);
-            for(uint64_t i = 0; i < 3209; i++){
-                asm volatile ("NOP");
-            }
-            tal_set_pin(pin, 0);
-            for(uint64_t i = 0; i < 39583; i++){
-                asm volatile ("NOP");
-            }
+    while (1) {
+        /* adc_channels[0] is AIN0 vs AINCOM, gain 1, internal 2.5 V reference. */
+        errc = TI_ERRC_NONE;
+        int32_t uv = adc_read_microvolts(&adc_channels[0], &errc);
+        adc_read_errc = errc;
+
+        if (errc == TI_ERRC_NONE) {
+            adc_ain0_uv = uv;
+            adc_ok_count++;
+        } else {
+            adc_fail_count++;
         }
 
-        for(int j = 0; j < 100; j++){
-            tal_set_pin(pin, 1);
-            for(uint64_t i = 0; i < (3209 + 500); i++){
-                asm volatile ("NOP");
-            }
-            tal_set_pin(pin, 0);
-            for(uint64_t i = 0; i < (39583 - 500); i++){
-                asm volatile ("NOP");
-            }
-        }
+        systick_delay(200);
     }
 }
