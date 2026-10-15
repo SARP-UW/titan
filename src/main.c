@@ -16,6 +16,7 @@
 #include "app/utils/devices.h"
 #include "app/utils/pinout.h"
 #include "peripheral/gpio.h"
+#include "devices/imu.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -24,6 +25,8 @@ volatile extern int32_t  adc_ain0_uv = 0;         // Last good AIN0-vs-AINCOM re
 volatile extern uint8_t  adc_dev_id = 0xFF;       // 0 = ADS124S08, 1 = ADS124S06
 volatile uint32_t adc_ok_count = 0;        // Successful conversions
 volatile uint32_t adc_fail_count = 0;      // Failed conversions
+
+volatile extern struct imu_result result = {};
 
 volatile enum ti_errc_t spi_errc      = TI_ERRC_NONE;  // spi_init() result
 volatile enum ti_errc_t adc_init_errc = TI_ERRC_NONE;  // adc_init() result
@@ -40,7 +43,7 @@ void _start() {
 
     /* The ADS124S0x only talks SPI mode 1; the driver sets that per transfer
      * anyway, so initializing the bus in mode 1 just avoids the switching. */
-    spi_init((uint8_t)SENSOR_SPI_INST, MODE_1, ss_pins, 1, &errc);
+    spi_init((uint8_t)SENSOR_SPI_INST, MODE_0, ss_pins, 1, &errc);
     spi_errc = errc;
 
     uint8_t pin = 101; // USB_DATA+
@@ -52,9 +55,10 @@ void _start() {
         .inst = SENSOR_SPI_INST,
         .ss_pin = ss_pins[0],
     };
-    imu_init(&imu_dev, &errc);
-    struct imu_result imu_result;
-    imu_transfer(&imu_dev, &imu_result, &errc);
+    imu_init(&imu_dev, &spi_errc);
+    struct imu_result _result;
+    imu_transfer(&imu_dev, &_result, &spi_errc);
+    result = _result;
 
     while (1) {
         tal_set_pin(pin, 1);
