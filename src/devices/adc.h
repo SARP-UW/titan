@@ -93,10 +93,9 @@ enum adc_gain
  */
 enum adc_ref_voltage_source
 {
-    REF_INTERNAL = 0x00, // 2.5V Internal
-    REF_EXT_0 = 0x01,    // External Ref 0
-    REF_EXT_1 = 0x02,    // External Ref 1
-    REF_SUPPLY = 0x03    // Analog Supply (AVDD/AVSS)
+    REF_INTERNAL = 0x08, // 2.5V Internal
+    REF_EXT_0 = 0x00,    // External Ref 0
+    REF_EXT_1 = 0x04,    // External Ref 1
 };
 
 /**
