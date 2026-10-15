@@ -147,7 +147,7 @@ static void init_uart_pins(uart_channel_t channel)
             rx_pin = 99;   // PA10
             alt_mode = 7;
 
-            SET_FIELD(RCC_APB2ENR, RCC_APB2ENR_USART1EN);
+            SET_FIELD(RCC_APB2ENR, RCC_APB2ENR_USARTxEN[1]);
             break;
 
         case UART4:
@@ -155,7 +155,7 @@ static void init_uart_pins(uart_channel_t channel)
             rx_pin = 38;   // PA1
             alt_mode = 8;
 
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UART4EN);
+            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UARTxEN[4]);
             break;
 
         case UART2:
@@ -163,7 +163,7 @@ static void init_uart_pins(uart_channel_t channel)
             rx_pin = 40;   // PA3
             alt_mode = 7;
 
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_USART2EN);
+            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_USARTxEN[2]);
             break;
 
         case UART3:
@@ -171,7 +171,7 @@ static void init_uart_pins(uart_channel_t channel)
             rx_pin = 67;   // PB11
             alt_mode = 7;
 
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_USART3EN);
+            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_USARTxEN[3]);
             break;
 
         case UART5:
@@ -179,7 +179,7 @@ static void init_uart_pins(uart_channel_t channel)
             rx_pin = 132;  // PB5
             alt_mode = 14;
 
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UART5EN);
+            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UARTxEN[5]);
             break;
 
         case UART6:
@@ -187,14 +187,14 @@ static void init_uart_pins(uart_channel_t channel)
             rx_pin = 94;   // PC7
             alt_mode = 7;
 
-            SET_FIELD(RCC_APB2ENR, RCC_APB2ENR_USART6EN);
+            SET_FIELD(RCC_APB2ENR, RCC_APB2ENR_USARTxEN[6]);
             break;
         case UART7:
             tx_pin = 58;   // PE8
             rx_pin = 57;   // PE7
             alt_mode = 7;
 
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UART7EN);
+            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UARTxEN[7]);
             break;
 
         case UART8:
@@ -202,7 +202,7 @@ static void init_uart_pins(uart_channel_t channel)
             rx_pin = 138;  // PE0
             alt_mode = 8;
 
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UART8EN);
+            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UARTxEN[8]);
             break;
 
         default:

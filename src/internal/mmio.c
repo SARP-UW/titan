@@ -4599,6 +4599,11 @@ field32_t const RCC_APB1LENR_USARTxEN[9] = {
   [7] = {.msk = 0x40000000U, .pos = 30},
   [8] = {.msk = 0x80000000U, .pos = 31},
 };
+//ANNA DID THIS
+const field32_t RCC_APB2ENR_USARTxEN[7] = {
+    [1] = {.msk = 0x00000010U, .pos = 4},
+    [6] = {.msk = 0x00000020U, .pos = 5},
+};
 
 field32_t const RCC_APB1LENR_UARTxEN[6] = {
   [4] = {.msk = 0x00080000U, .pos = 19},
