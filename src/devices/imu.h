@@ -28,7 +28,7 @@
 #pragma once
 
 struct result { 
-    int16_t accel_x; 
+    int16_t accel_x;
     int16_t accel_y;
     int16_t accel_z;
     int16_t gyro_x;
@@ -42,6 +42,8 @@ struct result {
 struct imu_spi_dev {
     uint8_t inst;      /**< SPI hardware instance */
     uint8_t ss_pin;    /**< Slave select pin */
+    // enum accel_fs_t accel_fs; /**< Accelerometer full scale range */
+    // enum gyro_fs_t gyro_fs;   /**< Gyroscope full scale range */
 };
 
 /**
@@ -57,6 +59,26 @@ struct imu_result {
     int16_t temp;      /**< Internal temperature */
 };
 
+// typedef enum {
+//     ACCEL_FS_32G = 0b000,
+//     ACCEL_FS_16G = 0b001,
+//     ACCEL_FS_8G  = 0b010,
+//     ACCEL_FS_4G  = 0b011,
+//     ACCEL_FS_2G  = 0b100
+// } accel_fs_t;
+
+// typedef enum {
+//     GYRO_FS_4000DPS   = 0b0000,
+//     GYRO_FS_2000DPS   = 0b0001,
+//     GYRO_FS_1000DPS   = 0b0010,
+//     GYRO_FS_500DPS    = 0b0011, 
+//     GYRO_FS_250DPS    = 0b0100,
+//     GYRO_FS_125DPS    = 0b0101,
+//     GYRO_FS_62_5DPS   = 0b0110,
+//     GYRO_FS_31_25DPS  = 0b0111,
+//     GYRO_FS_15_625DPS = 0b1000
+// } gyro_fs_t;
+
 /**
  * @brief Initializes the ICM-42688-P IMU. 
  * 
@@ -70,7 +92,7 @@ enum ti_errc_t imu_init(struct imu_spi_dev* dev, enum ti_errc_t* errc);
  *        instance has been initialized before calling this function. 
  * 
  * @param dev  pointer to the imu_spi_dev structure. 
- * @param result  pointer to the imu_result structure. 
+ * @param result  pointer to the imu_result structure.
  * @return ti_errc_t error code.
  */
-enum ti_errc_t imu_transfer(struct imu_spi_dev* dev, struct imu_result* result);
+enum ti_errc_t imu_transfer(struct imu_spi_dev* dev, struct imu_result* result, enum ti_errc_t* errc);
