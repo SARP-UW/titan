@@ -1,9 +1,10 @@
 
 #include <string.h>
 
+#include "app/communication/packet_codec.h"
+#include "app/communication/packet_transport.h"
+#include "app/communication/state_comm.h"
 #include "app/utils/extern_flash.h"
-#include "app/utils/packets.h"
-#include "app/utils/state_comm.h"
 #include "devices/umbilical.h"
 #include "peripheral/errc.h"
 #include "peripheral/gpio.h"
@@ -81,6 +82,7 @@ void _start() { // NOLINT(misc-use-internal-linkage)
     // tal_set_pin(txpin, 1);
     // tal_set_pin(rxpin, 0);
 
+    state_comm_init(&state_comm_shared);
     state_comm_shared.last_command_status = COMMAND_STATUS_WAITING;
 
     umbilical_init(&umbilical_dev, &umbilical_uart_config, &errc);

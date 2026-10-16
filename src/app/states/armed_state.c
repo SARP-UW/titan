@@ -1,8 +1,10 @@
 #include "app/state.h"
+#include "app/communication/command.h"
+#include "app/communication/packet_codec.h"
+#include "app/communication/packet_transport.h"
+#include "app/communication/state_comm.h"
 #include "app/utils/devices.h"
-#include "app/utils/packets.h"
 #include "app/utils/pinout.h"
-#include "app/utils/state_comm.h"
 #include "app/utils/sensor_status.h"
 #include "app/utils/extern_flash.h"
 #include "peripheral/gpio.h"
@@ -193,9 +195,8 @@ int armed_state_run(){
     }
 
     // Process command and handle state transitions
-    comm_result_t cmd_result = process_command(&state_comm_shared.uplink_comm, ARMED_STATE_IDX,
-                                               &state_comm_shared.last_command_id,
-                                               &state_comm_shared.last_command_status);
+    comm_result_t cmd_result = state_comm_process_command(&state_comm_shared,
+                                                          ARMED_STATE_IDX);
 
     if (cmd_result.valid) {
         switch (cmd_result.action) {
