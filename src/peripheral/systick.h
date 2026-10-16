@@ -34,3 +34,5 @@ void systick_init();
  * @param delay The duration of the delay in milleseconds (ms)
  */
 void systick_delay(uint32_t delay);
+
+uint32_t systick_now_ms(void); 
