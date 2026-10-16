@@ -1076,7 +1076,7 @@ const field32_t I2Cx_ICR_ALERTCF       = {.msk = 0x00002000U, .pos = 13};
 const field32_t I2Cx_PECR_PEC          = {.msk = 0x000000FFU, .pos = 0};
 const field32_t I2Cx_RXDR_RXDATA       = {.msk = 0x000000FFU, .pos = 0};
 const field32_t I2Cx_TXDR_TXDATA       = {.msk = 0x000000FFU, .pos = 0};
-const field32_t I2Cx_CR2_SADD_7BIT     = {.msk = 0x000000FCU, .pos = 1};  /** @todo */
+const field32_t I2Cx_CR2_SADD_7BIT     = {.msk = 0x000000FEU, .pos = 1};  /** @todo */
 const field32_t I2Cx_CR2_SADD_9BIT     = {.msk = 0x000003FFU, .pos = 0};  /** @todo */
 
 /** @subsection Enumerated I2Cx Register Field Definitions */
