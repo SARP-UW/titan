@@ -20,7 +20,6 @@
  */
 
 #include "barometer.h"
-#include <stdbool.h>
 #include <stdint.h>
 #include "peripheral/spi.h"
 #include "peripheral/errc.h"
@@ -30,6 +29,7 @@
 #define D2_BASE_CMD 0x50
 #define ADC_READ    0x00
 #define RESET       0x1E
+#define RELOAD_DELAY 10
 
 // Calibration coefficients
 typedef enum {
@@ -41,24 +41,26 @@ typedef enum {
     PROM_ADDR_C5           = 0xAA,
     PROM_ADDR_C6           = 0xAC,
     PROM_ADDR_CRC          = 0xAE
-}prom_addr_t;
+} prom_addr_t;
 
 static inline void validate_dev_values(barometer_t *dev, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
-    //Check that SPI instance is valid
-    if ((dev->spi_dev.inst < 1) || (dev->spi_dev.inst > 6)) { //
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI inst error"); return; //
+    // Check that SPI instance is valid
+    if (dev->spi_dev.inst < 1 || dev->spi_dev.inst > 6) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "SPI inst error");
+        return;
     }
 
-    //Check that OSR value is valid
-    if ((dev->osr < 0x00) || (dev->osr > 0x08)) { //
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "OSR error"); return; //
+    // Check that OSR value is valid
+    if ((dev->osr < 0x00) || (dev->osr > 0x08)) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "OSR error");
+        return;
     }
 }
 
 // Provides the necessary conversion time delay based on the specified oversampling ratio (OSR) using the SysTick timer.
 static void barometer_delay(uint8_t osr) {
-    uint8_t conversion_time;
+    uint32_t conversion_time;
 
    /*
     * The conversion times are based on the following table:
@@ -77,7 +79,6 @@ static void barometer_delay(uint8_t osr) {
         case OSR_4096: conversion_time = 10; break;
         default: return;
     }
-
     systick_delay(conversion_time);
 }
 
@@ -85,18 +86,19 @@ static void barometer_delay(uint8_t osr) {
 static uint32_t barometer_transfer(barometer_t *dev, uint8_t cmd, uint8_t bytes_to_read, enum ti_errc_t *errc) {
     uint8_t tx[4] = {cmd, 0, 0, 0};
     uint8_t rx[4] = {0, 0, 0, 0};
-    uint32_t result = 0;
 
     spi_transfer_sync(dev->spi_dev.inst, dev->spi_dev.ss_pin, tx, rx, bytes_to_read + 1, errc); //
-    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return 0; } //
-
-    if (bytes_to_read == 2) {
-        result = (uint32_t)((rx[1] << 8) | rx[2]);
-    } else if (bytes_to_read == 3) {
-        result = (uint32_t)((rx[1] << 16) | (rx[2] << 8) | rx[3]);
+    if (errc && *errc != TI_ERRC_NONE) {
+      TI_SET_ERRC(errc, *errc, "Propagated");
+      return 0;
     }
 
-    return result;
+    if (bytes_to_read == 2) {
+        return (uint32_t)((rx[1] << 8) | rx[2]);
+    } else if (bytes_to_read == 3) {
+        return (uint32_t)((rx[1] << 16) | (rx[2] << 8) | rx[3]);
+    }
+    return 0;
 }
 
 /**************************************************************************************************
@@ -107,40 +109,58 @@ void barometer_init(barometer_t *dev, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
     // Check OSR and device fields
     validate_dev_values(dev, errc);
-    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Propagated"); 
+        return;
+    }
 
     // Reset the sensor
-    barometer_transfer(dev, RESET, 0, errc); //
-    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; } //
+    barometer_transfer(dev, RESET, 0, errc);
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Propagated");
+        return;
+    }
 
     // Wait for internal reload
-    barometer_delay(dev->osr);
+    systick_delay(RELOAD_DELAY);
 
     // Read PROM values
-    dev->calibration_data.sens     = (uint16_t)barometer_transfer(dev, PROM_ADDR_C1, 2, errc); //
-    dev->calibration_data.off      = (uint16_t)barometer_transfer(dev, PROM_ADDR_C2, 2, errc); //
-    dev->calibration_data.tcs      = (uint16_t)barometer_transfer(dev, PROM_ADDR_C3, 2, errc); //
-    dev->calibration_data.tco      = (uint16_t)barometer_transfer(dev, PROM_ADDR_C4, 2, errc); //
-    dev->calibration_data.t_ref    = (uint16_t)barometer_transfer(dev, PROM_ADDR_C5, 2, errc); //
-    dev->calibration_data.tempsens = (uint16_t)barometer_transfer(dev, PROM_ADDR_C6, 2, errc); //
+    dev->calibration_data.sens     = (uint16_t)barometer_transfer(dev, PROM_ADDR_C1, 2, errc);
+    dev->calibration_data.off      = (uint16_t)barometer_transfer(dev, PROM_ADDR_C2, 2, errc);
+    dev->calibration_data.tcs      = (uint16_t)barometer_transfer(dev, PROM_ADDR_C3, 2, errc);
+    dev->calibration_data.tco      = (uint16_t)barometer_transfer(dev, PROM_ADDR_C4, 2, errc);
+    dev->calibration_data.t_ref    = (uint16_t)barometer_transfer(dev, PROM_ADDR_C5, 2, errc);
+    dev->calibration_data.tempsens = (uint16_t)barometer_transfer(dev, PROM_ADDR_C6, 2, errc);
+    barometer_transfer(dev, PROM_ADDR_MANUFACTURER, 2, errc);
+
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Propagated");
+    }
 }
 
 barometer_result_t get_barometer_data(barometer_t *dev, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
     // Get raw D1 pressure data
     barometer_transfer(dev, D1_BASE_CMD + dev->osr, 0, errc);
-    barometer_delay(dev->osr); //
-    uint32_t d1 = barometer_transfer(dev, ADC_READ, 3, errc); //
-    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return dev->result; } //
+    barometer_delay(dev->osr);
+    uint32_t d1 = barometer_transfer(dev, ADC_READ, 3, errc);
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Propagated");
+        return dev->result;
+    }
 
     // Get raw D2 temperature data
     barometer_transfer(dev, D2_BASE_CMD + dev->osr, 0, errc);
-    barometer_delay(dev->osr); //
-    uint32_t d2 = barometer_transfer(dev, ADC_READ, 3, errc); //
-    if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return dev->result; } //
+    barometer_delay(dev->osr);
+    uint32_t d2 = barometer_transfer(dev, ADC_READ, 3, errc);
+    if (errc && *errc != TI_ERRC_NONE) {
+        TI_SET_ERRC(errc, *errc, "Propagated");
+        return dev->result;
+    }
 
-    if ((d1 || d2) <= 0) {
-        TI_SET_ERRC(errc, TI_ERRC_DEVICE, "Zero ADC data"); return dev->result; //
+    if (d1 == 0 || d2 == 0) {
+        TI_SET_ERRC(errc, TI_ERRC_DEVICE, "Zero ADC data"); 
+        return dev->result;
     }
 
     // Calculate temperature difference
@@ -179,11 +199,14 @@ barometer_result_t get_barometer_data(barometer_t *dev, enum ti_errc_t *errc) {
     int32_t pressure = (((d1 * sens) >> 21) - off) >> 15;
 
     // Results
-    dev->result.pressure    = (float)pressure / 100.0F;    // Units of mbar/hPa
-    dev->result.temperature = (float)temp / 100.0F; // Units of Celcius
+    dev->result.pressure    = pressure;   // Units of mbar/hPa
+    dev->result.temperature = temp;       // Units of Celcius
 
-    if ((dev->result.pressure <= 0 || dev->result.temperature) <= 0) {
-        TI_SET_ERRC(errc, TI_ERRC_DEVICE, "Invalid computation"); return dev->result; 
+    if (dev->result.pressure <= 0) {
+        TI_SET_ERRC(errc, TI_ERRC_DEVICE, "Invalid pressure computation");
+    }
+    if (dev->result.temperature <= -27315) {
+      TI_SET_ERRC(errc, TI_ERRC_DEVICE, "Invalid temperature computation");
     }
 
     return dev->result;
