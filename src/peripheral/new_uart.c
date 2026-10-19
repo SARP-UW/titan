@@ -137,8 +137,11 @@ void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff, uint32_t size,
 
 static void init_uart_pins(uart_channel_t channel)
 {
+    // transmit pin
     int tx_pin;
+    // recieve pin
     int rx_pin;
+    // make the mode for UART
     int alt_mode;
 
     switch (channel) {
@@ -147,6 +150,7 @@ static void init_uart_pins(uart_channel_t channel)
             rx_pin = 99;   // PA10
             alt_mode = 7;
 
+            // enable clock for UART or USART
             SET_FIELD(RCC_APB2ENR, RCC_APB2ENR_USARTxEN[1]);
             break;
 
@@ -209,7 +213,7 @@ static void init_uart_pins(uart_channel_t channel)
             return;
     }
 
-    // Enable GPIO port clocks.
+    // Enable GPIOA port clocks.
     tal_enable_clock(tx_pin);
     tal_enable_clock(rx_pin);
 

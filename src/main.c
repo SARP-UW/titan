@@ -15,5 +15,15 @@
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 void _start() { // NOLINT(misc-use-internal-linkage)
-    // Add main loop here!
+    tal_enable_clock(RED_LED);
+    tal_set_mode(RED_LED, 1);
+    systick_init();
+
+
+    while(true){
+        tal_set_pin(RED_LED, 1);
+        systick_delay(1000);
+        tal_set_pin(RED_LED, 0);
+        systick_delay(1000);
+    }
 }
