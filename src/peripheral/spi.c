@@ -25,30 +25,29 @@
 #include "peripheral/errc.h"
 #include <stdint.h>
 
-#define INST1_SCK 44
-#define INST1_MISO 45
-#define INST1_MOSI 46
+#define INST1_SCK 44 // PA5
+#define INST1_MISO 45 // PA6
+#define INST1_MOSI 132 // PB5
 
-#define INST2_SCK 73
-#define INST2_MISO 74
-#define INST2_MOSI 75
+#define INST2_SCK 73 // PB13
+#define INST2_MISO 74 // PB14
+#define INST2_MOSI 75 // PB15
 
-#define INST3_SCK 109
-#define INST3_MISO 110
-#define INST3_MOSI 111
+#define INST3_SCK 109 // PC10
+#define INST3_MISO 110 // PC11
+#define INST3_MOSI 111 // PC12
 
-#define INST4_SCK 1
-#define INST4_MISO 4
-#define INST4_MOSI 5
+#define INST4_SCK 1 // PE2
+#define INST4_MISO 4 // PE5
+#define INST4_MOSI 5 // PE6
 
-#define INST5_SCK 21
-#define INST5_MISO 22
-#define INST5_MOSI 23
+#define INST5_SCK 21 // PF7
+#define INST5_MISO 22 // PF8
+#define INST5_MOSI 23 // PF9
 
-#define INST6_SCK 125
-#define INST6_MISO 126
-#define INST6_MOSI 127
-
+#define INST6_SCK 126 // PG13
+#define INST6_MISO 125 // PG12
+#define INST6_MOSI 127 // PG14
 
 // SPI instances
 enum inst {
@@ -102,6 +101,7 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
     switch (inst) {
         case INST_ONE:
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOAEN);
+            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOBEN);
             break;
         case INST_TWO:
             SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOBEN);
@@ -124,6 +124,7 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
 
     // Enable clocks for all SS pins
     enable_ss_clocks(ss_list, slave_count);
+    ss_high(ss_list, slave_count);
 
     // Configure pins
     switch (inst) {
@@ -142,9 +143,9 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
             tal_alternate_mode(INST1_MISO, 0b0101);
             tal_alternate_mode(INST1_MOSI, 0b0101);
             // Set very high speed
-            tal_set_speed(INST1_SCK, 3);
+            tal_set_speed(INST1_SCK, 0);
             tal_set_speed(INST1_MISO, 3);
-            tal_set_speed(INST1_MOSI, 3);
+            tal_set_speed(INST1_MOSI, 0);
             break;
         case INST_TWO:
             // Set push pull
@@ -161,9 +162,9 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
             tal_alternate_mode(INST2_MISO, 0b0101);
             tal_alternate_mode(INST2_MOSI, 0b0101);
             // Set very high speed
-            tal_set_speed(INST2_SCK, 3);
+            tal_set_speed(INST2_SCK, 0);
             tal_set_speed(INST2_MISO, 3);
-            tal_set_speed(INST2_MOSI, 3);
+            tal_set_speed(INST2_MOSI, 0);
             break;
         case INST_THREE:
             // Set push pull
@@ -179,10 +180,9 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
             tal_alternate_mode(INST3_SCK, 0b0110);
             tal_alternate_mode(INST3_MISO, 0b0110);
             tal_alternate_mode(INST3_MOSI, 0b0110);
-            // Set very high speed
-            tal_set_speed(INST3_SCK, 3);
+            tal_set_speed(INST3_SCK, 0);
             tal_set_speed(INST3_MISO, 3);
-            tal_set_speed(INST3_MOSI, 3);
+            tal_set_speed(INST3_MOSI, 0);
             break;
         case INST_FOUR:
             // Set push pull
