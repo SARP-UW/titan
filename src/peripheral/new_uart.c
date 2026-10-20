@@ -80,8 +80,6 @@ void uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff, uint32_t size
 }
 
 static bool uart_read_byte(uart_channel_t channel, uint8_t *data) {
-
-
     int count = 0;
 
     if (data == NULL) {
@@ -91,27 +89,38 @@ static bool uart_read_byte(uart_channel_t channel, uint8_t *data) {
     if (valid_usart_channel(channel)) {
         // Wait until a byte has been received.
         while (!READ_FIELD(USARTx_ISR[channel], USARTx_ISR_RXNE)) {
-
             if (count++ >= 1000000) {
                 return false;
             }
         }
 
+        // DEBUG: Check UART reception errors.
+        volatile uint32_t framing_error =
+            READ_FIELD(USARTx_ISR[channel], USARTx_ISR_FE);
+
+        volatile uint32_t noise_error =
+            READ_FIELD(USARTx_ISR[channel], USARTx_ISR_NF);
+
+        volatile uint32_t overrun_error =
+            READ_FIELD(USARTx_ISR[channel], USARTx_ISR_ORE);
+
         // Read received byte from Receive Data Register.
-        *data = (uint8_t)READ_FIELD(USARTx_RDR[channel], USARTx_RDR_RDR);
+        *data = (uint8_t)READ_FIELD(
+            USARTx_RDR[channel], USARTx_RDR_RDR
+        );
 
     } else {
         // Wait until a byte has been received.
         while (!READ_FIELD(UARTx_ISR[channel], UARTx_ISR_RXNE)) {
-
             if (count++ >= 1000000) {
                 return false;
             }
         }
 
         // Read received byte from Receive Data Register.
-        *data = (uint8_t)READ_FIELD(UARTx_RDR[channel], UARTx_RDR_RDR);
-
+        *data = (uint8_t)READ_FIELD(
+            UARTx_RDR[channel], UARTx_RDR_RDR
+        );
     }
 
     return true;
