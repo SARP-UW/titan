@@ -47,6 +47,8 @@ file(GLOB_RECURSE COMMON_SOURCES
 )
 # Remove main.c from COMMON_SOURCES
 list(REMOVE_ITEM COMMON_SOURCES ${CMAKE_SOURCE_DIR}/src/main.c)
+# Keep the original UART driver as a reference; new_uart.c supplies uart_*.
+list(REMOVE_ITEM COMMON_SOURCES ${CMAKE_SOURCE_DIR}/src/peripheral/uart.c)
 
 function(add_firmware_target target_name entry_file)
   if ("${entry_file}" STREQUAL "${CMAKE_SOURCE_DIR}/src/main.c")
@@ -118,6 +120,26 @@ add_custom_command(
 )
 add_custom_target(test_alloc_target ALL DEPENDS ${CMAKE_BINARY_DIR}/test_alloc)
 add_test(NAME test_alloc COMMAND ${CMAKE_BINARY_DIR}/test_alloc)
+
+# Native UART checks use fake registers; they never access the connected board.
+add_custom_command(
+  OUTPUT ${CMAKE_BINARY_DIR}/test_new_uart_host
+  COMMAND gcc -std=gnu17 -Wall -Wextra -Wno-unused-variable
+    -I${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/peripheral/new_uart.c
+    ${CMAKE_SOURCE_DIR}/test/test_new_uart_host.c
+    -o ${CMAKE_BINARY_DIR}/test_new_uart_host
+  DEPENDS
+    ${CMAKE_SOURCE_DIR}/src/peripheral/new_uart.c
+    ${CMAKE_SOURCE_DIR}/src/peripheral/new_uart.h
+    ${CMAKE_SOURCE_DIR}/src/peripheral/gpio.h
+    ${CMAKE_SOURCE_DIR}/src/peripheral/errc.h
+    ${CMAKE_SOURCE_DIR}/src/internal/mmio.h
+    ${CMAKE_SOURCE_DIR}/test/test_new_uart_host.c
+)
+add_custom_target(test_new_uart_host_target ALL
+  DEPENDS ${CMAKE_BINARY_DIR}/test_new_uart_host)
+add_test(NAME test_new_uart_host COMMAND ${CMAKE_BINARY_DIR}/test_new_uart_host)
 
 # Doxygen documentation (optional, run with: cmake --build build --target docs)
 find_package(Doxygen QUIET)

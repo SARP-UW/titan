@@ -2878,6 +2878,7 @@ extern const field32_t RCC_APB1LLPENR_UARTxLPEN[6];    /** @brief UART4 peripher
 extern const field32_t RCC_APB1LLPENR_I2CxLPEN[4];     /** @brief I2C1 peripheral clocks enable during csleep mode. */
 extern const field32_t RCC_APB2LPENR_SAIxLPEN[4];      /** @brief SAI1 peripheral clocks enable during csleep mode. */
 extern const field32_t RCC_C1_APB4LPENR_LPTIMxLPEN[6]; /** @brief LPTIM2 peripheral clocks enable during csleep mode. */
+extern const field32_t RCC_APB2ENR_USARTxEN[7];
 
 /**************************************************************************************************
  * @section LPTIMx Definitions

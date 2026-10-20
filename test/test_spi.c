@@ -13,9 +13,9 @@ void test_spi() {
 	uint8_t src[1] = {0xAA};
 	uint8_t dst[1] = {0x00};
 
-	while (1) {
-			asm("BKPT #0");
-			spi_transfer_sync(inst, ss_pins[0], src, dst, 1, &errc);
+	for (uint8_t i = 0; i < 10; i++) {
+			// asm("BKPT #0");
+			spi_transfer_sync(inst, ss_pins[0], &i, dst, 1, &errc);
 			asm("BKPT #0");
 	}
 }
@@ -38,6 +38,6 @@ void test_spi_read_write() {
 }
 
 void _start() {
-	//test_spi();
-	test_spi_read_write();
+	test_spi();
+	// test_spi_read_write();
 }

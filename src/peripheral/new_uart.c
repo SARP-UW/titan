@@ -1,517 +1,192 @@
+/**
+ * This file is part of the Titan Flight Computer Project
+ * Copyright (c) 2024 UW SARP
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @file peripheral/new_uart.c
+ * @brief async UART4/5/7/8. Codex used for reorganizing code
+ */
 #include "new_uart.h"
 #include "gpio.h"
-#include "../internal/mmio.h"
-
+#include "internal/mmio.h"
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 
-static bool valid_uart_channel(uart_channel_t channel)
-{
-    return channel == UART4 ||
-           channel == UART5 ||
-           channel == UART7 ||
-           channel == UART8;
+#define UART_POLL_LIMIT 1000000U
+#define UART_RX_ERRORS 0x0FU /* ISR PE, FE, NF, ORE; matching ICR clear bits. */
+
+static bool valid_channel(uart_channel_t channel) {
+  switch (channel) {
+    case UART4:
+    case UART5:
+    case UART7:
+    case UART8:
+      return true;
+    default:
+      return false;
+  }
 }
 
-static bool valid_usart_channel(uart_channel_t channel)
-{
-    return channel == UART1 ||
-           channel == UART2 ||
-           channel == UART3 ||
-           channel == UART6;
+static bool wait_for_flags(uart_channel_t channel, uint32_t mask,
+                           bool receiving, enum ti_errc_t *errc) {
+  for (uint32_t count = 0; count < UART_POLL_LIMIT; ++count) {
+    uint32_t status = *UARTx_ISR[channel];
+    if (receiving && (status & UART_RX_ERRORS)) {
+      *UARTx_ICR[channel] = status & UART_RX_ERRORS;
+      *UARTx_RQR[channel] = UARTx_RQR_RXFRQ.msk;
+      if (status & UARTx_ISR_ORE.msk) {
+        TI_SET_ERRC(errc, TI_ERRC_OVERFLOW, "UART receive overrun");
+      } else {
+        TI_SET_ERRC(errc, TI_ERRC_BUS, "UART receive framing/noise/parity error");
+      }
+      return false;
+    }
+    if ((status & mask) == mask) {
+      return true;
+    }
+  }
+  TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "UART polling timeout");
+  return false;
 }
 
-static bool uart_write_byte(uart_channel_t channel, uint8_t data) {
-    int count = 0;
-
-    if (valid_usart_channel(channel)) {
-        // Wait until status register is set to TXE, ready to accept.
-        while (!READ_FIELD(USARTx_ISR[channel], USARTx_ISR_TXE)) {
-            if (count++ >= 1000000) {
-                return false;
-            }
-        }
-
-        WRITE_FIELD(USARTx_TDR[channel], USARTx_TDR_TDR, data);
-
-        count = 0;
-
-        while (!READ_FIELD(USARTx_ISR[channel], USARTx_ISR_TC)) {
-            if (count++ >= 1000000) {
-                return false;
-            }
-        }
-    } else {
-        while (!READ_FIELD(UARTx_ISR[channel], UARTx_ISR_TXE)) {
-            if (count++ >= 1000000) {
-                return false;
-            }
-        }
-        // Put byte into Transmit Data Register (TDR).
-        WRITE_FIELD(UARTx_TDR[channel], UARTx_TDR_TDR, data);
-        count = 0;
-        // Wait until transmission complete flag is 1.
-        while (READ_FIELD(UARTx_ISR[channel], UARTx_ISR_TC) == 0) {
-            if (count++ >= 1000000) {
-                return false;
-            }
-        }
-    }
-    return true;
+static bool valid_transfer(uart_channel_t channel, const uint8_t *buffer,
+                           uint32_t size, bool receiving, enum ti_errc_t *errc) {
+  if (!valid_channel(channel) || buffer == NULL || size == 0) {
+    TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART transfer parameters");
+    return false;
+  }
+  uint32_t required = UARTx_CR1_UE.msk;
+  if (receiving) {
+    required |= UARTx_CR1_RE.msk;
+  } else {
+    required |= UARTx_CR1_TE.msk;
+  }
+  if ((*UARTx_CR1[channel] & required) != required) {
+    TI_SET_ERRC(errc, TI_ERRC_BUS, "UART is not enabled for this transfer");
+    return false;
+  }
+  return true;
 }
 
-void uart_write_blocking(uart_channel_t channel, uint8_t *tx_buff, uint32_t size, enum ti_errc_t *errc) {
-    if (!valid_uart_channel(channel) && !valid_usart_channel(channel)) {
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART/USART channel");
-        return;
-    }
-    if (tx_buff == NULL || size == 0) {
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART write parameters");
-        return;
-    }
-    // Write one byte at a time.
-    for (uint32_t i = 0; i < size; i++) {
-        if (!uart_write_byte(channel, tx_buff[i])) {
-            TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "UART write timed out");
-            return;
-        }
-    }
+void uart_init(const uart_config_t *config, enum ti_errc_t *errc) {
+  if (errc) *errc = TI_ERRC_NONE;
+  if (config == NULL || !valid_channel(config->channel) ||
+      config->baud_rate == 0 || config->clk_freq == 0 ||
+      (config->parity != UART_PARITY_DISABLED &&
+       config->parity != UART_PARITY_EVEN && config->parity != UART_PARITY_ODD) ||
+      (config->data_length != UART_DATALENGTH_7 &&
+       config->data_length != UART_DATALENGTH_8)) {
+    TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART configuration");
+    return;
+  }
+
+  uint32_t divisor = config->clk_freq / config->baud_rate;
+  if (config->clk_freq % config->baud_rate >=
+      (config->baud_rate / 2U) + (config->baud_rate % 2U)) {
+    ++divisor;
+  }
+  if (divisor < 16U || divisor > 0xFFFFU) {
+    TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "UART baud divisor out of range");
+    return;
+  }
+
+  uart_channel_t channel = config->channel;
+  uint8_t tx_pin;
+  uint8_t rx_pin;
+  uint8_t alternate;
+  uint32_t clock_mask;
+  switch (channel) {
+    case UART4:
+      tx_pin = 37; rx_pin = 110; alternate = 8; clock_mask = 1U << 19; // A0, C11
+      break;
+    case UART5:
+      tx_pin = 133; rx_pin = 132; alternate = 14; clock_mask = 1U << 20; // B6, B5
+      break;
+    case UART7:
+      tx_pin = 58; rx_pin = 57; alternate = 7; clock_mask = 1U << 30; // E8, E7
+      break;
+    case UART8:
+      tx_pin = 139; rx_pin = 138; alternate = 8; clock_mask = 1U << 31; // E1, E0
+      break;
+    default:
+      return; /* Rejected by valid_channel above. */
+  }
+
+  *RCC_APB1LENR |= clock_mask;
+  (void)*RCC_APB1LENR; /* Allow the peripheral clock enable to take effect. */
+  CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_UE);
+
+  tal_enable_clock(tx_pin);
+  tal_enable_clock(rx_pin);
+  tal_set_drain(tx_pin, 0);
+  tal_pull_pin(rx_pin, 1);
+  tal_alternate_mode(tx_pin, alternate);
+  tal_alternate_mode(rx_pin, alternate);
+  tal_set_mode(tx_pin, 2);
+  tal_set_mode(rx_pin, 2);
+
+  uint32_t control = UARTx_CR1_TE.msk | UARTx_CR1_RE.msk | UARTx_CR1_FIFOEN.msk;
+  if (config->parity != UART_PARITY_DISABLED) {
+    control |= UARTx_CR1_PCE.msk;
+    if (config->parity == UART_PARITY_ODD) control |= UARTx_CR1_PS.msk;
+    /* The hardware word includes the parity bit. */
+    if (config->data_length == UART_DATALENGTH_8) control |= UARTx_CR1_Mx[0].msk;
+  } else if (config->data_length == UART_DATALENGTH_7) {
+    control |= UARTx_CR1_Mx[1].msk;
+  }
+
+  *UARTx_CR1[channel] = control; /* OVER8=0, interrupts disabled, UE still clear. */
+  *UARTx_CR2[channel] = 0; /* One stop bit, LSB first, no inversion. */
+  *UARTx_CR3[channel] = 0; /* No DMA, flow control, or half duplex. */
+  *UARTx_PRESC[channel] = 0; /* Divide by one. */
+  *UARTx_BRR[channel] = divisor; /* Full divisor, not just BRR[15:4]. */
+  SET_FIELD(UARTx_CR1[channel], UARTx_CR1_UE);
+
+  if (!wait_for_flags(channel, UARTx_ISR_TEACK.msk | UARTx_ISR_REACK.msk,
+                      false, errc)) {
+    CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_UE);
+    return;
+  }
+  *UARTx_RQR[channel] = UARTx_RQR_RXFRQ.msk;
+  *UARTx_ICR[channel] = UART_RX_ERRORS;
 }
 
-static bool uart_read_byte(uart_channel_t channel, uint8_t *data) {
-    int count = 0;
+void uart_write_blocking(uart_channel_t channel, const uint8_t *tx_buff,
+                         uint32_t size, enum ti_errc_t *errc) {
+  if (errc) *errc = TI_ERRC_NONE;
+  if (!valid_transfer(channel, tx_buff, size, false, errc)) return;
 
-    if (data == NULL) {
-        return false;
-    }
-
-    if (valid_usart_channel(channel)) {
-        // Wait until a byte has been received.
-        while (!READ_FIELD(USARTx_ISR[channel], USARTx_ISR_RXNE)) {
-            if (count++ >= 1000000) {
-                return false;
-            }
-        }
-
-        // DEBUG: Check UART reception errors.
-        volatile uint32_t framing_error =
-            READ_FIELD(USARTx_ISR[channel], USARTx_ISR_FE);
-
-        volatile uint32_t noise_error =
-            READ_FIELD(USARTx_ISR[channel], USARTx_ISR_NF);
-
-        volatile uint32_t overrun_error =
-            READ_FIELD(USARTx_ISR[channel], USARTx_ISR_ORE);
-
-        // Read received byte from Receive Data Register.
-        *data = (uint8_t)READ_FIELD(
-            USARTx_RDR[channel], USARTx_RDR_RDR
-        );
-
-    } else {
-        // Wait until a byte has been received.
-        while (!READ_FIELD(UARTx_ISR[channel], UARTx_ISR_RXNE)) {
-            if (count++ >= 1000000) {
-                return false;
-            }
-        }
-
-        // Read received byte from Receive Data Register.
-        *data = (uint8_t)READ_FIELD(
-            UARTx_RDR[channel], UARTx_RDR_RDR
-        );
-    }
-
-    return true;
+  for (uint32_t i = 0; i < size; ++i) {
+    if (!wait_for_flags(channel, UARTx_ISR_TXE.msk, false, errc)) return;
+    *UARTx_TDR[channel] = tx_buff[i];
+  }
+  (void)wait_for_flags(channel, UARTx_ISR_TC.msk, false, errc);
 }
 
-void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff, uint32_t size, enum ti_errc_t *errc) {
-    if (!valid_uart_channel(channel) && !valid_usart_channel(channel)) {
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART/USART channel");
-        return;
-    }
-    if (rx_buff == NULL || size == 0) {
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART read parameters");
-        return;
-    }
-
-    for (uint32_t i = 0; i < size; i++) {
-        if (!uart_read_byte(channel, &rx_buff[i])) {
-            TI_SET_ERRC(errc, TI_ERRC_TIMEOUT, "UART read timed out");
-            return;
-        }
-    }
-}
-
-static void init_uart_pins(uart_channel_t channel)
-{
-    // transmit pin
-    int tx_pin;
-    // recieve pin
-    int rx_pin;
-    // make the mode for UART
-    int alt_mode;
-
-    switch (channel) {
-        case UART1:
-            tx_pin = 98;   // PA9
-            rx_pin = 99;   // PA10
-            alt_mode = 7;
-
-            // enable clock for UART or USART
-            SET_FIELD(RCC_APB2ENR, RCC_APB2ENR_USARTxEN[1]);
-            break;
-
-        case UART4:
-            tx_pin = 37;   // PA0
-            rx_pin = 38;   // PA1
-            alt_mode = 8;
-
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UARTxEN[4]);
-            break;
-
-        case UART2:
-            tx_pin = 39;   // PA2
-            rx_pin = 40;   // PA3
-            alt_mode = 7;
-
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_USARTxEN[2]);
-            break;
-
-        case UART3:
-            tx_pin = 66;   // PB10
-            rx_pin = 67;   // PB11
-            alt_mode = 7;
-
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_USARTxEN[3]);
-            break;
-
-        case UART5:
-            tx_pin = 133;  // PB6
-            rx_pin = 132;  // PB5
-            alt_mode = 14;
-
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UARTxEN[5]);
-            break;
-
-        case UART6:
-            tx_pin = 93;   // PC6
-            rx_pin = 94;   // PC7
-            alt_mode = 7;
-
-            SET_FIELD(RCC_APB2ENR, RCC_APB2ENR_USARTxEN[6]);
-            break;
-        case UART7:
-            tx_pin = 58;   // PE8
-            rx_pin = 57;   // PE7
-            alt_mode = 7;
-
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UARTxEN[7]);
-            break;
-
-        case UART8:
-            tx_pin = 139;  // PE1
-            rx_pin = 138;  // PE0
-            alt_mode = 8;
-
-            SET_FIELD(RCC_APB1LENR, RCC_APB1LENR_UARTxEN[8]);
-            break;
-
-        default:
-            return;
-    }
-
-    // Enable GPIOA port clocks.
-    tal_enable_clock(tx_pin);
-    tal_enable_clock(rx_pin);
-
-    // Put TX and RX pins into alternate function mode.
-    tal_set_mode(tx_pin, 2);
-    tal_set_mode(rx_pin, 2);
-
-    // Select the UART alternate function for each pin.
-    tal_alternate_mode(tx_pin, alt_mode);
-    tal_alternate_mode(rx_pin, alt_mode);
-}
-
-
-void uart_init(uart_config_t *config, enum ti_errc_t *errc)
-{
-    if (config == NULL) {
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "UART/USART config cannot be NULL");
-        return;
-    }
-
-    if ((!valid_uart_channel(config->channel) &&
-         !valid_usart_channel(config->channel)) ||
-         config->baud_rate == 0 ||
-         config->clk_freq == 0) {
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART/USART configuration");
-        return;
-    }
-
-    uart_channel_t channel = config->channel;
-    uart_parity_t parity = config->parity;
-    uart_datalength_t data_length = config->data_length;
-    uint32_t baud_rate = config->baud_rate;
-    uint32_t clk_freq = config->clk_freq;
-
-    // Check UART/USART parity and data length before configuring registers.
-    if (parity != UART_PARITY_DISABLED &&
-        parity != UART_PARITY_EVEN &&
-        parity != UART_PARITY_ODD) {
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART/USART parity");
-        return;
-    }
-
-    if (data_length != UART_DATALENGTH_7 &&
-        data_length != UART_DATALENGTH_8 &&
-        data_length != UART_DATALENGTH_9) {
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART/USART data length");
-        return;
-    }
-
-    if (data_length == UART_DATALENGTH_9) {
-        TI_SET_ERRC(
-            errc,
-            TI_ERRC_INVALID_ARG,
-            "9 data bits is not supported"
-        );
-        return;
-    }
-
-    uint32_t brr_value = clk_freq / baud_rate;
-
-    if (brr_value < 16 || brr_value > 0xFFFF) {
-        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART/USART baud rate divider");
-        return;
-    }
-
-    init_uart_pins(channel);
-
-    if (valid_usart_channel(channel)) {
-
-        // Turn off USART peripheral while configuring its registers.
-        // UE = USART enable bit.
-        CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_UE);
-
-        // Configure USART for asynchronous mode.
-        CLR_FIELD(USARTx_CR2[channel], USARTx_CR2_CLKEN);
-
-        // Configure USART for oversampling by 16.
-        CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_OVER8);
-
-        // Set the baud rate register for USART.
-        WRITE_FIELD(
-            USARTx_BRR[channel],
-            USARTx_BRR_BRR_4_15,
-            brr_value >> 4
-        );
-
-        WRITE_FIELD(
-            USARTx_BRR[channel],
-            USARTx_BRR_BRR_0_3,
-            brr_value & 0xF
-        );
-
-        switch (parity) {
-            case UART_PARITY_DISABLED:
-                CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
-                break;
-
-            case UART_PARITY_EVEN:
-                SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
-                CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_PS);
-                break;
-
-            case UART_PARITY_ODD:
-                SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PCE);
-                SET_FIELD(USARTx_CR1[channel], USARTx_CR1_PS);
-                break;
-
-            default:
-                TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid USART parity");
-                return;
-        }
-
-        switch (data_length) {
-            // Setting USART hardware word-length bits to be payload (data_length) + parity.
-            /* M1:M0 = 10  -> 7-bit hardware word
-            M1:M0 = 00  -> 8-bit hardware word
-            M1:M0 = 01  -> 9-bit hardware word */
-            case UART_DATALENGTH_7:
-                if (parity == UART_PARITY_DISABLED) {
-                    // 7 data bits, no parity -> 7-bit hardware word
-                    SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-                    CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-                } else {
-                    // 7 data bits + parity -> 8-bit hardware word
-                    CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-                    CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-                }
-                break;
-
-            case UART_DATALENGTH_8:
-                if (parity == UART_PARITY_DISABLED) {
-                    // 8 data bits, no parity -> 8-bit hardware word
-                    CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-                    CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-                } else {
-                    // 8 data bits + parity -> 9-bit hardware word
-                    CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-                    SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-                }
-                break;
-
-            case UART_DATALENGTH_9:
-                TI_SET_ERRC(
-                    errc,
-                    TI_ERRC_INVALID_ARG,
-                    "9 data bits with parity is not supported"
-                );
-
-                /*
-                This 9 data bits NO parity is possible for this USART peripheral, but
-                will need to change read and write parameters to uint16_t.
-                CLR_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[0]);
-                SET_FIELD(USARTx_CR1[channel], USARTx_CR1_Mx[1]);
-                break;
-                */
-                return;
-
-            default:
-                TI_SET_ERRC(
-                    errc,
-                    TI_ERRC_INVALID_ARG,
-                    "Invalid USART data length"
-                );
-                return;
-        }
-
-        // Use value 0 to set the amount of USART stop bits to the default 1.
-        WRITE_FIELD(USARTx_CR2[channel], USARTx_CR2_STOP, 0);
-
-        // Finished Configuring USART, now enabling transmitter and receiver.
-
-        // USART Transmitter Enable
-        SET_FIELD(USARTx_CR1[channel], USARTx_CR1_TE);
-        // USART Receiver Enable
-        SET_FIELD(USARTx_CR1[channel], USARTx_CR1_RE);
-
-        // USART ENABLE.
-        SET_FIELD(USARTx_CR1[channel], USARTx_CR1_UE);
-
-    } else {
-
-        // Turn off UART peripheral while configuring its registers.
-        // UE = UART enable bit.
-        CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_UE);
-
-        // Configure UART for asynchronous mode.
-        CLR_FIELD(UARTx_CR2[channel], UARTx_CR2_CLKEN);
-
-        // Configure UART for oversampling by 16.
-        CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_OVER8);
-
-        // Set the baud rate register for UART.
-        WRITE_FIELD(
-            UARTx_BRR[channel],
-            UARTx_BRR_BRR_4_15,
-            brr_value >> 4
-        );
-
-        WRITE_FIELD(
-            UARTx_BRR[channel],
-            UARTx_BRR_BRR_0_3,
-            brr_value & 0xF
-        );
-
-        switch (parity) {
-            case UART_PARITY_DISABLED:
-                CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
-                break;
-
-            case UART_PARITY_EVEN:
-                SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
-                CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_PS);
-                break;
-
-            case UART_PARITY_ODD:
-                SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PCE);
-                SET_FIELD(UARTx_CR1[channel], UARTx_CR1_PS);
-                break;
-
-            default:
-                TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid UART parity");
-                return;
-        }
-
-        switch (data_length) {
-            // Setting UART hardware word-length bits to be payload (data_length) + parity.
-            /* M1:M0 = 10  -> 7-bit hardware word
-            M1:M0 = 00  -> 8-bit hardware word
-            M1:M0 = 01  -> 9-bit hardware word */
-            case UART_DATALENGTH_7:
-                if (parity == UART_PARITY_DISABLED) {
-                    // 7 data bits, no parity -> 7-bit hardware word
-                    SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
-                    CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
-                } else {
-                    // 7 data bits + parity -> 8-bit hardware word
-                    CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
-                    CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
-                }
-                break;
-
-            case UART_DATALENGTH_8:
-                if (parity == UART_PARITY_DISABLED) {
-                    // 8 data bits, no parity -> 8-bit hardware word
-                    CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
-                    CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
-                } else {
-                    // 8 data bits + parity -> 9-bit hardware word
-                    CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
-                    SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
-                }
-                break;
-
-            case UART_DATALENGTH_9:
-                TI_SET_ERRC(
-                    errc,
-                    TI_ERRC_INVALID_ARG,
-                    "9 data bits with parity is not supported"
-                );
-
-                /*
-                This 9 data bits NO parity is possible for this UART peripheral, but
-                will need to change read and write parameters to uint16_t.
-                CLR_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[0]);
-                SET_FIELD(UARTx_CR1[channel], UARTx_CR1_Mx[1]);
-                break;
-                */
-                return;
-
-            default:
-                TI_SET_ERRC(
-                    errc,
-                    TI_ERRC_INVALID_ARG,
-                    "Invalid UART data length"
-                );
-                return;
-        }
-
-        // Use value 0 to set the amount of UART stop bits to the default 1.
-        WRITE_FIELD(UARTx_CR2[channel], UARTx_CR2_STOP, 0);
-
-        // Finished Configuring UART, now enabling transmitter and receiver.
-
-        // UART Transmitter Enable
-        SET_FIELD(UARTx_CR1[channel], UARTx_CR1_TE);
-        // UART Receiver Enable
-        SET_FIELD(UARTx_CR1[channel], UARTx_CR1_RE);
-
-        // UART ENABLE.
-        SET_FIELD(UARTx_CR1[channel], UARTx_CR1_UE);
-    }
+void uart_read_blocking(uart_channel_t channel, uint8_t *rx_buff,
+                        uint32_t size, enum ti_errc_t *errc) {
+  if (errc) *errc = TI_ERRC_NONE;
+  if (!valid_transfer(channel, rx_buff, size, true, errc)) return;
+
+  uint32_t control = *UARTx_CR1[channel];
+  uint8_t data_mask = 0xFFU;
+  if ((control & UARTx_CR1_Mx[1].msk) ||
+      ((control & UARTx_CR1_PCE.msk) && !(control & UARTx_CR1_Mx[0].msk))) {
+    data_mask = 0x7FU;
+  }
+  for (uint32_t i = 0; i < size; ++i) {
+    if (!wait_for_flags(channel, UARTx_ISR_RXNE.msk, true, errc)) return;
+    rx_buff[i] = (uint8_t)(*UARTx_RDR[channel] & data_mask);
+  }
 }
