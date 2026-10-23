@@ -76,7 +76,7 @@ static uint8_t adc_rreg(uint8_t reg_addr, enum ti_errc_t *errc) {
     }
 
     // src[1] == 0 due to 9.5.3(3)
-    uint8_t src[COMMAND_BYTES_SIZE + 1] = {READ_BIT | reg_addr, 0, 0};
+    uint8_t src[COMMAND_BYTES_SIZE + 1] = {READ_BIT | reg_addr, 0};
     uint8_t dst[COMMAND_BYTES_SIZE + 1] = {0};
 
     uint8_t tot_size = COMMAND_BYTES_SIZE + 1;
@@ -107,7 +107,7 @@ static void adc_wreg(uint8_t reg_addr, uint8_t data, enum ti_errc_t *errc) {
 // ref: 9.5.4.2
 static int32_t adc_rdata(enum ti_errc_t *errc) {
     uint8_t src[4] = {RDATA, 0, 0, 0};
-    uint8_t dst[4] = {0};
+    uint8_t dst[4] = {0}; // output data field can be 3-5 bytes long
 
     spi_transfer_sync(dev.inst, dev.ss_pin, src, dst, 4, errc);
     if (*errc != TI_ERRC_NONE) {
