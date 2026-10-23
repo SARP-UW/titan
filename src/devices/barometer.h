@@ -45,7 +45,7 @@ typedef enum {
 typedef struct {
     uint8_t inst;
     uint8_t ss_pin; 
-}barometer_spi_dev;
+} barometer_spi_dev;
 
 /**
  * @brief Configuration data
@@ -57,7 +57,7 @@ typedef struct {
     uint16_t tco;      // C4 Temperature coefficient of pressure offset
     uint16_t t_ref;    // C5 Reference temperature
     uint16_t tempsens; // C6 Temperature coefficient of the temperature
-}barometer_calibration_data_t; 
+} barometer_calibration_data_t; 
 
 /**
  * @brief Pressure and temperature results
@@ -65,7 +65,7 @@ typedef struct {
 typedef struct {
     uint32_t pressure;    // Temperature compensated pressure from 10 mbar to 1200 mbar with 0.01 mbar resolution
     uint32_t temperature; // Temperature from -40 C to 85 C with 0.01 C resulution
-}barometer_result_t;
+} barometer_result_t;
 
 /**
  * @brief Barometer device struct
