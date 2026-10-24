@@ -23,7 +23,33 @@
 #include <stdint.h>
 #include "peripheral/errc.h"
 
+/**
+ * @brief Sets up I2C pins, clock, and bus timing.
+ *
+ * @param inst I2C instance (only 1 is supported).
+ * @param errc Error code, or NULL to ignore. TI_ERRC_NONE on success.
+ */
 void i2c_init(uint8_t inst, enum ti_errc_t *errc);
-void i2c_write(uint8_t inst, uint32_t addr, void* buf, uint8_t size, enum ti_errc_t *errc);
-void i2c_read(uint8_t inst, uint32_t addr, void* buf, uint8_t size, enum ti_errc_t* errc);
+
+/**
+ * @brief Sends bytes and ends with STOP. Blocks until done or an error occurs.
+ *
+ * @param inst I2C instance (only 1 is supported).
+ * @param addr 7-bit device address.
+ * @param buf Buffer containing the bytes to send.
+ * @param size Number of bytes to send, from 1 to 255.
+ * @param errc Error code, or NULL to ignore. TI_ERRC_NONE on success.
+ */
+void i2c_write(uint8_t inst, uint8_t addr, void* buf, uint8_t size, enum ti_errc_t *errc);
+
+/**
+ * @brief Receives bytes and ends with STOP. Blocks until done or an error occurs.
+ *
+ * @param inst I2C instance (only 1 is supported).
+ * @param addr 7-bit device address.
+ * @param buf Buffer with room for size bytes; may be partial on error.
+ * @param size Number of bytes to receive, from 1 to 255.
+ * @param errc Pointer to error status output.
+ */
+void i2c_read(uint8_t inst, uint8_t addr, void* buf, uint8_t size, enum ti_errc_t* errc);
 

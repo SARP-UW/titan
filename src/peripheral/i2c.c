@@ -220,7 +220,7 @@ void i2c_init(uint8_t inst, enum ti_errc_t *errc) {
     SET_FIELD(I2Cx_CR1[inst], I2Cx_CR1_PE); // enable peripheral
 }
 
-void i2c_write(uint8_t inst, uint32_t addr, void *buf, uint8_t size, enum ti_errc_t *errc) {
+void i2c_write(uint8_t inst, uint8_t addr, void *buf, uint8_t size, enum ti_errc_t *errc) {
     if (errc)
         *errc = TI_ERRC_NONE;
     if (size == 0) {
@@ -286,7 +286,7 @@ void i2c_write(uint8_t inst, uint32_t addr, void *buf, uint8_t size, enum ti_err
     SET_WO_FIELD(I2Cx_ICR[inst], I2Cx_ICR_STOPCF);
 }
 
-void i2c_read(uint8_t inst, uint32_t addr, void *buf, uint8_t size, enum ti_errc_t *errc) {
+void i2c_read(uint8_t inst, uint8_t addr, void *buf, uint8_t size, enum ti_errc_t *errc) {
     if (errc)
         *errc = TI_ERRC_NONE;
     if (size == 0) {
