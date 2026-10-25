@@ -19,7 +19,7 @@
  * @brief Umbilical communication driver implementation using UART
  */
 #include "devices/umbilical.h"
-#include "peripheral/uart.h"
+#include "peripheral/new_uart.h"
 #include "peripheral/gpio.h"
 #include "app/utils/pinout.h"
 
@@ -41,10 +41,8 @@ void umbilical_init(umbilical_t *dev, const umbilical_uart_dev *uart_config, enu
         .baud_rate = uart_config->baud_rate
     };
 
-    periph_dma_config_t tx_dma = {0};
-    periph_dma_config_t rx_dma = {0};
 
-    uart_init(&uart_cfg, NULL, &tx_dma, &rx_dma, errc);
+    // uart_init(&uart_cfg, NULL, &tx_dma, &rx_dma, errc);
     if (errc && *errc != TI_ERRC_NONE) {
         TI_SET_ERRC(errc, *errc, "Failed to initialize UART for umbilical");
         return;

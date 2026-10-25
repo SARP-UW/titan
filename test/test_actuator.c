@@ -15,7 +15,7 @@
 #define HIGH_SIDE_MASK 0x0F // 1 bit per channel: load OUT-to-GND; 0: load VM-to-OUT.
 
 static enum ti_errc_t errc;
-static volatile uint16_t readback;
+volatile uint16_t readback;
 
 // static void check_error(void) {
 //     if (errc == TI_ERRC_NONE) return;
@@ -64,16 +64,44 @@ void _start(void) {
     // check_error();
     // asm("BKPT #0");
     // systick_delay(5);
-    while (1) {
-        asm("noop");
+    // tal_enable_clock(101);
+    // tal_set_mode(101, 1);
+
+    // while(true){
+    //     tal_set_pin(101, 1);
+
+    //     tal_set_pin(101, 0);
+    //     for (int i = 0; i < 10000000; i++) { 
+    //         asm("NOP");
+    //     }
+    // } 
+
+    
+    // for (int i = 0; i < 100000000; i++) { 
+
+    //     asm("NOP");
+    // } 
+    // tal_pull_pin(101, 1);
+    // while (1) {
+    //     asm("NOP");
+    // }
+
+
+    for (int i = 0; i < 10000000; i++) { 
+        asm("NOP");
     }
 
     while (1) {
         actuator_set_channel_enable(&dev, TEST_CHANNEL, true, &errc);
         // check_error();
         // asm("BKPT #0"); // ON via SPI.
-
+        for (int i = 0; i < 10000000; i++) { 
+            asm("NOP");
+        }
         actuator_set_channel_enable(&dev, TEST_CHANNEL, false, &errc);
+        for (int i = 0; i < 10000000; i++) { 
+            asm("NOP");
+        }
         // check_error();
         // asm("BKPT #0"); // OFF via SPI
 
