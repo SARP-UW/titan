@@ -11,6 +11,7 @@
 #include "devices/magnetometer.h"
 #include "devices/radio.h"
 #include "devices/temperature.h"
+#include "devices/umbilical.h"
 
 #define VALVE_COUNT 12U
 #define SERVO_COUNT 8U
@@ -28,6 +29,12 @@ static radio_config_t radio_config = {
 	.channel = 0
 };
 
+static umbilical_t umbilical_dev;
+static umbilical_uart_dev umbilical_uart_config = {
+	.uart_channel = 2,  // UART2 for RS485
+	.baud_rate = 115200
+};
+
 static gnss_t gnss_dev = {
 	.spi_config = {
 		.spi_inst = (uint8_t)GNSS_SPI_INST,
@@ -35,7 +42,9 @@ static gnss_t gnss_dev = {
 	},
 	.config = {
 		.meas_rate_ms = 200,
-		.constellation_mask = GNSS_CONSTELLATION_GPS | GNSS_CONSTELLATION_GLONASS | GNSS_CONSTELLATION_BEIDOU,
+		// u-blox M8 can only track GLONASS *or* BeiDou, never both; enabling both
+		// makes the module NAK UBX-CFG-GNSS and gnss_init() fail.
+		.constellation_mask = GNSS_CONSTELLATION_GPS | GNSS_CONSTELLATION_GLONASS,
 		.dyn_model = GNSS_DYN_AIRBORNE_4G,
 		.power_mode = GNSS_POWER_CONTINUOUS
 	},
@@ -115,7 +124,7 @@ static const struct adc_channel adc_channels[] = {
 		.neg_pin = AINCOM,
 		.gain = GAIN_1,
 		.source = REF_INTERNAL,
-		.ref_voltage = 25,
+		.ref_mv = 2500,
 		.name = "adc0"
 	}
 };

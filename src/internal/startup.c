@@ -41,6 +41,15 @@ void *memset(void *s, int c, size_t n) { // NOLINT(misc-use-internal-linkage)
   return s;
 }
 
+void *memcpy(void *dest, const void *src, size_t n) { // NOLINT(misc-use-internal-linkage)
+  unsigned char *d = (unsigned char *)dest;
+  const unsigned char *s = (const unsigned char *)src;
+  while (n--) {
+    *d++ = *s++;
+  }
+  return dest;
+}
+
 /************************************************************************************************
  * @section Program Initialization Routines
  ************************************************************************************************/

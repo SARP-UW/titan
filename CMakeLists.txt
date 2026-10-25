@@ -46,9 +46,9 @@ file(GLOB_RECURSE COMMON_SOURCES
   ${CMAKE_SOURCE_DIR}/src/*.c
 )
 # Remove main.c from COMMON_SOURCES
-list(REMOVE_ITEM COMMON_SOURCES ${CMAKE_SOURCE_DIR}/src/main.c)
-# Keep the original UART driver as a reference; new_uart.c supplies uart_*.
-list(REMOVE_ITEM COMMON_SOURCES ${CMAKE_SOURCE_DIR}/src/peripheral/uart.c)
+list(REMOVE_ITEM COMMON_SOURCES
+  ${CMAKE_SOURCE_DIR}/src/main.c
+)
 
 function(add_firmware_target target_name entry_file)
   if ("${entry_file}" STREQUAL "${CMAKE_SOURCE_DIR}/src/main.c")
@@ -96,6 +96,11 @@ function(add_firmware_target target_name entry_file)
     -Xlinker
     -print-memory-usage
   )
+
+  # -nostdlib drops libgcc too, but we still need GCC's runtime helpers
+  # (e.g. __aeabi_ldivmod for 64-bit division). Must come after the objects
+  # on the link line, so it goes here rather than in target_link_options.
+  target_link_libraries(${target_name}.elf PRIVATE gcc)
 endfunction()
 
 add_firmware_target(titan ${CMAKE_SOURCE_DIR}/src/main.c)

@@ -30,8 +30,8 @@
 **************************************************************************************************/
 
 struct ti_pwm_config_t {
-    uint8_t channel;      /**< PWM channel number (0-based) */
-    uint8_t instance;     /**< PWM hardware instance (0-based) */
+    uint8_t instance;     /**< PWM hardware instance */
+    uint8_t channel;      /**< PWM channel number */
     uint32_t freq;        /**< Output frequency in Hz */
     uint32_t duty;        /**< Duty cycle (0-1000 for 0-100%) */
     uint32_t clock_freq;  /**< Source clock frequency in Hz */

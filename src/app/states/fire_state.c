@@ -4,12 +4,11 @@
 #include "app/utils/state_comm.h"
 #include "app/utils/extern_flash.h"
 #include "app/utils/sensor_status.h"
-#include "devices/imu.h"
+// #include "devices/imu.h"
 #include "devices/gnss.h"
 #include "devices/barometer.h"
 #include "devices/actuator.h"
 #include "devices/adc.h"
-#include "devices/magnetometer.h"
 #include "devices/temperature.h"
 #include "devices/radio.h"
 #include "peripheral/spi.h"
@@ -36,14 +35,14 @@ bool fire_state_init(){
     if (errc && errc != TI_ERRC_NONE) {
         TI_SET_ERRC(&errc, errc, "Failed to initialize radio");
     }
-    errc = imu_init(&imu_dev1);
-    if (errc && errc != TI_ERRC_NONE) {
-        TI_SET_ERRC(&errc, errc, "Failed to initialize IMU 1");
-    }
-    errc = imu_init(&imu_dev2);
-    if (errc && errc != TI_ERRC_NONE) {
-        TI_SET_ERRC(&errc, errc, "Failed to initialize IMU 2");
-    }
+    // imu_init(&imu_dev1, &errc);
+    // if (errc && errc != TI_ERRC_NONE) {
+    //     TI_SET_ERRC(&errc, errc, "Failed to initialize IMU 1");
+    // }
+    // imu_init(&imu_dev2, &errc);
+    // if (errc && errc != TI_ERRC_NONE) {
+    //     TI_SET_ERRC(&errc, errc, "Failed to initialize IMU 2");
+    // }
     gnss_init(&gnss_dev, &errc);
     if (errc && errc != TI_ERRC_NONE) {
         TI_SET_ERRC(&errc, errc, "Failed to initialize GNSS");
@@ -64,15 +63,6 @@ bool fire_state_init(){
     if (errc && errc != TI_ERRC_NONE) {
         TI_SET_ERRC(&errc, errc, "Failed to initialize temperature 2");
     }
-    magnetometer_init(&magnetometer_dev1);
-    if (errc && errc != TI_ERRC_NONE) {
-        TI_SET_ERRC(&errc, errc, "Failed to initialize magnetometer 1");
-    }
-    magnetometer_init(&magnetometer_dev2);
-    if (errc && errc != TI_ERRC_NONE) {
-        TI_SET_ERRC(&errc, errc, "Failed to initialize magnetometer 2");
-    }
-
     adc_init(&adc_dev, &errc);
     if (errc && errc != TI_ERRC_NONE) {
         TI_SET_ERRC(&errc, errc, "Failed to initialize ADC");
@@ -96,28 +86,26 @@ int fire_state_run(){
         size_t state_packet_len;
 
         gnss_pvt_t gnss_pvt;
-        struct imu_result imu_result1;
-        struct imu_result imu_result2;
+        // struct imu_result imu_result1 = {0};
+        // struct imu_result imu_result2 = {0};
         barometer_result_t barometer_result1;
         barometer_result_t barometer_result2;
         temperature_result_t temperature_result1;
         temperature_result_t temperature_result2;
-        struct magnetometer_result_t magnetometer_result1;
-        struct magnetometer_result_t magnetometer_result2;
+        // struct magnetometer_result_t magnetometer_result1 = {0};
+        // struct magnetometer_result_t magnetometer_result2 = {0};
 
         // Initialize status flags
         sensor_status_init(&sensor_status);
 
         // START ALL SENSOR READS IN PARALLEL
         gnss_start_read(&gnss_dev, &gnss_pvt, &sensor_status.gnss_done, &sensor_status.gnss_error, &errc);
-        imu_start_read(&imu_dev1, &imu_result1, &sensor_status.imu1_done, &sensor_status.imu1_error, &errc);
-        imu_start_read(&imu_dev2, &imu_result2, &sensor_status.imu2_done, &sensor_status.imu2_error, &errc);
+        // imu_start_read(&imu_dev1, &imu_result1, &sensor_status.imu1_done, &sensor_status.imu1_error, &errc);
+        // imu_start_read(&imu_dev2, &imu_result2, &sensor_status.imu2_done, &sensor_status.imu2_error, &errc);
         barometer_start_read(&barometer_dev1, &barometer_result1, &sensor_status.baro1_done, &sensor_status.baro1_error, &errc);
         barometer_start_read(&barometer_dev2, &barometer_result2, &sensor_status.baro2_done, &sensor_status.baro2_error, &errc);
         temperature_start_read(&temperature_dev1, &temperature_result1, &sensor_status.temp1_done, &sensor_status.temp1_error, &errc);
         temperature_start_read(&temperature_dev2, &temperature_result2, &sensor_status.temp2_done, &sensor_status.temp2_error, &errc);
-        magnetometer_start_read(&magnetometer_dev1, &magnetometer_result1, &sensor_status.mag1_done, &sensor_status.mag1_error, &errc);
-        magnetometer_start_read(&magnetometer_dev2, &magnetometer_result2, &sensor_status.mag2_done, &sensor_status.mag2_error, &errc);
         adc_start_read(&adc_dev, adc_channels, adc_channel_count, &sensor_status.adc_done, &sensor_status.adc_error, &errc);
 
         while (!sensor_status_all_done(&sensor_status)) {
@@ -131,17 +119,14 @@ int fire_state_run(){
             if (sensor_status.gnss_error) {
                 TI_SET_ERRC(&errc, TI_ERRC_DEVICE, "GNSS sensor error");
             }
-            if (sensor_status.imu1_error || sensor_status.imu2_error) {
-                TI_SET_ERRC(&errc, TI_ERRC_DEVICE, "IMU sensor error");
-            }
+            // if (sensor_status.imu1_error || sensor_status.imu2_error) {
+            //     TI_SET_ERRC(&errc, TI_ERRC_DEVICE, "IMU sensor error");
+            // }
             if (sensor_status.baro1_error || sensor_status.baro2_error) {
                 TI_SET_ERRC(&errc, TI_ERRC_DEVICE, "Barometer sensor error");
             }
             if (sensor_status.temp1_error || sensor_status.temp2_error) {
                 TI_SET_ERRC(&errc, TI_ERRC_DEVICE, "Temperature sensor error");
-            }
-            if (sensor_status.mag1_error || sensor_status.mag2_error) {
-                TI_SET_ERRC(&errc, TI_ERRC_DEVICE, "Magnetometer sensor error");
             }
             if (sensor_status.adc_error) {
                 TI_SET_ERRC(&errc, TI_ERRC_DEVICE, "ADC sensor error");
@@ -163,12 +148,8 @@ int fire_state_run(){
         }
 
         // Build and send sensor packet
-        build_sensor_packet(&imu_result1,
-                            &imu_result2,
-                            &barometer_result1,
+        build_sensor_packet(&barometer_result1,
                             &barometer_result2,
-                            &magnetometer_result1,
-                            &magnetometer_result2,
                             &temperature_result1,
                             &temperature_result2,
                             state_comm_shared.sensor_packet,
@@ -251,10 +232,83 @@ int fire_state_run(){
             TI_SET_ERRC(&errc, errc, "Failed to receive or parse uplink comm packet");
         }
 
-        state_comm_shared.last_command_id = state_comm_shared.uplink_comm.command_id;
-        state_comm_shared.last_command_status = state_comm_shared.uplink_comm.command_valid
-                                              ? COMMAND_STATUS_SUCCESS
-                                              : COMMAND_STATUS_WAITING;
+        // Process command and handle state transitions
+        comm_result_t cmd_result = process_command(&state_comm_shared.uplink_comm, FIRE_STATE_IDX,
+                                                   &state_comm_shared.last_command_id,
+                                                   &state_comm_shared.last_command_status);
+
+        if (cmd_result.valid) {
+            switch (cmd_result.action) {
+                case COMM_ACTION_CHANGE_VALVE_STATE:
+                    // Change valve state
+                    if (cmd_result.param1 < VALVE_COUNT) {
+                        valve_states[cmd_result.param1] = (uint8_t)cmd_result.param2;
+                    } else {
+                        state_comm_shared.last_command_status = COMMAND_STATUS_INVALID_ARGS;
+                    }
+                    break;
+
+                case COMM_ACTION_PULSE_VALVE:
+                    // Pulse valve for specified duration
+                    if (cmd_result.param1 < VALVE_COUNT && cmd_result.param2 > 0) {
+                        // TODO: Implement valve pulse functionality
+                    } else {
+                        state_comm_shared.last_command_status = COMMAND_STATUS_INVALID_ARGS;
+                    }
+                    break;
+
+                case COMM_ACTION_CHANGE_SERVO_STATE:
+                    // Change servo position
+                    if (cmd_result.param1 < SERVO_COUNT) {
+                        servo_states[cmd_result.param1] = cmd_result.param2;
+                    } else {
+                        state_comm_shared.last_command_status = COMMAND_STATUS_INVALID_ARGS;
+                    }
+                    break;
+
+                case COMM_ACTION_PULSE_SERVO:
+                    // Pulse servo to position for specified duration
+                    if (cmd_result.param1 < SERVO_COUNT && cmd_result.param3 > 0) {
+                        // TODO: Implement servo pulse functionality
+                    } else {
+                        state_comm_shared.last_command_status = COMMAND_STATUS_INVALID_ARGS;
+                    }
+                    break;
+
+                case COMM_ACTION_SET_MODE:
+                    // Fire state can transition to safe state
+                    // if (cmd_result.param1 == SAFE_STATE_IDX) {
+                    //     state_comm_shared.ping_id++;
+                    //     return SAFE_STATE_IDX;
+                    // }
+                    state_comm_shared.last_command_status = COMMAND_STATUS_INVALID_STATE;
+                    break;
+
+                case COMM_ACTION_SET_COMM_LINK:
+                    // TODO: Implement comm link switching (0 = RS485, 1 = radio)
+                    break;
+
+                case COMM_ACTION_SLEEP:
+                    // TODO: Implement sleep functionality
+                    break;
+
+                case COMM_ACTION_WAKE:
+                    // TODO: Implement wake functionality
+                    break;
+
+                case COMM_ACTION_RESTART_REQUEST:
+                    // First restart command received, awaiting confirmation
+                    break;
+
+                case COMM_ACTION_RESTART_CONFIRM:
+                    // Restart confirmed, perform system restart
+                    // TODO: Implement actual restart
+                    break;
+
+                default:
+                    break;
+            }
+        }
     }
 
     state_comm_shared.ping_id++;
