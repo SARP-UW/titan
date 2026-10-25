@@ -5,6 +5,7 @@
   - [Windows](#windows)
 - [Compiling](#compiling)
   - [Committing](#committing)
+- [Actuator test](#actuator-test)
 
 ## Overview
 This is the flight computer software for the Domecracker liquid bi-propellant rocket. It's built with the following hardware in mind.
@@ -33,6 +34,39 @@ We have four main categories of software in this repository: devices, peripheral
 - States are the various states for our state machine and handles how they move between one another. This is a core part of our flight computer.
 
 
+
+## Actuator test
+
+The MAX22217 driver supports four independent solenoids, SPI on/off control, and
+STM32-generated PWM connected to the device's CNTL inputs. `actuator_init()` takes
+the SPI device and a four-bit high-side mask (bit n: 1 = load from OUTn to GND,
+0 = load from VM to OUTn). It configures full-on/full-off duty levels and disables
+ramps/current regulation, leaving the device inactive. SPI, ENABLE, CRC_EN, and
+timer setup belong to the caller; see [actuator.h](src/devices/actuator.h).
+
+For SPI-only control, hold the corresponding CNTL input LOW. For PWM, keep that
+channel's SPI control bit clear and use `ti_set_pwm()` to drive CNTL. The pin and
+SPI bit are ORed, so clearing the SPI bit cannot stop a HIGH CNTL input. The
+MAX22217 sequencer still applies its timing; test the intended PWM frequency on
+hardware. CRC_EN must be LOW for this driver's 24-bit SPI frames.
+
+Edit the wiring/settings at the top of [test/test_actuator.c](test/test_actuator.c)
+before running it. The defaults use SPI1, PA4 CS, PG6 ENABLE, PB8 PWM into CNTL0,
+and high-side loads. Build without flashing:
+
+```sh
+cmake -S . -B build
+cmake --build build --target test_actuator.elf
+```
+
+Load `build/test_actuator.elf` in the debugger (or use `./build.sh test_actuator -d`
+to build, flash, and select it). The first breakpoint checks a single register
+write/read: `readback` should be `0x1234`, with the outputs inactive. Each Continue
+then advances through SPI ON, SPI OFF, 50% PWM at 2kHz, and OFF, repeating on the
+selected `TEST_CHANNEL`. PB8 must connect to that channel's CNTL input. Outputs
+remain driven while paused at ON/PWM steps. Change `TEST_CHANNEL` and move the
+CNTL wire to test another channel. `errc` identifies a software-reported error;
+the test disables ENABLE and stops if an operation fails or readback mismatches.
 
 ## Required Software
 Note: Currently there are no instructions for Linux/x64 MacOS, but I would imagine the Linux one may be similar to the MacOS one.

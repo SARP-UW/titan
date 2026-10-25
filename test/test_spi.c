@@ -6,18 +6,18 @@
 #define TEST_SINGLE_BYTE 0
 
 void test_spi() {
-	uint8_t inst = 3;
+	uint8_t inst = 1;
 	uint8_t ss_pins[1] = {43}; // A4
 	enum ti_errc_t errc;
 
 	spi_init(inst, 0, ss_pins, 1, &errc);
-	asm("BKPT #0");
 	uint8_t src[] = {
 		0x00, 0xFF, 0xAA, 0x55,
 		0x01, 0x02, 0x03, 0x04, 0x05,
 		0x06, 0x07, 0x08, 0x09, 0x0A
 	};
 	uint8_t dst[sizeof(src)] = {0x00};
+	asm("BKPT #0");
 
 	while (1) {
 		for (size_t i = 0; i < sizeof(dst); ++i) {

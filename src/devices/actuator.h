@@ -14,269 +14,84 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
- * @file peripheral/actuator.h
+ * @file devices/actuator.h
  * @authors Mahir Emran, Shlok Rathi
- * @brief Actuator driver interface for MAX22216/MAX22217 solenoid controller.
+ * @brief Minimal MAX22217 single-ended solenoid control.
  */
 #pragma once
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
-
 #include "peripheral/errc.h"
-#include "peripheral/pwm.h"
 
-/**************************************************************************************************
- * @section Macros
- **************************************************************************************************/
+#define ACTUATOR_REG_GLOBAL_CTRL  0x00U
+#define ACTUATOR_REG_GLOBAL_CFG   0x01U
+#define ACTUATOR_REG_STATUS       0x02U
+#define ACTUATOR_REG_FAULT0       0x65U
+#define ACTUATOR_REG_FAULT1       0x66U
+#define ACTUATOR_CH0_BASE         0x09U
+#define ACTUATOR_CH_STRIDE        0x0EU
+#define ACTUATOR_CH_REG_DCL2H     0x00U
+#define ACTUATOR_CH_REG_DCH       0x01U
+#define ACTUATOR_CH_REG_DCL       0x02U
+#define ACTUATOR_CH_REG_TIMEL2H   0x03U
+#define ACTUATOR_CH_REG_CTRL0     0x04U
+#define ACTUATOR_CH_REG_CTRL1     0x05U
+#define ACTUATOR_DUTY_ON          0x7FFFU
 
-/** @brief Dummy data word for read-only SPI transactions. */
-#define ACTUATOR_SPI_DUMMY_DATA      0x0000
-
-/** @brief Read/write bit in the SPI address byte (bit 7). */
-#define ACTUATOR_SPI_RW_BIT          0x80
-
-/** @brief Per-channel register stride in the register map. */
-#define ACTUATOR_CH_STRIDE           0x0E
-
-/** @brief Base address of channel 0 registers. */
-#define ACTUATOR_CH0_BASE            0x09
-
-/** @brief Channel register offset — duty cycle low-to-high transition. */
-#define ACTUATOR_CH_REG_DCL2H        0x00
-
-/** @brief Channel register offset — duty cycle high. */
-#define ACTUATOR_CH_REG_DCH          0x01
-
-/** @brief Channel register offset — duty cycle low. */
-#define ACTUATOR_CH_REG_DCL          0x02
-
-/** @brief Channel register offset — low-to-high transition time. */
-#define ACTUATOR_CH_REG_TIMEL2H      0x03
-
-/** @brief Channel register offset — control register 0. */
-#define ACTUATOR_CH_REG_CTRL0        0x04
-
-/** @brief Channel register offset — control register 1. */
-#define ACTUATOR_CH_REG_CTRL1        0x05
-
-/** @brief I-Monitor register address for channel 0. */
-#define ACTUATOR_IMONITOR_CH0        0x45
-
-/** @brief I-Monitor register address for channel 1. */
-#define ACTUATOR_IMONITOR_CH1        0x4D
-
-/** @brief I-Monitor register address for channel 2. */
-#define ACTUATOR_IMONITOR_CH2        0x55
-
-/** @brief I-Monitor register address for channel 3. */
-#define ACTUATOR_IMONITOR_CH3        0x5D
-
-/** @brief Global control register address. */
-#define ACTUATOR_REG_GLOBAL_CTRL     0x00
-
-/** @brief Global configuration register address. */
-#define ACTUATOR_REG_GLOBAL_CFG      0x01
-
-/** @brief Status register address. */
-#define ACTUATOR_REG_STATUS          0x02
-
-/** @brief Fault register 0 address. */
-#define ACTUATOR_REG_FAULT0          0x65
-
-/** @brief Fault register 1 address. */
-#define ACTUATOR_REG_FAULT1          0x66
-
-/** @brief Bit position of active flag in GLOBAL_CFG register. */
-#define ACTUATOR_GLOBAL_CFG_ACTIVE_POS  15
-
-/** @brief Bit mask of F_PWM_M field in GLOBAL_CTRL register. */
-#define ACTUATOR_GLOBAL_CTRL_FPWMM_MSK  0x00F0
-
-/** @brief Bit position of F_PWM_M field in GLOBAL_CTRL register. */
-#define ACTUATOR_GLOBAL_CTRL_FPWMM_POS  4
-
-/**************************************************************************************************
- * @section Type Definitions
- **************************************************************************************************/
-
-/** @brief Actuator channel index. */
 typedef enum {
-  ACTUATOR_CHANNEL_0 = 0,
-  ACTUATOR_CHANNEL_1 = 1,
-  ACTUATOR_CHANNEL_2 = 2,
-  ACTUATOR_CHANNEL_3 = 3,
-  ACTUATOR_CHANNEL_COUNT = 4,
+    ACTUATOR_CHANNEL_0 = 0,
+    ACTUATOR_CHANNEL_1,
+    ACTUATOR_CHANNEL_2,
+    ACTUATOR_CHANNEL_3,
+    ACTUATOR_CHANNEL_COUNT,
 } actuator_channel_t;
 
-/** @brief Control mode selection for a channel. */
-typedef enum {
-  ACTUATOR_CTRL_VDR_VDR = 0,
-  ACTUATOR_CTRL_CDR_CDR = 1,
-  ACTUATOR_CTRL_LIMITER_VDR = 2,
-  ACTUATOR_CTRL_VDR_CDR = 3,
-} actuator_ctrl_mode_t;
-
-/** @brief PWM frequency divider. */
-typedef enum {
-  ACTUATOR_PWM_DIV_1 = 0,
-  ACTUATOR_PWM_DIV_2 = 1,
-  ACTUATOR_PWM_DIV_4 = 2,
-  ACTUATOR_PWM_DIV_8 = 3,
-} actuator_pwm_div_t;
-
-/** @brief Output slew rate selection. */
-typedef enum {
-  ACTUATOR_SLEW_FAST = 0,
-  ACTUATOR_SLEW_400V_US = 1,
-  ACTUATOR_SLEW_200V_US = 2,
-  ACTUATOR_SLEW_100V_US = 3,
-} actuator_slew_rate_t;
-
-/** @brief Blanking time selection. */
-typedef enum {
-  ACTUATOR_TBLANK_0 = 0,
-  ACTUATOR_TBLANK_24 = 1,
-  ACTUATOR_TBLANK_48 = 2,
-  ACTUATOR_TBLANK_96 = 3,
-} actuator_tblank_t;
-
-/** @brief SPI config for actuator. */
 typedef struct {
-  uint8_t spi_inst;                    // SPI peripheral instance (1=SPI1, 2=SPI2, etc.)
-  uint8_t ss_pin;                      // Slave Select GPIO pin — directly from schematic.
+    uint8_t spi_inst; // SPI1..SPI6, already initialized in mode 0 (or mode 3).
+    uint8_t ss_pin;   // STM32 package pin number, as used by gpio.h.
 } actuator_spi_dev;
 
-/** @brief Actuator configuration — everything except SPI bus identity. */
 typedef struct {
-  struct ti_pwm_config_t pwm_config;   // Optional PWM output configuration.
-  bool has_pwm_config;                 // True if pwm_config is populated.
-  uint8_t enable_pin;                  // Hardware enable GPIO pin — physical kill switch for all H-bridges.
-  uint8_t fault_pin;                   // Fault input GPIO pin (active-low). Directly from MAX22216 nFAULT.
-  uint8_t stat0_pin;                   // Status output 0 GPIO pin.
-  uint8_t stat1_pin;                   // Status output 1 GPIO pin.
-  uint8_t crc_en_pin;                  // CRC enable GPIO pin.
-  bool enable_crc;                     // True to enable SPI CRC checking on transactions.
-} actuator_config_t;
-
-/** @brief Actuator device handle. Allocate one and pass to all actuator_* functions. */
-typedef struct {
-  actuator_spi_dev spi_config;           // SPI bus + chip select pin for this device.
-  actuator_config_t config;            // Active device configuration.
+    actuator_spi_dev spi_config;
 } actuator_t;
 
-/** @brief Per-channel solenoid / actuator configuration. */
-typedef struct {
-  uint16_t dc_l2h;                     /** @brief Duty cycle for low-to-high transition. */
-  uint16_t dc_h;                       /** @brief Duty cycle high state. */
-  uint16_t dc_l;                       /** @brief Duty cycle low state. */
-  uint16_t time_l2h;                   /** @brief Low-to-high transition time. */
-  uint8_t ramp;                        /** @brief Ramp rate value (0–255). */
-  bool ramp_up;                        /** @brief Enable current ramp-up. */
-  bool ramp_mid;                       /** @brief Enable mid-ramp. */
-  bool ramp_down;                      /** @brief Enable current ramp-down. */
-  bool open_load_enable;               /** @brief Enable open-load detection. */
-  bool h2l_enable;                     /** @brief Enable high-to-low transition. */
-  bool hhf_enable;                     /** @brief Enable HHF protection. */
-  actuator_ctrl_mode_t ctrl_mode;      /** @brief Control mode for the channel. */
-  bool high_side;                      /** @brief True for high-side drive. */
-  actuator_pwm_div_t pwm_div;         /** @brief PWM frequency divider. */
-  actuator_tblank_t t_blank;           /** @brief Blanking time setting. */
-  actuator_slew_rate_t slew_rate;      /** @brief Output slew rate. */
-  uint8_t gain;                        /** @brief Current sense amplifier gain (0–3). */
-  uint8_t snsf;                        /** @brief Sense filtering setting (0–3). */
-} actuator_channel_config_t;
-
-/**************************************************************************************************
- * @section Function Definitions
- **************************************************************************************************/
-
 /**
- * @brief Initializes the MAX22216/MAX22217 actuator and configures SPI and GPIO pins.
+ * Configure four independent channels for on/off or external CNTL PWM control.
+ * high_side_mask bit n: 1 = load between OUTn and GND, 0 = load between VM and OUTn.
+ * Leaves ACTIVE=0 and all SPI CNTL bits clear; call actuator_set_active(true) afterward.
  *
- * @param dev        Pointer to the actuator device handle.
- * @param spi_config Pointer to the SPI configuration (instance + SS pin).
- * @param config     Pointer to the actuator configuration (GPIO pins, PWM, CRC).
- * @param errc       Pointer to error status output.
- */ //
-void actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config, const actuator_config_t *config, enum ti_errc_t *errc);
+ * Caller owns SPI, ENABLE, CRC_EN, and PWM GPIO/timer setup:
+ * - Initialize SPI first; hold CRC_EN LOW (24-bit frames, no daisy chain).
+ * - Supply VM/VIO and hold ENABLE HIGH through startup before calling this function.
+ *   Datasheet pp. 11-12: tEN=0.8ms; allow wake-up/OTP download time too.
+ * - Hold CNTL0..3 LOW during initialization. This routine replaces channel settings
+ *   with duty mode, 100% high / 0% low, no hit/hold delay, ramps, or current regulation.
+ * - After ACTIVE=1, allow the datasheet wake-up time before commanding a channel.
+ *
+ * PWM: connect an STM32 timer output to CNTLn and leave SPI CNTLn clear using
+ * actuator_set_channel_enable(..., false). Use ti_set_pwm() from peripheral/pwm.h.
+ * There is no separate PWM-mode register. CNTL pin and SPI bit are ORed, so an SPI
+ * false does NOT force off a channel whose CNTL input is high. For SPI-only control,
+ * hold the CNTL input LOW. The sequencer still has its own timing; validate the
+ * intended external PWM frequency/duty on hardware (this is not a bypass mode).
+ */
+void actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config,
+                   uint8_t high_side_mask, enum ti_errc_t *errc);
 
-/**
- * @brief Asserts or de-asserts the hardware enable pin.
- *
- * @param dev     Pointer to the actuator device handle.
- * @param enable  True to enable, false to disable.
- * @param errc    Pointer to error status output.
- */ //
-void actuator_set_enable(actuator_t *dev, bool enable, enum ti_errc_t *errc);
+/** Raw 7-bit register access. Data is 16-bit, MSB first; status_out may be NULL.
+ * Reads issue two CS-separated frames because readback is one transaction late.
+ * Fault registers are write-one-to-clear; reading them does not acknowledge faults.
+ * Access is synchronous; callers must serialize operations on the same SPI bus.
+ */
+void actuator_write_reg(actuator_t *dev, uint8_t addr, uint16_t value,
+                        uint8_t *status_out, enum ti_errc_t *errc);
+void actuator_read_reg(actuator_t *dev, uint8_t addr, uint16_t *value,
+                       uint8_t *status_out, enum ti_errc_t *errc);
 
-/**
- * @brief Sets the ACTIVE bit in the GLOBAL_CFG register.
- *
- * @param dev     Pointer to the actuator device handle.
- * @param active  True to activate, false to deactivate.
- * @param errc    Pointer to error status output.
- */ //
+/** Set GLOBAL_CFG.ACTIVE. false tri-states all outputs; ENABLE remains caller-owned. */
 void actuator_set_active(actuator_t *dev, bool active, enum ti_errc_t *errc);
 
-/**
- * @brief Sets the master PWM frequency divider (F_PWM_M) in GLOBAL_CTRL.
- *
- * @param dev      Pointer to the actuator device handle.
- * @param f_pwm_m  Master PWM frequency selector (0–15).
- * @param errc     Pointer to error status output.
- */ //
-void actuator_set_pwm_master(actuator_t *dev, uint8_t f_pwm_m, enum ti_errc_t *errc);
-
-/**
- * @brief Writes a full channel configuration to the MAX22216/MAX22217.
- *
- * @param dev      Pointer to the actuator device handle.
- * @param channel  Channel index (0–3).
- * @param cfg      Pointer to the channel configuration. //
- * @param errc     Pointer to error status output.
- */ //
-void actuator_configure_channel(actuator_t *dev, actuator_channel_t channel, const actuator_channel_config_t *cfg, enum ti_errc_t *errc);
-
-/**
- * @brief Enables or disables a single channel in GLOBAL_CTRL.
- *
- * @param dev      Pointer to the actuator device handle.
- * @param channel  Channel index (0–3).
- * @param enable   True to enable, false to disable. //
- * @param errc     Pointer to error status output.
- */ //
-void actuator_set_channel_enable(actuator_t *dev, actuator_channel_t channel, bool enable, enum ti_errc_t *errc);
-
-/**
- * @brief Reads the STATUS register.
- *
- * @param dev         Pointer to the actuator device handle.
- * @param status      Pointer to store the 16-bit status value.
- * @param status_out  Optional pointer to store the SPI status byte (may be NULL).
- * @param errc        Pointer to error status output.
- */ //
-void actuator_read_status(actuator_t *dev, uint16_t *status, uint8_t *status_out, enum ti_errc_t *errc);
-
-/**
- * @brief Reads both FAULT0 and FAULT1 registers.
- *
- * @param dev         Pointer to the actuator device handle.
- * @param fault0      Pointer to store the 16-bit FAULT0 value.
- * @param fault1      Pointer to store the 16-bit FAULT1 value.
- * @param status_out  Optional pointer to store the SPI status byte (may be NULL). //
- * @param errc        Pointer to error status output.
- */ //
-void actuator_read_fault(actuator_t *dev, uint16_t *fault0, uint16_t *fault1, uint8_t *status_out, enum ti_errc_t *errc);
-
-/**
- * @brief Reads the I-Monitor register for a given channel.
- *
- * @param dev         Pointer to the actuator device handle.
- * @param channel     Channel index (0–3).
- * @param i_monitor   Pointer to store the 16-bit I-Monitor value.
- * @param status_out  Optional pointer to store the SPI status byte (may be NULL). //
- * @param errc        Pointer to error status output.
- */ //
-void actuator_read_i_monitor(actuator_t *dev, actuator_channel_t channel, uint16_t *i_monitor, uint8_t *status_out, enum ti_errc_t *errc);
+/** Set the channel's SPI CNTL bit without changing the other channels. See PWM note above. */
+void actuator_set_channel_enable(actuator_t *dev, actuator_channel_t channel,
+                                bool enable, enum ti_errc_t *errc);

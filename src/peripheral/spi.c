@@ -143,9 +143,9 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
             tal_alternate_mode(INST1_MISO, 0b0101);
             tal_alternate_mode(INST1_MOSI, 0b0101);
             // Set very high speed
-            tal_set_speed(INST1_SCK, 0);
+            tal_set_speed(INST1_SCK, 3);
             tal_set_speed(INST1_MISO, 3);
-            tal_set_speed(INST1_MOSI, 0);
+            tal_set_speed(INST1_MOSI, 3);
             break;
         case INST_TWO:
             // Set push pull
