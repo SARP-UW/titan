@@ -34,15 +34,15 @@ static volatile uint32_t elapsed_ms = 0;
 void systick_init() {
     //Program reload value
     WRITE_FIELD(STK_RVR, STK_RVR_RELOAD, DEFAULT_RELOAD_VAL);
-
-    //Set clock source
-    SET_FIELD(STK_CSR, STK_CSR_CLKSOURCE);
+    
+    //Clear current time value
+    WRITE_FIELD(STK_CVR, STK_CVR_CURRENT, 0U);
 
     //Enable SysTick
     SET_FIELD(STK_CSR, STK_CSR_ENABLE);
 
-    //Clear current time value
-    WRITE_FIELD(STK_CVR, STK_CVR_CURRENT, 0U);
+    //Set clock source
+    SET_FIELD(STK_CSR, STK_CSR_CLKSOURCE);
 
     // Enable interrupts
     SET_FIELD(STK_CSR, STK_CSR_TICKINT);
