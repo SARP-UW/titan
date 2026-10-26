@@ -66,6 +66,8 @@
 #define MAX_COMMAND_SIZE 2 // commands are 1 byte, read/write is 2 bytes
 #define LAST_REG_ADDR 0x11
 
+#define INT_REF_MASK 0x3F
+
 static struct adc_spi_dev dev;
 
 // ref: 9.5.3.11: Read device register data
@@ -76,7 +78,7 @@ static uint8_t adc_rreg(uint8_t reg_addr, enum ti_errc_t *errc) {
     }
 
     // src[1] == 0 due to 9.5.3(3)
-    uint8_t src[COMMAND_BYTES_SIZE + 1] = {READ_BIT | reg_addr, 0};
+    uint8_t src[COMMAND_BYTES_SIZE + 1] = {READ_BIT | reg_addr, 0, 0};
     uint8_t dst[COMMAND_BYTES_SIZE + 1] = {0};
 
     uint8_t tot_size = COMMAND_BYTES_SIZE + 1;
@@ -168,8 +170,8 @@ static void adc_single_command(uint8_t cmd, enum ti_errc_t *errc) {
         return;
     }
 
-    uint8_t src[4] = {cmd, 0, 0, 0};
-    uint8_t dst[4] = {0};
+    uint8_t src[1] = {cmd};
+    uint8_t dst[1] = {0};
 
     // relevant commands are only 1 byte
     spi_transfer_sync(dev.inst, dev.ss_pin, src, dst, 1, errc);
@@ -203,8 +205,10 @@ void adc_init(struct adc_spi_dev *device, enum ti_errc_t *errc) {
         return -1;
     }
 
-    // Enable internal reference
-    adc_wreg(REF_REG, 0x39, errc);
+    // Enable internal reference (and disable buffers as recommended while using internal ref)
+    // 9.6.1.6
+    uint8_t ref_reg = adc_rreg(REF_REG, errc);
+    adc_wreg(REF_REG, (ref_reg & ~INT_REF_MASK) | 0x39, errc);
 }
 
 // ref: 7.3; view (1) for more specification
@@ -228,17 +232,17 @@ int adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc) {
         return -1;
     }
 
-    // set reference voltage
-    uint8_t ref_reg = adc_rreg(REF_REG, errc);
-    if (*errc != TI_ERRC_NONE) {
-        return -1;
-    }
-    ref_reg &= 0xC;
-    ref_reg |= ((channel->source & 0x03) << 2);
-    adc_wreg(REF_REG, ref_reg, errc);
-    if (*errc != TI_ERRC_NONE) {
-        return -1;
-    }
+    // // set reference voltage. now in init. delete once confirmed
+    // uint8_t ref_reg = adc_rreg(REF_REG, errc);
+    // if (*errc != TI_ERRC_NONE) {
+    //     return -1;
+    // }
+    // ref_reg &= 0xC;
+    // ref_reg |= ((channel->source & 0x03) << 2);
+    // adc_wreg(REF_REG, ref_reg, errc);
+    // if (*errc != TI_ERRC_NONE) {
+    //     return -1;
+    // }
 
     // TODO: use the DRDY pin and CS pin combined to evaluate
     // ref: 9.5.5
