@@ -289,7 +289,12 @@ void adc_set_idac(enum idac_mag magnitude, enum adc_pin pin1, enum adc_pin pin2,
 
     // Set IDAC magnitude
     // 9.6.1.7, Table 32. Bits 3:0
-    adc_wreg(IDACMAG_REG, magnitude, errc);
+    uint8_t mag_val = adc_rreg(IDACMAG_REG, errc);
+    if (*errc != TI_ERRC_NONE) {
+        return;
+    }
+    mag_val = (mag_val & 0xC0) | (magnitude & 0x0F);
+    adc_wreg(IDACMAG_REG, mag_val, errc);
 
     if (*errc != TI_ERRC_NONE) {
         return;
