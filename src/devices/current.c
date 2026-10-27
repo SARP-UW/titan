@@ -26,7 +26,7 @@ void current_init(const struct current_i2c_dev *dev, const struct current_config
     if (errc != TI_ERRC_NONE)
         return;
 
-    uint8_t adc_packet[] = {MFR_CALIBRATION, (uint8_t)config->adc_config,
+    uint8_t adc_packet[] = {MFR_ADC_CONFIG, (uint8_t)config->adc_config,
                             (uint8_t)(config->adc_config >> 8)};
     i2c_write(dev->inst, dev->addr, adc_packet, sizeof(adc_packet), errc);
     if (errc != TI_ERRC_NONE)
