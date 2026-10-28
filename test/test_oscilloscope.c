@@ -5,6 +5,7 @@
 #include "peripheral/pwm.h"
 #include "peripheral/spi.h"
 #include "peripheral/systick.h"
+#include "internal/mmio.h"
 #include <stdio.h>
 
 void test_osciloscope() {

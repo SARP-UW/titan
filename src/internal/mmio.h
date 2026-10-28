@@ -71,13 +71,13 @@ static UART_Regs UART_MAP[9] = {
 /**
  * @brief Constructs a field struct from a position and width.
  * @param ftype (type) The type of the field to construct.
- * @param pos (integral value) The position of the field.
+ * @param position (integral value) The position of the field.
  * @param width (integral value) The width of the field.
  * @returns (field_t) A struct which defines the location of the specified field.
  * @note - All arguments of this macro are only expanded once.
  */
-#define MAKE_FIELD(ftype, pos, width) ({ \
-  const __auto_type _pos = (pos); \
+#define MAKE_FIELD(ftype, position, width) ({ \
+  const __auto_type _pos = (position); \
   const __auto_type _width = (width); \
   (ftype) { \
     .msk = ((UINT64_C(1) << (_width)) - 1U) << _pos, \

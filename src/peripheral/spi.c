@@ -100,23 +100,34 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
     // Enable clocks for MOSI, MISO, and SCK
     switch (inst) {
         case INST_ONE:
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOAEN);
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOBEN);
+            tal_enable_clock(INST1_SCK);
+            tal_enable_clock(INST1_MISO);
+            tal_enable_clock(INST1_MOSI);
             break;
         case INST_TWO:
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOBEN);
+            tal_enable_clock(INST2_SCK);
+            tal_enable_clock(INST2_MISO);
+            tal_enable_clock(INST2_MOSI);
             break;
         case INST_THREE:
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOCEN);
+            tal_enable_clock(INST3_SCK);
+            tal_enable_clock(INST3_MISO);
+            tal_enable_clock(INST3_MOSI);
             break;
         case INST_FOUR:
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOEEN);
+            tal_enable_clock(INST4_SCK);
+            tal_enable_clock(INST4_MISO);
+            tal_enable_clock(INST4_MOSI);
             break;
         case INST_FIVE:
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOFEN);
+            tal_enable_clock(INST5_SCK);
+            tal_enable_clock(INST5_MISO);
+            tal_enable_clock(INST5_MOSI);
             break;
         case INST_SIX:
-            SET_FIELD(RCC_AHB4ENR, RCC_AHB4ENR_GPIOGEN);
+            tal_enable_clock(INST6_SCK);
+            tal_enable_clock(INST6_MISO);
+            tal_enable_clock(INST6_MOSI);
             break;
         default:
             break;
@@ -290,7 +301,7 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
     // Clear mode selection field
     CLR_FIELD(SPIx_CGFR[inst], SPIx_CGFR_I2SMOD);
     // Set threshold level
-    WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_FTHVL, 0x00);
+    CLR_FIELD(SPIx_CFG1[inst], SPIx_CFG1_FTHVL);
     // Set baudrate prescaler ( 64MHz /8  = 8MHz) 
     WRITE_FIELD(SPIx_CFG1[inst], SPIx_CFG1_MBR, 0b111); 
     // Set data size
@@ -344,7 +355,8 @@ void spi_transfer_sync (uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint
 
     for (int i = 0; i < size; i++) {
         while (!READ_FIELD(SPIx_SR[inst], SPIx_SR_TXP));
-        *(volatile uint8_t *)SPIx_TXDR[inst] = ((uint8_t *)src)[i];
+        // Keep byte accesses so the FIFO sends exactly one 8-bit frame.
+        WRITE_WO_FIELD((rw_reg8_t)SPIx_TXDR[inst], MAKE_FIELD(field8_t, 0, 8), ((uint8_t *)src)[i]);
 
         // Start transfer
         if (i == 0) {
@@ -353,7 +365,7 @@ void spi_transfer_sync (uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint
 
         while (!READ_FIELD(SPIx_SR[inst], SPIx_SR_RXP));
 
-        ((uint8_t *)dst)[i] = *(volatile uint8_t *)SPIx_RXDR[inst];
+        ((uint8_t *)dst)[i] = READ_FIELD((ro_reg8_t)SPIx_RXDR[inst], MAKE_FIELD(field8_t, 0, 8));
     }
 
     // Wait for end of tranfer

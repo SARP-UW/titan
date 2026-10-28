@@ -1,5 +1,5 @@
 #include "peripheral/gpio.h"
-#include "peripheral/new_uart.h"
+#include "peripheral/uart.h"
 #include "peripheral/errc.h"
 #include <stdio.h>
 
