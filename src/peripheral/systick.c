@@ -29,6 +29,8 @@
 #define DEFAULT_RELOAD_VAL 0x752FF
 #define CLOCK_FREQ 480000000
 
+static volatile uint32_t elapsed_ms = 0;
+
 void systick_init() {
     //Program reload value
     WRITE_FIELD(STK_RVR, STK_RVR_RELOAD, DEFAULT_RELOAD_VAL);
@@ -38,18 +40,28 @@ void systick_init() {
 
     //Enable SysTick
     SET_FIELD(STK_CSR, STK_CSR_ENABLE);
-}
 
-void systick_delay(uint32_t delay) {
-    if (delay == 0) return;
-
-    //Clear current value
+    //Clear current time value
     WRITE_FIELD(STK_CVR, STK_CVR_CURRENT, 0U);
 
-    //Run delay loop
-    for (int i = 0; i < delay; i++) {
-        while (IS_FIELD_CLR(STK_CSR, STK_CSR_COUNTFLAG)){
-            asm("NOP");
-        }
+    // Enable interrupts
+    SET_FIELD(STK_CSR, STK_CSR_TICKINT);
+}
+
+void cm7_systick_exc_handler(void) {
+    elapsed_ms++;
+}
+
+uint32_t systick_now_ms(void) {
+    return elapsed_ms;
+}
+
+void systick_delay(uint32_t delay_ms) {
+    if (delay_ms == 0) return;
+
+    uint32_t start_ms = systick_now_ms();
+
+    while (systick_now_ms() - start_ms <= delay_ms) {
     }
+
 }
