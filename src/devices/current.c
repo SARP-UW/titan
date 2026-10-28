@@ -16,20 +16,20 @@ void current_init(const struct current_i2c_dev *dev, const struct current_config
     // write to 0xD0 (MFR_ADC_CONFIG)
     //      default value is 0x4127
 
-    uint64_t denominator = config->current_lsb_ua * config->shunt_uohms;
+    uint64_t denominator = (uint64_t)config->current_lsb_ua * config->shunt_uohms;
     uint64_t calibration = 5120000000ULL / denominator;
 
     uint8_t calibration_packet[] = {MFR_CALIBRATION, (uint8_t)calibration,
                                     (uint8_t)(calibration >> 8)};
 
     i2c_write(dev->inst, dev->addr, calibration_packet, sizeof(calibration_packet), errc);
-    if (errc != TI_ERRC_NONE)
+    if (*errc != TI_ERRC_NONE)
         return;
 
     uint8_t adc_packet[] = {MFR_ADC_CONFIG, (uint8_t)config->adc_config,
                             (uint8_t)(config->adc_config >> 8)};
     i2c_write(dev->inst, dev->addr, adc_packet, sizeof(adc_packet), errc);
-    if (errc != TI_ERRC_NONE)
+    if (*errc != TI_ERRC_NONE)
         return;
 }
 
@@ -42,7 +42,7 @@ void current_read(const struct current_i2c_dev *dev, const struct current_config
 
     i2c_write(dev->inst, dev->addr, &input_reg, sizeof(uint8_t), errc);
 
-    if (errc != TI_ERRC_NONE)
+    if (*errc != TI_ERRC_NONE)
         return;
 
     uint8_t res[2];

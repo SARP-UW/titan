@@ -14,8 +14,8 @@ struct current_i2c_dev {
  * @brief Current config
  * */
 struct current_config_t {
-    uint64_t shunt_uohms;    // Shunt resistance in micro-ohms
-    uint64_t current_lsb_ua; // Microamps per raw count
+    uint32_t shunt_uohms;    // Shunt resistance in micro-ohms
+    uint32_t current_lsb_ua; // Microamps per raw count
     uint16_t adc_config;     // Value for MFR_ADC_CONFIG
 };
 
