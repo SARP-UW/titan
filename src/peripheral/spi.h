@@ -53,33 +53,6 @@ enum spi_mode {
 void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_t *errc);
 
 /**
- * @brief Perform an SPI data transfer with blocking. 
- * 
- * SPI1: SCK -> PA5  | MISO -> PA6  | MOSI -> PA7  
- * 
- * SPI2: SCK -> PB13 | MISO -> PB14 | MOSI -> PB15 
- * 
- * SPI3: SCK -> PC10 | MISO -> PC11 | MOSI -> PC12 
- * 
- * SPI4: SCK -> PE2  | MISO -> PE5  | MOSI -> PE6  
- * 
- * SPI5: SCK -> PF7  | MISO -> PF8  | MOSI -> PF9  
- * 
- * SPI6: SCK -> PG12 | MISO -> PG13 | MOSI -> PG14  
- *
- * Sends data from the source buffer while simultaneously receiving data into
- * the destination buffer. The function does not return until the entire
- * transfer is complete.
- *
- * @param inst  SPI instance to use for the transfer.
- * @param src   Pointer to the transmit (source) buffer.
- * @param dst   Pointer to the receive (destination) buffer.
- * @param size  Number of bytes to transfer.
- * @param ss_pin  The SS pin of the slave SPI will communicate with. 
- *
- * @param errc Pointer to error status output.
- */ 
-/**
  * @brief Changes the clock polarity/phase of an already-initialized SPI instance.
  *
  * Lets devices that need different SPI modes share one bus. Call only while no
@@ -92,4 +65,19 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
  */
 uint8_t spi_set_mode(uint8_t inst, uint8_t mode, enum ti_errc_t *errc);
 
+/**
+ * @brief Perform an SPI data transfer with blocking. 
+ * 
+ * Sends data from the source buffer while simultaneously receiving data into
+ * the destination buffer. The function does not return until the entire
+ * transfer is complete.
+ *
+ * @param inst  SPI instance to use for the transfer.
+ * @param src   Pointer to the transmit (source) buffer.
+ * @param dst   Pointer to the receive (destination) buffer.
+ * @param size  Number of bytes to transfer.
+ * @param ss_pin  The SS pin of the slave SPI will communicate with. 
+ *
+ * @param errc Pointer to error status output.
+ */ 
 void spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc);

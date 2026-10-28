@@ -16,7 +16,7 @@
  *
  * @file devices/actuator.c
  * @authors Mahir Emran, Shlok Rathi
- * @brief Minimal MAX22217 single-ended solenoid control.
+ * @brief MAX22217 solenoid control.
  */
 #include "actuator.h"
 #include "peripheral/spi.h"
@@ -59,7 +59,7 @@ void actuator_read_reg(actuator_t *dev, uint8_t addr, uint16_t *value,
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Register output is NULL");
         return;
     }
-    // DATA_OUT belongs to the preceding command (datasheet pp. 46-47).
+    // Readback is delayed by one SPI transaction
     transfer(dev, addr, false, 0, NULL, NULL, errc);
     if (*errc != TI_ERRC_NONE) return;
     transfer(dev, addr, false, 0, value, status_out, errc);
@@ -85,8 +85,7 @@ void actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config,
         return;
     }
     dev->spi_config = *spi_config;
-    // Nap first; configure independent half-bridges, active-high CNTL, duty mode,
-    // unmasked faults. Clear software controls, VM-triggered control, and dither.
+    // Start inactive; clear channel controls, VM triggering
     const uint8_t global_regs[] = {ACTUATOR_REG_GLOBAL_CFG, ACTUATOR_REG_GLOBAL_CTRL,
                                    REG_VM_THRESHOLD, REG_U_AC_SCAN};
     for (unsigned i = 0; i < sizeof(global_regs); ++i) {
@@ -95,8 +94,7 @@ void actuator_init(actuator_t *dev, const actuator_spi_dev *spi_config,
     }
     for (unsigned channel = 0; channel < ACTUATOR_CHANNEL_COUNT; ++channel) {
         const uint8_t base = ACTUATOR_CH0_BASE + (ACTUATOR_CH_STRIDE * channel);
-        // DC_L2H, DC_H, DC_L, TIME_L2H, CTRL0, CTRL1, in register order.
-        // 0x7FFF is 100% duty, not 0xFFFF (a signed drive level).
+        // DC_L2H, DC_H, DC_L, TIME_L2H, CTRL0, CTRL1
         const uint16_t settings[] = {
             ACTUATOR_DUTY_ON, ACTUATOR_DUTY_ON, 0, 0, 0,
             (high_side_mask & (1U << channel)) ? HIGH_SIDE_BIT : 0,
