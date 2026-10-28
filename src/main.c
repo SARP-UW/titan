@@ -51,7 +51,7 @@ void _start() {
     while (1) {
         /* adc_channels[0] is AIN0 vs AINCOM, gain 1, internal 2.5 V reference. */
         errc = TI_ERRC_NONE;
-        int32_t uv = adc_read_microvolts(&adc_channels[0], &errc);
+        int32_t uv = adc_read_voltage(&adc_channels[0], &errc);
         adc_read_errc = errc;
 
         if (errc == TI_ERRC_NONE) {
