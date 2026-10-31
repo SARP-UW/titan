@@ -18,14 +18,13 @@
 #include <stdint.h>
 #include <stdio.h>
 
-volatile enum ti_errc_t spi_errc;
-volatile enum ti_errc_t adc_init_errc;
-volatile int adc_dev_id;
-volatile enum ti_errc_t adc_read_errc;
-volatile int32_t adc_ain0_uv;
-volatile int adc_ok_count;
-volatile int adc_fail_count;
-
+volatile enum ti_errc_t spi_errc = TI_ERRC_NONE;
+volatile enum ti_errc_t adc_init_errc = TI_ERRC_NONE;
+volatile enum ti_errc_t adc_read_errc = TI_ERRC_NONE;
+volatile uint8_t adc_dev_id = 0xFF; /* 0 = ADS124S08, 1 = ADS124S06 */
+volatile int32_t adc_ain0_uv = 0;   /* last good AIN4 reading, microvolts */
+volatile uint32_t adc_ok_count = 0;
+volatile uint32_t adc_fail_count = 0;
 
 void _start() {
     enum ti_errc_t errc = TI_ERRC_NONE;
@@ -38,15 +37,13 @@ void _start() {
 
     /* The ADS124S0x only talks SPI mode 1; the driver sets that per transfer
      * anyway, so initializing the bus in mode 1 just avoids the switching. */
-    spi_init((uint8_t)SENSOR_SPI_INST, MODE_1, ss_pins, 1, &errc);
-    spi_errc = errc;
+    spi_init((uint8_t)SENSOR_SPI_INST, MODE_1, ss_pins, 1, &spi_errc);
 
     /* ADC on SENSOR_CS_1. adc_init() checks the device ID, writes a known
      * config (INPMUX = AIN0/AINCOM, gain 1, internal 2.5 V ref, 400 SPS) and
      * starts continuous conversions. */
-    adc_init(&adc_dev, &errc);
-    adc_init_errc = errc;
-    adc_dev_id = adc_read_device_id(&errc);
+    adc_init(&adc_dev, &adc_init_errc);
+    adc_dev_id = adc_read_manufacturer_id(&adc_read_errc);
 
     while (1) {
         /* adc_channels[0] is AIN0 vs AINCOM, gain 1, internal 2.5 V reference. */
@@ -60,7 +57,5 @@ void _start() {
         } else {
             adc_fail_count++;
         }
-
-        systick_delay(200);
     }
 }

@@ -252,23 +252,25 @@ int adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc) {
         return -1;
     }
 
-    if (!adc_wait_data_ready(dout_pin, errc)) {
-        *errc = TI_ERRC_INVALID_ARG;
-        return -1;
-    }
+    // if (!adc_wait_data_ready(dout_pin, errc)) {
+    //     *errc = TI_ERRC_INVALID_ARG;
+    //     return -1;
+    // }
 
     // Request data
     int32_t result = adc_rdata(errc);
 
     // Voltage conversion math
-    float divisor = (float)((1 << 23) - 1);
+    int32_t gain_shift = channel->gain & 0x07;
 
-    // Convert the 3-bit gain code (0-7) into the actual multiplier (1, 2, 4... 128)
-    float actual_gain = (float)(1 << (channel->gain & 0x07));
+    // Convert reference voltage to microvolts
+    uint64_t ref_uv = (uint64_t)channel->ref_voltage * 1000000ULL;
 
-    float final_voltage = ((float)result * channel->ref_voltage) / (actual_gain * divisor);
+    // Calculate voltage in microvolts
+    uint64_t final_voltage = ((uint64_t)result * ref_uv) >> (23 + gain_shift);
 
-    return (int32_t)(final_voltage * 1000);
+    // Return voltage in microvolts
+    return (int32_t)final_voltage;
 }
 
 int adc_read_voltage_diff(struct adc_channel channel1, struct adc_channel channel2, enum ti_errc_t *errc) {
