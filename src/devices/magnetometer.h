@@ -38,12 +38,12 @@ extern struct magnetometer_spi_dev {
 /**
  * @brief Magnetometer reading result
  */
-struct magnetometer_result_t {
+typedef struct {
     int32_t mag_x;        /**< X-axis magnetic field */
     int32_t mag_y;        /**< Y-axis magnetic field */
     int32_t mag_z;        /**< Z-axis magnetic field */
     float temperature;    /**< Internal temperature */
-};
+} magnetometer_result_t;
 
 /**
  * @brief Initializes the IMMC5983MA Magnetometer. 
@@ -61,4 +61,4 @@ enum ti_errc_t magnetometer_init(struct magnetometer_spi_dev* dev);
  * @param result  pointer to the result structure. 
  * @return ti_errc_t error code.
  */
-enum ti_errc_t magnetometer_read(struct magnetometer_spi_dev* dev, struct magnetometer_result_t* result);
+enum ti_errc_t magnetometer_read(struct magnetometer_spi_dev* dev, magnetometer_result_t* result);
