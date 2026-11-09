@@ -337,6 +337,27 @@ void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count,
 
 }
 
+uint8_t spi_set_mode(uint8_t inst, uint8_t mode, enum ti_errc_t *errc) {
+    if (errc) *errc = TI_ERRC_NONE;
+    if (inst < 1 || inst > 6 || mode > MODE_3) {
+        TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "Invalid SPI instance or mode");
+        return 0;
+    }
+
+    uint8_t previous = (uint8_t)((READ_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL) << 1) |
+                                 READ_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA));
+    uint8_t was_enabled = (uint8_t)READ_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
+
+    // RM0399: disable SPI before changing CPOL or CPHA.
+    CLR_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
+    while (READ_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE));
+    WRITE_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPOL, (mode >> 1) & 1U);
+    WRITE_FIELD(SPIx_CFG2[inst], SPIx_CFG2_CPHA, mode & 1U);
+    if (was_enabled) SET_FIELD(SPIx_CR1[inst], SPIx_CR1_SPE);
+
+    return previous;
+}
+
 void spi_transfer_sync (uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
     if (size == 0) {

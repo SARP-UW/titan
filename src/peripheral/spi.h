@@ -53,6 +53,15 @@ enum spi_mode {
 void spi_init(uint8_t inst, uint8_t mode, uint8_t* ss_list, uint8_t slave_count, enum ti_errc_t *errc);
 
 /**
+ * @brief Set the SPI clock mode and return the previous mode.
+ *
+ * The instance must already be initialized and idle, with all chip selects
+ * inactive. The caller must serialize mode changes and transfers on the bus.
+ * On error, the return value is undefined and errc reports the failure.
+ */
+uint8_t spi_set_mode(uint8_t inst, uint8_t mode, enum ti_errc_t *errc);
+
+/**
  * @brief Perform an SPI data transfer with blocking. 
  * 
  * Sends data from the source buffer while simultaneously receiving data into
