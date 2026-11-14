@@ -89,13 +89,12 @@ enum adc_gain
 
 /**
  * @brief Reference Voltage Sources; ref: 9.6.1.6
- * // FLAG - referring to bits 3:2, 00 is external 0, 01 is external 1, 10 is internal, and 11 is reserved; also we are using bits 3:2 so adjust accordingly in mask. should be 0x00, 0x04, 0x08
  */
 enum adc_ref_voltage_source
 {
-    REF_INTERNAL = 0x08, // 2.5V Internal
-    REF_EXT_0 = 0x00,    // External Ref 0
-    REF_EXT_1 = 0x04,    // External Ref 1
+    REF_INTERNAL = 0x00, // 2.5V Internal
+    REF_EXT_0 = 0x01,    // External Ref 0
+    REF_EXT_1 = 0x02,    // External Ref 1
 };
 
 /**
@@ -109,7 +108,7 @@ struct adc_channel
     enum adc_pin neg_pin;
     enum adc_gain gain;
     enum adc_ref_voltage_source source;
-    int8_t ref_voltage;
+    int64_t ref_uv; // reference voltage in microvolts 
     char *name;
 };
 
@@ -188,7 +187,7 @@ void adc_set_gpio(enum adc_pin pin, bool input, enum ti_errc_t *errc);
  * @brief Returns channel name.
  *
  * @param channel an ADC channel
- * @return a String representing the name of hte channel
+ * @return a String representing the name of the channel
  */
 char *adc_get_channel_name(struct adc_channel channel);
 

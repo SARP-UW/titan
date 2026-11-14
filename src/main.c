@@ -1,13 +1,13 @@
-/**
- * This file is part of the Titan Flight Computer Project
- * Copyright (c) 2026 UW SARP
- *
- * @file main.c
- * @brief ADC bring-up test: reads AIN0 on the ADS124S0x at SENSOR_CS_1.
- *
- * Attach a debugger, run, and inspect the volatile globals below at each BKPT.
- * adc_ain0_uv holds the last good AIN0 reading in microvolts.
- */
+// /**
+//  * This file is part of the Titan Flight Computer Project
+//  * Copyright (c) 2026 UW SARP
+//  *
+//  * @file main.c
+//  * @brief ADC bring-up test: reads AIN0 on the ADS124S0x at SENSOR_CS_1.
+//  *
+//  * Attach a debugger, run, and inspect the volatile globals below at each BKPT.
+//  * adc_ain0_uv holds the last good AIN0 reading in microvolts.
+//  */
 
 #include "peripheral/spi.h"
 #include "peripheral/systick.h"
