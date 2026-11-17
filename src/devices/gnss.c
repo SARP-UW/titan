@@ -150,7 +150,7 @@ static void ubx_calc_checksum(uint8_t class_id, uint8_t msg_id, uint16_t len, co
 /**
  * @brief Transmits a UBX frame over SPI
  */
-static void ubx_send_msg(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const void *payload, uint16_t len, enum ti_errc_t *errc) {
+void ubx_send_msg(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const void *payload, uint16_t len, enum ti_errc_t *errc) {
     uint8_t header[6] = {
         UBX_SYNC1, UBX_SYNC2, class_id, msg_id, 
         (uint8_t)(len & 0xFF), (uint8_t)((len >> 8) & 0xFF)
@@ -162,20 +162,51 @@ static void ubx_send_msg(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const vo
     uint8_t checksum[2] = {ck_a, ck_b};
     if (errc) *errc = TI_ERRC_NONE;
 
-    spi_tx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, header, 6, errc);
+    uint8_t rx[6];
+
+    // Header
+    //spi_tx
+    spi_transfer_sync(
+        dev->spi_config.spi_inst,
+        dev->spi_config.ss_pin,
+        header,
+        rx,
+        6,
+        errc
+    );
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
+    // Payload
+    //spi_tx
     if (len > 0) {
-        spi_tx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, (const uint8_t*)payload, len, errc);
+        uint8_t rx_payload[255];
+
+        spi_transfer_sync(
+            dev->spi_config.spi_inst,
+            dev->spi_config.ss_pin,
+            (void *)payload,
+            rx_payload,
+            (uint8_t)len,
+            errc
+        );
         if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
     }
-    
-    spi_tx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, checksum, 2, errc);
+    // checksum
+    uint8_t rx_checksum[2];
+
+    spi_transfer_sync(
+        dev->spi_config.spi_inst,
+        dev->spi_config.ss_pin,
+        checksum,
+        rx_checksum,
+        2,
+        errc
+    );
 }
 
 /**
  * @brief Sends a configuration message and blocks until ACK/NAK is received
  */
-static void ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const void *payload, uint16_t len, enum ti_errc_t *errc) {
+void ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const void *payload, uint16_t len, enum ti_errc_t *errc) {
     if (errc) *errc = TI_ERRC_NONE;
     ubx_send_msg(dev, class_id, msg_id, payload, len, errc);
     if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
@@ -186,7 +217,16 @@ static void ubx_configure(gnss_t *dev, uint8_t class_id, uint8_t msg_id, const v
     uint32_t attempts = 15000; // Safeguard against infinite loops
     
     while (attempts--) {
-        spi_rx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, &rx, 1, errc);
+        uint8_t dummy = 0xFF;
+
+        spi_transfer_sync(
+            dev->spi_config.spi_inst,
+            dev->spi_config.ss_pin,
+            &dummy,
+            &rx,
+            1,
+            errc
+        );
         if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
         if (rx == 0xFF) continue; // Idle byte from u-blox M8 
         
@@ -286,7 +326,7 @@ void gnss_init(gnss_t *dev, enum ti_errc_t *errc) {
     gnss_cfg.blocks[3].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_BEIDOU) ? 0x01010001 : 0x01010000;
 
     // QZSS block
-    gnss_cfg.blocks[4].gnssId = 5; 
+    gnss_cfg.blocks[4].gnssId = 5;
     gnss_cfg.blocks[4].resTrkCh = 0;
     gnss_cfg.blocks[4].maxTrkCh = 3;
     gnss_cfg.blocks[4].flags = (dev->config.constellation_mask & GNSS_CONSTELLATION_QZSS) ? 0x01010001 : 0x01010000;
@@ -325,9 +365,17 @@ void gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt, enum ti_errc_t *errc) {
     uint8_t *pvt_ptr = (uint8_t *)&pvt_raw;
     
     uint32_t attempts = 15000;
-    
+    uint8_t dummy = 0xFF;
     while (attempts--) {
-        spi_rx(dev->spi_config.spi_inst, dev->spi_config.ss_pin, &rx, 1, errc);
+
+        spi_transfer_sync(
+            dev->spi_config.spi_inst,
+            dev->spi_config.ss_pin,
+            &dummy,
+            &rx,
+            1,
+            errc
+        );
         if (errc && *errc != TI_ERRC_NONE) { TI_SET_ERRC(errc, *errc, "Propagated"); return; }
         
         if (state == 0 && rx == 0xFF) continue; 

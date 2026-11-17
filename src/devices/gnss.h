@@ -151,3 +151,21 @@ void gnss_init(gnss_t *dev, enum ti_errc_t *errc);
  * @param errc Pointer to error status output.
  */
 void gnss_get_pvt(gnss_t *dev, gnss_pvt_t *pvt, enum ti_errc_t *errc);
+
+void ubx_send_msg(
+    gnss_t *dev,
+    uint8_t class_id,
+    uint8_t msg_id,
+    const void *payload,
+    uint16_t len,
+    enum ti_errc_t *errc
+);
+
+void ubx_configure(
+    gnss_t *dev,
+    uint8_t class_id,
+    uint8_t msg_id,
+    const void *payload,
+    uint16_t len,
+    enum ti_errc_t *errc
+);
