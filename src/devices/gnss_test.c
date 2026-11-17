@@ -37,9 +37,9 @@ void gnss_test(void) {
     // Initialize SPI2 in Mode 0
     uint8_t ss_list[1] = {gps_cs_pin};
 
-    printf("Initializing SPI2...\n");
+    printf("Initializing SPI3...\n");
 
-    spi_init(2, 0, ss_list, 1, &err);
+    spi_init(3, 0, ss_list, 1, &err);
 
     if (err != TI_ERRC_NONE) {
         printf("FAIL: spi_init\n");
@@ -53,7 +53,7 @@ void gnss_test(void) {
     gnss_t gps = {0};
 
     // WHITCH SPI PERIPHERAL
-    gps.spi_config.spi_inst = 2;
+    gps.spi_config.spi_inst = 3;
     // WHICH CHIP SELECT
     gps.spi_config.ss_pin = gps_cs_pin;
 
