@@ -20,7 +20,7 @@
  *   PB13  -> GPS SCK 73
  *   PB14  <- GPS MISO 74
  *   PB15  -> GPS MOSI 75
- *   PA4   -> GPS CS_N 43 CHOSE YOURSELF
+ *   PA4   -> GPS CS_N 43 CHOSE YOURSELF GPIO 20
  *   GND   -> GPS GND
  *   3.3V  -> GPS VCC
  *   GND   -> GPS D_SEL (SPI mode)
@@ -31,8 +31,8 @@
 void gnss_test(void) {
     enum ti_errc_t err = TI_ERRC_NONE;
 
-    // GPS chip select: PA4 (pin 43)
-    uint8_t gps_cs_pin = 43;
+    // GPS chip select
+    uint8_t gps_cs_pin = 20;
 
     // Initialize SPI2 in Mode 0
     uint8_t ss_list[1] = {gps_cs_pin};
