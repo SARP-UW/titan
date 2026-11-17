@@ -31,36 +31,33 @@
 void gnss_test(void) {
     enum ti_errc_t err = TI_ERRC_NONE;
 
-    // Verify that 43 maps to PA4 in our GPIO driver.
+    // GPS chip select: PA4 (pin 43)
     uint8_t gps_cs_pin = 43;
 
-    // Create the GPS device BEFORE using &gps.
-    gnss_t gps = {0};
+    // Initialize SPI2 in Mode 0
+    uint8_t ss_list[1] = {gps_cs_pin};
 
-    // Set SPI connection.
-    gps.spi_config.spi_inst = 2;
-    gps.spi_config.ss_pin = gps_cs_pin;
+    printf("Initializing SPI2...\n");
 
-    // Set GPS configuration.
-    gps.config.meas_rate_ms = 1000;
-    gps.config.dyn_model = GNSS_DYN_PORTABLE;
-    gps.config.power_mode = GNSS_POWER_CONTINUOUS;
-    gps.config.constellation_mask = GNSS_CONSTELLATION_GPS;
-
-    // TEST 1: Initialize GPS and SPI.
-    // Assumes gnss_init initializes the SPI interface.
-    printf("TEST 1: Initialize GPS and SPI. Testing gnss_init...\n");
-
-    gnss_init(&gps, &err);
+    spi_init(2, 0, ss_list, 1, &err);
 
     if (err != TI_ERRC_NONE) {
-        printf("FAIL: gnss_init\n");
+        printf("FAIL: spi_init\n");
         printf("Error code: %d\n", (int)err);
         return;
     }
 
-    printf("PASS: GPS initialized: %u\n",
-           (unsigned)gps.initialized);
+    printf("PASS: SPI2 initialized\n");
+
+    // Create GPS device
+    gnss_t gps = {0};
+
+    // WHITCH SPI PERIPHERAL
+    gps.spi_config.spi_inst = 2;
+    // WHICH CHIP SELECT
+    gps.spi_config.ss_pin = gps_cs_pin;
+
+
 
     // Create UBX CFG-RATE payload.
     ubx_cfg_rate_t rate_cfg = {0};
@@ -69,8 +66,8 @@ void gnss_test(void) {
     rate_cfg.navRate = 1;
     rate_cfg.timeRef = 0;
 
-    // TEST 2: Send a UBX configuration message.
-    printf("TTEST 2: Send a UBX configuration message. esting ubx_send_msg...\n");
+    // TEST 1: Send a UBX configuration message without acknowledgmenet.
+    printf("TTEST 1: Send a UBX configuration message. esting ubx_send_msg...\n");
 
     err = TI_ERRC_NONE;
 
@@ -91,8 +88,8 @@ void gnss_test(void) {
 
     printf("PASS: SPI transmission completed\n");
 
-    // TEST 3: Send configuration and wait for ACK.
-    printf("TEST 3: Send configuration and wait for ACK. Testing ubx_configure...\n");
+    // TEST 2: Send configuration and wait for ACK. WITH acklowledgment. 
+    printf("TEST 2: Send configuration and wait for ACK. Testing ubx_configure...\n");
 
     err = TI_ERRC_NONE;
 
@@ -112,6 +109,25 @@ void gnss_test(void) {
     }
 
     printf("PASS: GPS acknowledged CFG-RATE\n");
+
+    // TEST 3 INITIALIZE ALL FOUR CONFIGURATIONS
+    printf("TEST 3: Testing gnss_init...\n");
+    // Configure GPS
+    gps.config.meas_rate_ms = 1000;
+    gps.config.dyn_model = GNSS_DYN_PORTABLE;
+    gps.config.power_mode = GNSS_POWER_CONTINUOUS;
+    gps.config.constellation_mask = GNSS_CONSTELLATION_GPS;
+
+    gnss_init(&gps, &err);
+
+    if (err != TI_ERRC_NONE) {
+        printf("FAIL: gnss_init\n");
+        printf("Error code: %d\n", (int)err);
+        return;
+    }
+
+    printf("PASS: GPS initialized: %u\n",
+           (unsigned)gps.initialized);
 
     // TEST 4: Get navigation data.
     printf("\nTEST 4: Get navigation data. TESTING gnss_get_pvt...\n");
