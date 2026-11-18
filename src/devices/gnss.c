@@ -11,117 +11,117 @@
 #include "peripheral/errc.h"
 #include <stddef.h>
 
-/* UBX Protocol Synchronization and Class IDs */
-#define UBX_SYNC1 0xB5
-#define UBX_SYNC2 0x62
+// /* UBX Protocol Synchronization and Class IDs */
+// #define UBX_SYNC1 0xB5
+// #define UBX_SYNC2 0x62
 
-#define UBX_CLASS_NAV 0x01
-#define UBX_CLASS_ACK 0x05
-#define UBX_CLASS_CFG 0x06
+// #define UBX_CLASS_NAV 0x01
+// #define UBX_CLASS_ACK 0x05
+// #define UBX_CLASS_CFG 0x06
 
-/* UBX Message IDs */
-#define UBX_NAV_PVT   0x07
-#define UBX_CFG_RATE  0x08
-#define UBX_CFG_NAV5  0x24
-#define UBX_CFG_GNSS  0x3E
-#define UBX_CFG_PMS   0x86
-#define UBX_ACK_NAK   0x00
-#define UBX_ACK_ACK   0x01
+// /* UBX Message IDs */
+// #define UBX_NAV_PVT   0x07
+// #define UBX_CFG_RATE  0x08
+// #define UBX_CFG_NAV5  0x24
+// #define UBX_CFG_GNSS  0x3E
+// #define UBX_CFG_PMS   0x86
+// #define UBX_ACK_NAK   0x00
+// #define UBX_ACK_ACK   0x01
 
 
 /* 
  * Assuming standard SPI transmit/receive function signatures from peripheral/spi.h.
  * Adjust these externs if your spi.h uses slightly different naming conventions. 
  */
-extern void spi_tx(uint8_t spi_inst, uint8_t ss_pin, const uint8_t *tx_data, uint32_t len, enum ti_errc_t *errc);
-extern void spi_rx(uint8_t spi_inst, uint8_t ss_pin, uint8_t *rx_data, uint32_t len, enum ti_errc_t *errc);
+//extern void spi_tx(uint8_t spi_inst, uint8_t ss_pin, const uint8_t *tx_data, uint32_t len, enum ti_errc_t *errc);
+extern void spi_transfer_sync(uint8_t inst, uint8_t ss_pin, void* src, void* dst, uint8_t size, enum ti_errc_t *errc); 
 
 /**************************************************************************************************
  * @section UBX Payload Structures
  **************************************************************************************************/
 #pragma pack(push, 1)
 
-typedef struct {
-    uint16_t measRate;
-    uint16_t navRate;
-    uint16_t timeRef;
-} ubx_cfg_rate_t;
+// typedef struct {
+//     uint16_t measRate;
+//     uint16_t navRate;
+//     uint16_t timeRef;
+// } ubx_cfg_rate_t;
 
-typedef struct {
-    uint16_t mask;
-    uint8_t  dynModel;
-    uint8_t  fixMode;
-    int32_t  fixedAlt;
-    uint32_t fixedAltVar;
-    int8_t   minElev;
-    uint8_t  drLimit;
-    uint16_t pDop;
-    uint16_t tDop;
-    uint16_t vDop;
-    uint16_t cDop;
-    uint8_t  reserved1[4];
-    uint8_t  dynCbg;
-    uint8_t  reserved2[11];
-} ubx_cfg_nav5_t;
+// typedef struct {
+//     uint16_t mask;
+//     uint8_t  dynModel;
+//     uint8_t  fixMode;
+//     int32_t  fixedAlt;
+//     uint32_t fixedAltVar;
+//     int8_t   minElev;
+//     uint8_t  drLimit;
+//     uint16_t pDop;
+//     uint16_t tDop;
+//     uint16_t vDop;
+//     uint16_t cDop;
+//     uint8_t  reserved1[4];
+//     uint8_t  dynCbg;
+//     uint8_t  reserved2[11];
+// } ubx_cfg_nav5_t;
 
-typedef struct {
-    uint8_t  version;
-    uint8_t  powerSetupValue;
-    uint16_t period;
-    uint16_t onTime;
-    uint8_t  reserved[2];
-} ubx_cfg_pms_t;
+// typedef struct {
+//     uint8_t  version;
+//     uint8_t  powerSetupValue;
+//     uint16_t period;
+//     uint16_t onTime;
+//     uint8_t  reserved[2];
+// } ubx_cfg_pms_t;
 
-typedef struct {
-    uint8_t  gnssId;
-    uint8_t  resTrkCh;
-    uint8_t  maxTrkCh;
-    uint8_t  reserved1;
-    uint32_t flags;
-} ubx_cfg_gnss_block_t;
+// typedef struct {
+//     uint8_t  gnssId;
+//     uint8_t  resTrkCh;
+//     uint8_t  maxTrkCh;
+//     uint8_t  reserved1;
+//     uint32_t flags;
+// } ubx_cfg_gnss_block_t;
 
-typedef struct {
-    uint8_t msgVer;
-    uint8_t numTrkChHw;
-    uint8_t numTrkChUse;
-    uint8_t numConfigBlocks;
-    ubx_cfg_gnss_block_t blocks[6]; // GPS, SBAS, Galileo, BeiDou, QZSS, GLONASS
-} ubx_cfg_gnss_t;
+// typedef struct {
+//     uint8_t msgVer;
+//     uint8_t numTrkChHw;
+//     uint8_t numTrkChUse;
+//     uint8_t numConfigBlocks;
+//     ubx_cfg_gnss_block_t blocks[6]; // GPS, SBAS, Galileo, BeiDou, QZSS, GLONASS
+// } ubx_cfg_gnss_t;
 
-typedef struct {
-    uint32_t iTOW;
-    uint16_t year;
-    uint8_t  month;
-    uint8_t  day;
-    uint8_t  hour;
-    uint8_t  min;
-    uint8_t  sec;
-    uint8_t  valid;
-    uint32_t tAcc;
-    int32_t  nano;
-    uint8_t  fixType;
-    uint8_t  flags;
-    uint8_t  flags2;
-    uint8_t  numSV;
-    int32_t  lon;
-    int32_t  lat;
-    int32_t  height;
-    int32_t  hMSL;
-    uint32_t hAcc;
-    uint32_t vAcc;
-    int32_t  velN;
-    int32_t  velE;
-    int32_t  velD;
-    int32_t  gSpeed;
-    int32_t  headMot;
-    uint32_t sAcc;
-    uint32_t headingAcc;
-    uint16_t pDOP;
-    uint8_t  reserved1[6];
-    int32_t  headVeh;
-    int16_t  magDec;
-    uint16_t magAcc;
-} ubx_nav_pvt_t;
+// typedef struct {
+//     uint32_t iTOW;
+//     uint16_t year;
+//     uint8_t  month;
+//     uint8_t  day;
+//     uint8_t  hour;
+//     uint8_t  min;
+//     uint8_t  sec;
+//     uint8_t  valid;
+//     uint32_t tAcc;
+//     int32_t  nano;
+//     uint8_t  fixType;
+//     uint8_t  flags;
+//     uint8_t  flags2;
+//     uint8_t  numSV;
+//     int32_t  lon;
+//     int32_t  lat;
+//     int32_t  height;
+//     int32_t  hMSL;
+//     uint32_t hAcc;
+//     uint32_t vAcc;
+//     int32_t  velN;
+//     int32_t  velE;
+//     int32_t  velD;
+//     int32_t  gSpeed;
+//     int32_t  headMot;
+//     uint32_t sAcc;
+//     uint32_t headingAcc;
+//     uint16_t pDOP;
+//     uint8_t  reserved1[6];
+//     int32_t  headVeh;
+//     int16_t  magDec;
+//     uint16_t magAcc;
+// } ubx_nav_pvt_t;
 
 #pragma pack(pop)
 
