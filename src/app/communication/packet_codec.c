@@ -130,15 +130,15 @@ void build_adc_packet(const struct adc_channel *channels,
     buffer[index++] = packet_index;
 
     for (uint8_t i = 0; i < channel_count; i++) {
-        enum ti_errc_t read_errc = TI_ERRC_NONE;
-        const int32_t raw_value = adc_read_voltage(&channels[i], &read_errc);
-        if (read_errc != TI_ERRC_NONE) {
-            TI_SET_ERRC(errc, read_errc, "Failed to read ADC channel");
-            return;
-        }
-        buffer[index++] = (uint8_t)((raw_value >> 16) & 0xFF);
-        buffer[index++] = (uint8_t)((raw_value >> 8) & 0xFF);
-        buffer[index++] = (uint8_t)(raw_value & 0xFF);
+        // enum ti_errc_t read_errc = TI_ERRC_NONE;
+        // const int32_t raw_value = adc_read_voltage(&channels[i], &read_errc);
+        // if (read_errc != TI_ERRC_NONE) {
+        //     TI_SET_ERRC(errc, read_errc, "Failed to read ADC channel");
+        //     return;
+        // }
+        // buffer[index++] = (uint8_t)((raw_value >> 16) & 0xFF);
+        // buffer[index++] = (uint8_t)((raw_value >> 8) & 0xFF);
+        // buffer[index++] = (uint8_t)(raw_value & 0xFF);
     }
 }
 

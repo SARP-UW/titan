@@ -118,6 +118,7 @@ void _start() { // NOLINT(misc-use-internal-linkage)
     // state_comm_shared.last_command_status = 255;
 
     while (1) {
+    // asm("BKPT #0");
         size_t rx_len = 0U;
 
         build_comm_packet(state_comm_shared.ping_id,
@@ -131,17 +132,18 @@ void _start() { // NOLINT(misc-use-internal-linkage)
                           sizeof(state_comm_shared.comm_packet),
                           &comm_packet_len,
                           &errc);
+    // asm("BKPT #0");
 
         if (errc && errc != TI_ERRC_NONE) {
             TI_SET_ERRC(&errc, errc, "Failed to build reply comm packet");
             asm("BKPT #0");
             continue;
         }
-        asm("BKPT #0");
-        send_packet_umbilical(&umbilical_dev,
-                              state_comm_shared.comm_packet,
-                              comm_packet_len,
-                              &errc);
+        // asm("BKPT #0");
+        // send_packet_umbilical(&umbilical_dev,
+        //                       state_comm_shared.comm_packet,
+        //                       comm_packet_len,
+        //                       &errc);
 
         if (errc && errc != TI_ERRC_NONE) {
             TI_SET_ERRC(&errc, errc, "Failed to send reply comm packet");
@@ -149,40 +151,40 @@ void _start() { // NOLINT(misc-use-internal-linkage)
             continue;
         }
 
-        asm("BKPT #0");
+        // asm("BKPT #0")
 
         state_comm_shared.ping_id++;
         state_comm_shared.processor_time_ms += LOOP_PERIOD_MS;
-        umbilical_receive(&umbilical_dev,
-                          state_comm_shared.rx_packet,
-                          16, 
-                          //sizeof(state_comm_shared.rx_packet),
-                          &rx_len,
-                          &errc);
-        if (errc && errc != TI_ERRC_NONE) {
-            TI_SET_ERRC(&errc, errc, "Failed to receive umbilical packet");
-            asm("BKPT #0");
-            continue;
-        }
-        asm("BKPT #0");
-        parse_uplink_comm_packet(state_comm_shared.rx_packet,
-                                 rx_len,
-                                 &state_comm_shared.uplink_comm,
-                                 &errc);
-        if (errc && errc != TI_ERRC_NONE) {
-            TI_SET_ERRC(&errc, errc, "Failed to parse umbilical packet");
-            asm("BKPT #0");
-            continue;
-        }
+        // umbilical_receive(&umbilical_dev,
+        //                   state_comm_shared.rx_packet,
+        //                   16, 
+        //                   //sizeof(state_comm_shared.rx_packet),
+        //                   &rx_len,
+        //                   &errc);
+        // if (errc && errc != TI_ERRC_NONE) {
+        //     TI_SET_ERRC(&errc, errc, "Failed to receive umbilical packet");
+        //     asm("BKPT #0");
+        //     continue;
+        // }
+        // asm("BKPT #0");
+        // parse_uplink_comm_packet(state_comm_shared.rx_packet,
+        //                          rx_len,
+        //                          &state_comm_shared.uplink_comm,
+        //                          &errc);
+        // if (errc && errc != TI_ERRC_NONE) {
+        //     TI_SET_ERRC(&errc, errc, "Failed to parse umbilical packet");
+        //     asm("BKPT #0");
+        //     continue;
+        // }
 
-        asm("BKPT #0");
-        if (state_comm_shared.uplink_comm.command_valid) {
-            state_comm_shared.last_command_id = state_comm_shared.uplink_comm.command_id;
-            state_comm_shared.last_command_status = COMMAND_STATUS_SUCCESS;
-        } else {
-            state_comm_shared.last_command_status = COMMAND_STATUS_WAITING;
-        }
+        // asm("BKPT #0");
+        // if (state_comm_shared.uplink_comm.command_valid) {
+        //     state_comm_shared.last_command_id = state_comm_shared.uplink_comm.command_id;
+        //     state_comm_shared.last_command_status = COMMAND_STATUS_SUCCESS;
+        // } else {
+        //     state_comm_shared.last_command_status = COMMAND_STATUS_WAITING;
+        // }
         systick_delay(LOOP_PERIOD_MS);
-        asm("BKPT #0");
+        // asm("BKPT #0");
     }
 }

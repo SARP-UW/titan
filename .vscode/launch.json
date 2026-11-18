@@ -39,7 +39,8 @@
         "samplesPerSecond": 4
       },
       "preLaunchCommands": [
-        "monitor reset halt"
+        "monitor reset",
+        "monitor halt"
       ]
     }
   ],
