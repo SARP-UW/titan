@@ -10,6 +10,7 @@
 #include "peripheral/gpio.h"
 #include "peripheral/qspi.h"
 #include "peripheral/systick.h"
+#include "app/utils/pinout.h"
 
 #define LOOP_PERIOD_MS 100U
 #define SYSTEM_MODE_STANDBY 1U
@@ -81,6 +82,12 @@ void _start() { // NOLINT(misc-use-internal-linkage)
     // tal_set_mode(rxpin, 1);
     // tal_set_pin(txpin, 1);
     // tal_set_pin(rxpin, 0);
+    tal_enable_clock((int)RS485_DE);
+    tal_enable_clock((int)RS485_RE);
+    tal_set_mode((int)RS485_DE, 1);
+    tal_set_mode((int)RS485_RE, 1);
+    tal_set_pin((int)RS485_DE, 0);
+    tal_set_pin((int)RS485_RE, 0);
 
     state_comm_init(&state_comm_shared);
     state_comm_shared.last_command_status = COMMAND_STATUS_WAITING;
