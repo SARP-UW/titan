@@ -86,8 +86,8 @@ void _start() { // NOLINT(misc-use-internal-linkage)
     tal_enable_clock((int)RS485_RE);
     tal_set_mode((int)RS485_DE, 1);
     tal_set_mode((int)RS485_RE, 1);
-    tal_set_pin((int)RS485_DE, 0);
-    tal_set_pin((int)RS485_RE, 0);
+    tal_set_pin((int)RS485_DE, 1);
+    tal_set_pin((int)RS485_RE, 1);
 
     state_comm_init(&state_comm_shared);
     state_comm_shared.last_command_status = COMMAND_STATUS_WAITING;
@@ -147,10 +147,10 @@ void _start() { // NOLINT(misc-use-internal-linkage)
             continue;
         }
         // asm("BKPT #0");
-        // send_packet_umbilical(&umbilical_dev,
-        //                       state_comm_shared.comm_packet,
-        //                       comm_packet_len,
-        //                       &errc);
+        send_packet_umbilical(&umbilical_dev,
+                              state_comm_shared.comm_packet,
+                              comm_packet_len,
+                              &errc);
 
         if (errc && errc != TI_ERRC_NONE) {
             TI_SET_ERRC(&errc, errc, "Failed to send reply comm packet");
