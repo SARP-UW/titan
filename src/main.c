@@ -15,6 +15,7 @@
 #include "devices/adc.h"
 #include "app/utils/devices.h"
 #include "app/utils/pinout.h"
+#include "peripheral/gpio.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -44,38 +45,25 @@ static const struct adc_channel ain4_channel = {
 };
 
 void _start() {
-    enum ti_errc_t errc = TI_ERRC_NONE;
+    tal_enable_clock((int)RS485_DE);
+    tal_enable_clock((int)RS485_RE);
+    tal_set_mode((int)RS485_DE, 1);
+    tal_set_mode((int)RS485_RE, 1);
+    tal_set_pin((int)RS485_DE, 1);
+    tal_set_pin((int)RS485_RE, 1);
 
-    /* Every chip select on the instance has to be listed here, or spi_init()
-     * never drives that pin as an output held high. */
-    uint8_t ss_pins[1] = { (uint8_t)SENSOR_CS_2 };
+    tal_enable_clock(39);
+    tal_set_mode(39, 1);
 
-    systick_init();
 
-    /* The ADS124S0x only talks SPI mode 1; the driver sets that per transfer
-     * anyway, so initializing the bus in mode 1 just avoids the switching. */
-    spi_init((uint8_t)SENSOR_SPI_INST, MODE_1, ss_pins, 1, &errc);
-    spi_errc = errc;
-
-    /* adc_init() checks the device ID, writes a known config (gain 1,
-     * internal 2.5 V ref, 400 SPS) and starts continuous conversions. Each
-     * read sets INPMUX from the channel, so AIN4 is selected per read. */
-    adc_init(&test_adc_dev, &errc);
-    adc_init_errc = errc;
-    adc_dev_id = adc_read_device_id(&errc);
-
-    while (1) {
-        errc = TI_ERRC_NONE;
-        int32_t uv = adc_read_microvolts(&ain4_channel, &errc);
-        adc_read_errc = errc;
-
-        if (errc == TI_ERRC_NONE) {
-            adc_ain4_uv = uv;
-            adc_ok_count++;
-        } else {
-            adc_fail_count++;
+    while(1){
+        tal_set_pin(39, 1);
+        for (int i = 0; i < 100000; i++){
+            asm("NOP");
         }
-
-        systick_delay(200);
+        tal_set_pin(39, 0);
+        for (int i = 0; i < 100000; i++){
+            asm("NOP");
+        }
     }
 }
