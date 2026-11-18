@@ -31,7 +31,7 @@ void _start() {
 
     /* Every chip select on the instance has to be listed here, or spi_init()
      * never drives that pin as an output held high. */
-    uint8_t ss_pins[1] = { (uint8_t)SENSOR_CS_1 };
+    uint8_t ss_pins[1] = { (uint8_t)SENSOR_CS_2 };
 
     systick_init();
 

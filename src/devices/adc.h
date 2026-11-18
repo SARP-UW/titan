@@ -15,8 +15,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * @file devices/adc.h
- * @authors Jude Merritt
- * @brief ADS124S0x ADC driver header
+ * @authors Victor Wong, Ayla Crowell, Jude Merritt
+ * @brief ADS124S08 ADC driver header
  */
 
 #include <stdint.h>
@@ -39,20 +39,20 @@ struct adc_spi_dev
  */
 enum adc_pin
 {
-    AIN0 = 0x00,
-    AIN1 = 0x01,
-    AIN2 = 0x02,
-    AIN3 = 0x03,
-    AIN4 = 0x04,
-    AIN5 = 0x05,
-    AIN6 = 0x06,
-    AIN7 = 0x07,
-    AIN8 = 0x08,           // Can also be GPIO0
-    AIN9 = 0x09,           // Can also be GPIO1
-    AIN10 = 0x0A,          // Can also be GPIO2
-    AIN11 = 0x0B,          // Can also be GPIO3
-    AINCOM = 0x0C,         // Common ground pin for single-ended measurements
-    IDAC_DISCONNECT = 0x0F // This is useful if you only want to use one IDAC
+    AIN0 =            0x00,
+    AIN1 =            0x01,
+    AIN2 =            0x02,
+    AIN3 =            0x03,
+    AIN4 =            0x04,
+    AIN5 =            0x05,
+    AIN6 =            0x06,
+    AIN7 =            0x07,
+    AIN8 =            0x08, // Can also be GPIO0
+    AIN9 =            0x09, // Can also be GPIO1
+    AIN10 =           0x0A, // Can also be GPIO2
+    AIN11 =           0x0B, // Can also be GPIO3
+    AINCOM =          0x0C, // Common ground pin for single-ended measurements
+    IDAC_DISCONNECT = 0x0F  // This is useful if you only want to use one IDAC
 };
 
 /**
@@ -60,13 +60,13 @@ enum adc_pin
  */
 enum idac_mag
 {
-    IDAC_OFF = 0x00, // Pair this with the adc_set_idac function to turn off the idac
-    IDAC_10_UA = 0x01,
-    IDAC_50_UA = 0x02,
-    IDAC_100_UA = 0x03,
-    IDAC_250_UA = 0x04,
-    IDAC_500_UA = 0x05,
-    IDAC_750_UA = 0x06,
+    IDAC_OFF =     0x00, // Pair this with the adc_set_idac function to turn off the idac
+    IDAC_10_UA =   0x01,
+    IDAC_50_UA =   0x02,
+    IDAC_100_UA =  0x03,
+    IDAC_250_UA =  0x04,
+    IDAC_500_UA =  0x05,
+    IDAC_750_UA =  0x06,
     IDAC_1000_UA = 0x07,
     IDAC_1500_UA = 0x08,
     IDAC_2000_UA = 0x09
@@ -77,13 +77,13 @@ enum idac_mag
  */
 enum adc_gain
 {
-    GAIN_1 = 0x00,
-    GAIN_2 = 0x01,
-    GAIN_4 = 0x02,
-    GAIN_8 = 0x03,
-    GAIN_16 = 0x04,
-    GAIN_32 = 0x05,
-    GAIN_64 = 0x06,
+    GAIN_1 =   0x00,
+    GAIN_2 =   0x01,
+    GAIN_4 =   0x02,
+    GAIN_8 =   0x03,
+    GAIN_16 =  0x04,
+    GAIN_32 =  0x05,
+    GAIN_64 =  0x06,
     GAIN_128 = 0x07
 };
 
@@ -93,8 +93,8 @@ enum adc_gain
 enum adc_ref_voltage_source
 {
     REF_INTERNAL = 0x00, // 2.5V Internal
-    REF_EXT_0 = 0x01,    // External Ref 0
-    REF_EXT_1 = 0x02,    // External Ref 1
+    REF_EXT_0 =    0x01, // External Ref 0
+    REF_EXT_1 =    0x02  // External Ref 1
 };
 
 /**

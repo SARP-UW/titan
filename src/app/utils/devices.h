@@ -110,20 +110,15 @@ static struct adc_spi_dev adc_dev = {
 };
 
 static const struct adc_channel adc_channels[] = {
-	{.pos_pin = AIN5,
-	 .neg_pin = AINCOM,
-	 .gain = GAIN_1,
-	 .source = REF_EXT_1,
-	 .ref_uv = 5000000,
-	 .name = "U5, AIN5: external ref"},
-
-	// {.pos_pin = AIN5,
-	//  .neg_pin = AINCOM,
-	//  .gain = GAIN_1,
-	//  .source = REF_INTERNAL,
-	//  .ref_uv = 2500000,
-	//  .name = "U5, AIN5: internal 1 ref"}
-	 };
+	{
+		.pos_pin = AIN5,
+		.neg_pin = AINCOM,
+		.gain = GAIN_1,
+		.source = REF_EXT_1,
+		.ref_uv = 5000000,
+		.name = "U5, AIN5: external ref"
+	}
+};
 
 static const uint8_t adc_channel_count = (uint8_t)(sizeof(adc_channels) / sizeof(adc_channels[0]));
 
