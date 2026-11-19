@@ -82,12 +82,20 @@ void _start() { // NOLINT(misc-use-internal-linkage)
     // tal_set_mode(rxpin, 1);
     // tal_set_pin(txpin, 1);
     // tal_set_pin(rxpin, 0);
-    tal_enable_clock((int)RS485_DE);
-    tal_enable_clock((int)RS485_RE);
-    tal_set_mode((int)RS485_DE, 1);
-    tal_set_mode((int)RS485_RE, 1);
-    tal_set_pin((int)RS485_DE, 1);
-    tal_set_pin((int)RS485_RE, 1);
+
+    // tal_enable_clock(39);
+    // tal_set_mode(39, 1);
+
+    // while (1) {
+    //     tal_set_pin(39, 1);
+    //     for (int i = 0; i < 1000; i++) {
+    //         asm("nop");
+    //     }
+    //     tal_set_pin(39, 0);
+    //     for (int i = 0; i < 1000; i++) {
+    //         asm("nop");
+    //     }
+    // }
 
     state_comm_init(&state_comm_shared);
     state_comm_shared.last_command_status = COMMAND_STATUS_WAITING;
@@ -124,6 +132,13 @@ void _start() { // NOLINT(misc-use-internal-linkage)
     // state_comm_shared.last_command_id = 255;
     // state_comm_shared.last_command_status = 255;
 
+    
+    tal_enable_clock((int)RS485_DE);
+    tal_enable_clock((int)RS485_RE);
+    tal_set_mode((int)RS485_DE, 1);
+    tal_set_mode((int)RS485_RE, 1);
+    tal_set_pin((int)RS485_DE, 1);
+    tal_set_pin((int)RS485_RE, 1);
     while (1) {
     // asm("BKPT #0");
         size_t rx_len = 0U;
