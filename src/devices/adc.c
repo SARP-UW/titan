@@ -239,7 +239,7 @@ static uint8_t ref_helper(enum adc_ref_voltage_source source, enum ti_errc_t *er
 }
 
 // ref: 7.3; view (1) for more specification
-int adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc)
+int32_t adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc)
 {
     if (dev.inst < 1 || dev.inst > 6 || !channel)
     {
@@ -263,6 +263,7 @@ int adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc)
         return -1;
     }
 
+    // set reference source
     uint8_t ref_reg = ref_helper(channel->source, errc);
     adc_wreg(REF_REG, ref_reg, errc);
     if (*errc != TI_ERRC_NONE)
@@ -286,7 +287,7 @@ int adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc)
     return (int32_t)final_voltage;
 }
 
-int adc_read_voltage_diff(struct adc_channel channel1, struct adc_channel channel2, enum ti_errc_t *errc)
+int32_t adc_read_voltage_diff(struct adc_channel channel1, struct adc_channel channel2, enum ti_errc_t *errc)
 {
     int32_t voltage1 = adc_read_voltage(&channel1, errc);
     int32_t voltage2 = adc_read_voltage(&channel2, errc);
@@ -371,7 +372,7 @@ int adc_get_gpio(enum adc_pin pin, bool default_high, enum ti_errc_t *errc)
     if (idx < 0 || idx > 4)
     {
         *errc = TI_ERRC_INVALID_ARG;
-        return;
+        return -1;
     }
 
     // read GPIO value

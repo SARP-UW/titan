@@ -104,21 +104,17 @@ static temperature_t temperature_dev2 = {
 	}
 };
 
-static struct adc_spi_dev adc_dev = {
+static struct adc_spi_dev adc_dev1 = {
 	.inst = (uint8_t)SENSOR_SPI_INST,
 	.ss_pin = (uint8_t)SENSOR_CS_1
 };
 
-static const struct adc_channel adc_channels[] = {
-	{
-		.pos_pin = AIN5,
-		.neg_pin = AINCOM,
-		.gain = GAIN_1,
-		.source = REF_EXT_1,
-		.ref_uv = 5000000,
-		.name = "U5, AIN5: external ref"
-	}
+static struct adc_spi_dev adc_dev2 = {
+	.inst = (uint8_t)SENSOR_SPI_INST,
+	.ss_pin = (uint8_t)SENSOR_CS_2
 };
+
+static const struct adc_channel adc_channels[] = {{.pos_pin = AIN5, .neg_pin = AINCOM, .gain = GAIN_1, .source = REF_EXT_1, .ref_uv = 5000000, .name = "U5, AIN5: external ref"}};
 
 static const uint8_t adc_channel_count = (uint8_t)(sizeof(adc_channels) / sizeof(adc_channels[0]));
 

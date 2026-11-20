@@ -132,7 +132,7 @@ void adc_init(struct adc_spi_dev *device, enum ti_errc_t *errc);
  * @param errc TI_ERRC_NONE if no errors occur, otherwise an error code
  * @return the raw voltage of the specified channel
  */
-int adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc);
+int32_t adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc);
 
 /**
  * @brief Reads two separate adc pins and returns the mathematical difference (pin1 - pin2)
@@ -142,7 +142,7 @@ int adc_read_voltage(const struct adc_channel *channel, enum ti_errc_t *errc);
  * @param errc TI_ERRC_NONE if no errors occur, otherwise an error code
  * @return the difference in voltage between channel1 and channel2
  */
-int adc_read_voltage_diff(struct adc_channel channel1, struct adc_channel channel2, enum ti_errc_t *errc);
+int32_t adc_read_voltage_diff(struct adc_channel channel1, struct adc_channel channel2, enum ti_errc_t *errc);
 
 /**
  * @brief Sets the IDAC magnitude and routes it to specific pins. Only two pins can be set at a time. Magnitude will apply to both pins at the same time.
