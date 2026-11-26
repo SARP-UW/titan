@@ -48,8 +48,11 @@ static void check_pwm_config_validity(struct ti_pwm_config_t pwm_config, enum ti
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM clock frequency must be positive"); return; //
     }
 
-    uint32_t freq_prescaler = pwm_config.clock_freq / pwm_config.freq;
-    if (freq_prescaler == 0 || freq_prescaler > UINT16_MAX) {
+    // Determine the auto reload value 
+    uint32_t  auto_reload_value = pwm_config.clock_freq / pwm_config.freq; 
+   
+    
+    if (auto_reload_value == 0) {
         TI_SET_ERRC(errc, TI_ERRC_INVALID_ARG, "PWM prescaler calculation invalid"); return; //
     }
 
@@ -190,10 +193,15 @@ void ti_set_pwm(struct ti_pwm_config_t pwm_config, enum ti_errc_t *errc) {
         arr_field = G_TIMx_ARR_ARR_32B;
     }
 
-    // Set frequency of timer (using the correct 16-bit or 32-bit field)
-    uint32_t freq_prescaler = (pwm_config.clock_freq / pwm_config.freq) - 1;
+    //Determine the prescaler of the timer 
+    uint32_t psc_divider = (((pwm_config.clock_freq/pwm_config.freq) + UINT16_MAX - 1) / UINT16_MAX);
+    uint32_t psc_value = psc_divider - 1; 
 
-    WRITE_FIELD(G_TIMx_ARR[pwm_config.instance], arr_field, freq_prescaler);
+    // Set auto reload value of timer (using the correct 16-bit or 32-bit field)
+    uint32_t arr_value = (pwm_config.clock_freq / pwm_config.freq) / psc_divider - 1; 
+    
+    WRITE_FIELD(G_TIMx_ARR[pwm_config.instance], arr_field, arr_value);
+    WRITE_FIELD(G_TIMx_PSC[pwm_config.instance], G_TIMx_PSC_PSC, psc_value);
 
     // Determine the appropriate CCR field based on 32-bit vs 16-bit
     field32_t ccr_field_1 = G_TIMx_CCR1_CCR1_L;
@@ -208,7 +216,8 @@ void ti_set_pwm(struct ti_pwm_config_t pwm_config, enum ti_errc_t *errc) {
     }
 
     // Set duty cycle
-    uint32_t ccr_value = (freq_prescaler * pwm_config.duty) / MAX_DUTY_CYCLE;
+    uint32_t ccr_value = (arr_value * pwm_config.duty) / MAX_DUTY_CYCLE; 
+   
 
     switch(pwm_config.channel) {
         case 1:
@@ -238,8 +247,8 @@ void ti_set_pwm(struct ti_pwm_config_t pwm_config, enum ti_errc_t *errc) {
 
     // Enable PWM channel output on the timer
     SET_FIELD(G_TIMx_CCER[pwm_config.instance], G_TIMx_CCER_CCxE[pwm_config.channel]);
-    // Enable the timer
-    SET_FIELD(G_TIMx_CR1[pwm_config.instance], G_TIMx_CR1_CEN);
     // Enable PWM output
     SET_FIELD(G_TIMx_CR1[pwm_config.instance], G_TIMx_CR1_ARPE);
+    // Enable the timer
+    SET_FIELD(G_TIMx_CR1[pwm_config.instance], G_TIMx_CR1_CEN);
 }
